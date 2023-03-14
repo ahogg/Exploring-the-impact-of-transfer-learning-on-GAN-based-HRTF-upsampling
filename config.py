@@ -10,11 +10,11 @@ class Config:
 
     def __init__(self, tag, using_hpc):
 
-        self.dataset = 'SONICOM'
-        self.tag = 'pub-prep-upscale-sonicom-tl'
+        self.dataset = 'ARI'
+        self.tag = 'upscale-4-ari-tl-sonicom'
 
-        self.start_with_existing_model = False
-        self.existing_model_tag = 'upscale-4-ari-tl-sonicom'
+        self.start_with_existing_model = True
+        self.existing_model_tag = 'pub-prep-upscale-sonicom-tl'
 
         # overwrite --tag with argument provided
         if tag is not None:
@@ -30,7 +30,7 @@ class Config:
         # Data dirs
         if using_hpc:
             # HPC data dirs
-            self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-GANs-27Sep22-prep-for-publication'
+            self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-adversarial-network-using-a-gnomonic-equiangular-projection'
             self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
         else:
             # local data dirs
