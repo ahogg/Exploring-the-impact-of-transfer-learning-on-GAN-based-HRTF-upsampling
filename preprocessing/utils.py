@@ -25,10 +25,11 @@ def clear_create_directories(config):
     Path(config.train_hrtf_dir).mkdir(parents=True, exist_ok=True)
     Path(config.valid_hrtf_dir).mkdir(parents=True, exist_ok=True)
 
-    shutil.rmtree(Path(config.train_original_hrtf_dir), ignore_errors=True)
-    shutil.rmtree(Path(config.valid_original_hrtf_dir), ignore_errors=True)
-    Path(config.train_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
-    Path(config.valid_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+    if config.dataset != 'SONICOMSynthetic':
+        shutil.rmtree(Path(config.train_original_hrtf_dir), ignore_errors=True)
+        shutil.rmtree(Path(config.valid_original_hrtf_dir), ignore_errors=True)
+        Path(config.train_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+        Path(config.valid_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
 
 
 def load_data(data_folder, load_function, domain, side, subject_ids=None):
@@ -87,8 +88,10 @@ def merge_left_right_hrtfs(input_dir, output_dir):
 def merge_files(config):
     merge_left_right_hrtfs(config.train_hrtf_dir, config.train_hrtf_merge_dir)
     merge_left_right_hrtfs(config.valid_hrtf_dir, config.valid_hrtf_merge_dir)
-    merge_left_right_hrtfs(config.train_original_hrtf_dir, config.train_original_hrtf_merge_dir)
-    merge_left_right_hrtfs(config.valid_original_hrtf_dir, config.valid_original_hrtf_merge_dir)
+
+    if config.dataset != 'SONICOMSynthetic':
+        merge_left_right_hrtfs(config.train_original_hrtf_dir, config.train_original_hrtf_merge_dir)
+        merge_left_right_hrtfs(config.valid_original_hrtf_dir, config.valid_original_hrtf_merge_dir)
 
 
 def get_hrtf_from_ds(ds, index):
@@ -246,10 +249,12 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
 def gen_sofa_preprocess(config, cube, sphere, sphere_original):
     convert_to_sofa(config.train_hrtf_merge_dir, config, cube, sphere)
     convert_to_sofa(config.valid_hrtf_merge_dir, config, cube, sphere)
-    convert_to_sofa(config.train_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
-    convert_to_sofa(config.valid_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
-    convert_to_sofa(config.train_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
-    convert_to_sofa(config.valid_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
+
+    if config.dataset != 'SONICOMSynthetic':
+        convert_to_sofa(config.train_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
+        convert_to_sofa(config.valid_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
+        convert_to_sofa(config.train_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
+        convert_to_sofa(config.valid_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
 
 
 def gen_sofa_baseline(config, barycentric_data_folder, cube, sphere):
