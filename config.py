@@ -10,8 +10,9 @@ class Config:
 
     def __init__(self, tag, using_hpc):
 
+        # self.dataset = 'SONICOM'
         self.dataset = 'SONICOMSynthetic'
-        self.tag = 'pub-prep-upscale-sonicom-test'
+        self.tag = 'pub-prep-upscale-sonicom-synthetic'
 
         self.start_with_existing_model = False
         self.existing_model_tag = 'upscale-4-ari-tl-sonicom'
@@ -26,11 +27,11 @@ class Config:
         self.hrtf_size = 16
         self.upscale_factor = 4  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
+        self.hrir_samplerate = 48000.0
 
         # Data dirs
         if using_hpc:
             # HPC data dirs
-
             self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-' \
                                   'adversarial-network-using-a-gnomonic-equiangular-projection'
             self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
@@ -65,17 +66,17 @@ class Config:
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
 
         # Training hyperparams
-        self.batch_size = 8
-        self.num_workers = 4
+        self.batch_size = 4
+        self.num_workers = 12
         self.num_epochs = 250  # was originally 250
         self.lr_gen = 0.0002
-        self.lr_dis = 0.000001
+        self.lr_dis = 0.0000015
         # how often to train the generator
         self.critic_iters = 4
 
         # Loss function weight
-        self.content_weight = 1.0
-        self.adversarial_weight = 0.1
+        self.content_weight = 0.001
+        self.adversarial_weight = 0.001
 
         # betas for Adam optimizer
         self.beta1 = 0.9

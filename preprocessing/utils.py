@@ -208,7 +208,7 @@ def save_sofa(clean_hrtf, config, cube_coords, sphere_coords, sofa_path_output, 
 
     sofa = sf.Sofa("SimpleFreeFieldHRIR")
     sofa.Data_IR = full_hrirs
-    sofa.Data_SamplingRate = 48000
+    sofa.Data_SamplingRate = config.hrir_samplerate
     sofa.Data_Delay = delays
     sofa.SourcePosition = source_positions
     sf.write_sofa(sofa_path_output, sofa)
