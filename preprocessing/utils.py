@@ -364,11 +364,13 @@ def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sph
 
 def calc_hrtf(hrirs):
     """FFT to obtain HRTF from HRIR"""
+    nbins = 256
     magnitudes = []
     phases = []
+
     for hrir in hrirs:
         # remove value that corresponds to 0 Hz
-        hrtf = scipy.fft.rfft(hrir)[1:]
+        hrtf = scipy.fft.rfft(hrir, nbins)[1:]
         magnitude = abs(hrtf)
         phase = [cmath.phase(x) for x in hrtf]
         magnitudes.append(magnitude)

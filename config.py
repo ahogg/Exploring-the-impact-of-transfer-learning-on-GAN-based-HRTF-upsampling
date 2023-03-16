@@ -26,7 +26,7 @@ class Config:
         self.gen_sofa_flag = True
         self.hrtf_size = 16
         self.upscale_factor = 4  # can only take values: 2, 4 ,8, 16
-        self.train_samples_ratio = 0.8
+        self.train_samples_ratio = 1.0
         self.hrir_samplerate = 48000.0
 
         # Data dirs
@@ -50,7 +50,7 @@ class Config:
         if  self.dataset == 'SONICOMSynthetic':
             self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/SONICOM_projection_{self.hrtf_size}'
 
-        self.data_dir = '/data/' + self.dataset
+        self.data_dir = '/data-transfer-learning/' + self.dataset
         self.baseline_dir = '/baseline/' + self.dataset
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'

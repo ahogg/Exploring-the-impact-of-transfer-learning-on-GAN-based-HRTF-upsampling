@@ -82,7 +82,8 @@ def main(mode, tag, using_hpc):
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
 
             if config.dataset == 'SONICOMSynthetic':
-                clean_hrtf = interpolate_synthetic_fft(ds[i]['features'], cube, edge_len=16)
+                clean_hrtf = interpolate_synthetic_fft(config, ds[i]['features'], cube, fs_original=ds.hrir_samplerate,
+                                                       edge_len=16)
                 sphere_original = None
             else:
                 clean_hrtf = interpolate_fft(cs, ds[i]['features'], sphere, sphere_triangles, sphere_coeffs, cube,
