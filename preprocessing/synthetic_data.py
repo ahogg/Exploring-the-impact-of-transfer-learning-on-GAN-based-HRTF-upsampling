@@ -7,15 +7,11 @@ PI_4 = np.pi / 4
 
 def interpolate_synthetic_fft(config, features, cube, fs_original, edge_len):
 
-    fs_output = config.hrir_samplerate
-
     # Resample data so that training and validation sets are created at the same fs ('config.hrir_samplerate').
-    features_resampled = []
-    for feature in features:
-        number_of_samples = round(len(feature) * float(fs_output) / fs_original)
-        features_resampled.append(sps.resample(feature, number_of_samples))
+    number_of_samples = round(np.shape(features)[-1] * float(config.hrir_samplerate) / fs_original)
+    features_resampled = sps.resample(np.array(features).T, number_of_samples).T
 
-    magnitudes, _ = calc_hrtf(features)
+    magnitudes, _ = calc_hrtf(features_resampled)
 
     # create empty list of lists of lists and initialize counter
     magnitudes_raw = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]

@@ -86,8 +86,8 @@ def main(mode, tag, using_hpc):
                                                        edge_len=16)
                 sphere_original = None
             else:
-                clean_hrtf = interpolate_fft(cs, ds[i]['features'], sphere, sphere_triangles, sphere_coeffs, cube,
-                                             config.hrtf_size)
+                clean_hrtf = interpolate_fft(config, cs, ds[i]['features'], sphere, sphere_triangles, sphere_coeffs,
+                                             cube, fs_original=ds.hrir_samplerate, edge_len=config.hrtf_size)
                 hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(ds, i)
 
             # save cleaned hrtfdata

@@ -7,9 +7,11 @@ import numpy as np
 import torch
 import scipy
 from scipy.signal import hilbert
+import scipy.signal as sps
 import shutil
 from pathlib import Path
 import re
+
 
 from preprocessing.barycentric_calcs import calc_barycentric_coordinates, get_triangle_vertices
 from preprocessing.convert_coordinates import convert_cube_to_sphere
@@ -378,7 +380,7 @@ def calc_hrtf(hrirs):
     return magnitudes, phases
 
 
-def interpolate_fft(cs, features, sphere, sphere_triangles, sphere_coeffs, cube, edge_len):
+def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs, cube, fs_original, edge_len):
     """Combine all data processing steps into one function
 
     :param cs: Cubed sphere object associated with dataset
@@ -392,10 +394,16 @@ def interpolate_fft(cs, features, sphere, sphere_triangles, sphere_coeffs, cube,
     :param cube: A list of locations of the gridded cubed sphere points to be interpolated, given as (panel, x, y)
     :param edge_len: Edge length of gridded cube
     """
+
     # interpolated_hrirs is a list of interpolated HRIRs corresponding to the points specified in load_sphere and
     # load_cube, all three lists share the same ordering
     interpolated_hrirs = calc_all_interpolated_features(cs, features, sphere, sphere_triangles, sphere_coeffs)
-    magnitudes, phases = calc_hrtf(interpolated_hrirs)
+
+    # Resample data so that training and validation sets are created at the same fs ('config.hrir_samplerate').
+    number_of_samples = round(np.shape(interpolated_hrirs)[-1] * float(config.hrir_samplerate) / fs_original)
+    interpolated_hrirs_resampled = sps.resample(np.array(interpolated_hrirs).T, number_of_samples).T
+
+    magnitudes, phases = calc_hrtf(interpolated_hrirs_resampled)
 
     # create empty list of lists of lists and initialize counter
     magnitudes_raw = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]
