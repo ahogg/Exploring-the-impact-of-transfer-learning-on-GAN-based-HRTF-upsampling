@@ -10,11 +10,13 @@ class Config:
 
     def __init__(self, tag, using_hpc):
 
-        self.dataset = 'ARI'
-        self.tag = 'upscale-4-ari-tl-sonicom'
+        # self.dataset = 'SONICOM'
+        self.dataset = 'SONICOMSynthetic'
+        #self.dataset = 'ARI'
+        self.tag = 'pub-prep-upscale-sonicom-synthetic-16'
 
-        self.start_with_existing_model = True
-        self.existing_model_tag = 'pub-prep-upscale-sonicom-tl'
+        self.start_with_existing_model = False
+        self.existing_model_tag = 'pub-prep-upscale-sonicom-synthetic'
 
         # overwrite --tag with argument provided
         if tag is not None:
@@ -24,13 +26,15 @@ class Config:
         self.merge_flag = True
         self.gen_sofa_flag = True
         self.hrtf_size = 16
-        self.upscale_factor = 4  # can only take values: 2, 4 ,8, 16
+        self.upscale_factor = 16  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
+        self.hrir_samplerate = 48000.0
 
         # Data dirs
         if using_hpc:
             # HPC data dirs
-            self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-adversarial-network-using-a-gnomonic-equiangular-projection'
+            self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-' \
+                                  'adversarial-network-using-a-gnomonic-equiangular-projection'
             self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
         else:
             # local data dirs
@@ -42,9 +46,12 @@ class Config:
 
         self.valid_path = f'{self.data_dirs_path}/runs/{self.tag}/valid'
         self.model_path = f'{self.data_dirs_path}/runs/{self.tag}'
-        self.projection_filename = self.data_dirs_path + '/projection_coordinates/' + self.dataset + '_projection_' + str(self.hrtf_size)
 
-        self.data_dir = '/data/' + self.dataset
+        self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/{self.dataset}_projection_{self.hrtf_size}'
+        if  self.dataset == 'SONICOMSynthetic':
+            self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/SONICOM_projection_{self.hrtf_size}'
+
+        self.data_dir = '/data-transfer-learning/' + self.dataset
         self.baseline_dir = '/baseline/' + self.dataset
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'
@@ -60,17 +67,17 @@ class Config:
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
 
         # Training hyperparams
-        self.batch_size = 8
-        self.num_workers = 4
-        self.num_epochs = 250  # was originally 250
+        self.batch_size = 32
+        self.num_workers = 14
+        self.num_epochs = 300  # was originally 250
         self.lr_gen = 0.0002
-        self.lr_dis = 0.000001
+        self.lr_dis = 0.0000015
         # how often to train the generator
         self.critic_iters = 4
 
         # Loss function weight
-        self.content_weight = 1.0
-        self.adversarial_weight = 0.1
+        self.content_weight = 0.01
+        self.adversarial_weight = 0.01
 
         # betas for Adam optimizer
         self.beta1 = 0.9

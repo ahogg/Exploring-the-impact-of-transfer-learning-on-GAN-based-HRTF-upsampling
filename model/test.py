@@ -20,8 +20,8 @@ def test(config, val_prefetcher):
     model = Generator(upscale_factor=config.upscale_factor).to(device=device)
     print("Build SRGAN model successfully.")
 
-    # Load super-resolution model weights
-    model.load_state_dict(torch.load(f"{config.model_path}/Gen.pt"))
+    # Load super-resolution model weights (always uses the CPU due to HPC having long wait times)
+    model.load_state_dict(torch.load(f"{config.model_path}/Gen.pt", map_location=torch.device('cpu')))
     print(f"Load SRGAN model weights `{os.path.abspath(config.model_path)}` successfully.")
 
     param_size = 0

@@ -37,8 +37,7 @@ def train(config, train_prefetcher):
     batch_size, beta1, beta2, num_epochs, lr_gen, lr_dis, critic_iters = config.get_train_params()
 
     # get list of positive frequencies of HRTF for plotting magnitude spectrum
-    hrir_samplerate = 48000.0
-    all_freqs = scipy.fft.fftfreq(256, 1 / hrir_samplerate)
+    all_freqs = scipy.fft.fftfreq(256, 1 / config.hrir_samplerate)
     pos_freqs = all_freqs[all_freqs >= 0]
 
     # Define Generator network and transfer to CUDA

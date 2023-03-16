@@ -12,6 +12,7 @@ from model.util import load_dataset
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft, generate_euclidean_cube, gen_sofa_baseline, \
     load_data, merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories, convert_to_sofa
+from preprocessing.synthetic_data import interpolate_synthetic_fft
 from model import util
 from baselines.barycentric_interpolation import run_barycentric_interpolation
 from evaluation.lsd_metric_evaluation import run_lsd_evaluation
@@ -28,13 +29,17 @@ def main(mode, tag, using_hpc):
     config = Config(tag, using_hpc=using_hpc)
     data_dir = config.raw_hrtf_dir / config.dataset
     print(os.getcwd())
-    print(data_dir)
+    print(config.dataset)
 
     imp = importlib.import_module('hrtfdata.torch.full')
     load_function = getattr(imp, config.dataset)
 
     if mode == 'generate_projection':
         # Must be run in this mode once per dataset, finds barycentric coordinates for each point in the cubed sphere
+
+        if config.dataset == 'SONICOMSynthetic':
+            load_function = getattr(imp, 'SONICOM')
+            data_dir = config.raw_hrtf_dir / 'SONICOM'
 
         # No need to load the entire dataset in this case
         ds: load_function = load_data(data_folder=data_dir, load_function=load_function, domain='time', side='left', subject_ids='first')
@@ -46,9 +51,19 @@ def main(mode, tag, using_hpc):
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
         # val sets and saves processed data
 
-        ds: load_function = load_data(data_folder=data_dir, load_function=load_function, domain='time', side='both')
+        if config.dataset == 'SONICOMSynthetic':
+            load_function = getattr(imp, 'SONICOM')
+            data_dir_sonicom = config.raw_hrtf_dir / 'SONICOM'
+            ds: load_function = load_data(data_folder=data_dir_sonicom, load_function=load_function, domain='time', side='left', subject_ids='first')
+            cs = CubedSphere(sphere_coords=ds._selected_angles)
+
+            load_function = getattr(imp, config.dataset)
+            ds: load_function = load_data(data_folder=data_dir, load_function=load_function, domain='time', side='both')
+        else:
+            ds: load_function = load_data(data_folder=data_dir, load_function=load_function, domain='time', side='both')
+            cs = CubedSphere(sphere_coords=ds._selected_angles)
+
         # need to use protected member to get this data, no getters
-        cs = CubedSphere(sphere_coords=ds._selected_angles)
         with open(config.projection_filename, "rb") as file:
             cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
 
@@ -65,10 +80,14 @@ def main(mode, tag, using_hpc):
         for i in range(len(ds)):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
-            clean_hrtf = interpolate_fft(cs, ds[i]['features'], sphere, sphere_triangles, sphere_coeffs, cube,
-                                         config.hrtf_size)
 
-            hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(ds, i)
+            if config.dataset == 'SONICOMSynthetic':
+                clean_hrtf = interpolate_synthetic_fft(ds[i]['features'], cube, edge_len=16)
+                sphere_original = None
+            else:
+                clean_hrtf = interpolate_fft(cs, ds[i]['features'], sphere, sphere_triangles, sphere_coeffs, cube,
+                                             config.hrtf_size)
+                hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(ds, i)
 
             # save cleaned hrtfdata
             if ds[i]['group'] in train_sample:
@@ -85,11 +104,12 @@ def main(mode, tag, using_hpc):
             with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
                 pickle.dump(clean_hrtf, file)
 
-            with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
-                pickle.dump(hrtf_original, file)
+            if config.dataset != 'SONICOMSynthetic':
+                with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(hrtf_original, file)
 
-            with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
-                pickle.dump(phase_original, file)
+                with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(phase_original, file)
 
         if config.merge_flag:
             merge_files(config)

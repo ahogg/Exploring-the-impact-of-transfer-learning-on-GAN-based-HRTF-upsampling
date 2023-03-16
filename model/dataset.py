@@ -1,6 +1,7 @@
 import os
 import pickle
 import torch
+import numpy as np
 from torch.utils.data import Dataset
 
 
@@ -16,11 +17,21 @@ class TrainValidHRTFDataset(Dataset):
         transform (callable): A function/transform that takes in an HRTF and returns a transformed version.
     """
 
-    def __init__(self, hrtf_dir: str, hrtf_size: int, upscale_factor: int, transform=None) -> None:
+    def __init__(self, hrtf_dir: str, hrtf_size: int, upscale_factor: int, transform=None, run_validation =True) -> None:
         super(TrainValidHRTFDataset, self).__init__()
         # Get all hrtf file names in folder
         self.hrtf_file_names = [os.path.join(hrtf_dir, hrtf_file_name) for hrtf_file_name in os.listdir(hrtf_dir)
                                 if os.path.isfile(os.path.join(hrtf_dir, hrtf_file_name))]
+
+        if run_validation:
+            valid_hrtf_file_names = []
+            for hrtf_file_name in self.hrtf_file_names:
+                file = open(hrtf_file_name, 'rb')
+                hrtf = pickle.load(file)
+                if not np.isnan(np.sum(hrtf.cpu().data.numpy())):
+                    valid_hrtf_file_names.append(hrtf_file_name)
+            self.hrtf_file_names = valid_hrtf_file_names
+
         # Specify the high-resolution hrtf size, with equal length and width
         self.hrtf_size = hrtf_size
         # How many times the high-resolution hrtf is the low-resolution hrtf
