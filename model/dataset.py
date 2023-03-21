@@ -6,7 +6,15 @@ from torch.utils.data import Dataset
 
 
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/7292452634137d8f5d4478e44727ec1166a89125/dataset.py
+def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor):
+    # downsample hrtf
+    if upscale_factor == hrtf_size:
+        mid_pos = int(hrtf_size / 2)
+        lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
+    else:
+        lr_hrtf = torch.nn.functional.interpolate(hr_hrtf, scale_factor=1 / upscale_factor)
 
+    return lr_hrtf
 
 class TrainValidHRTFDataset(Dataset):
     """Define training/valid dataset loading methods.
@@ -55,12 +63,7 @@ class TrainValidHRTFDataset(Dataset):
             hr_hrtf = torch.permute(hrtf, (3, 0, 1, 2))
 
         # downsample hrtf
-        if self.upscale_factor == self.hrtf_size:
-            mid_pos = int(self.hrtf_size/2)
-            lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
-        else:
-            lr_hrtf = torch.nn.functional.interpolate(hr_hrtf, scale_factor=1 / self.upscale_factor)
-
+        lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor)
 
         return {"lr": lr_hrtf, "hr": hr_hrtf, "filename": self.hrtf_file_names[batch_index]}
 

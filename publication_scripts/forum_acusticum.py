@@ -1,0 +1,207 @@
+import argparse
+from main import *
+
+import matplotlib as mpl
+mpl.use('pdf')
+import matplotlib.pyplot as plt
+
+plt.rcParams['legend.fancybox'] = False
+
+
+def set_box_color(bp, color):
+    plt.setp(bp['boxes'], color=color, linewidth=0.5)
+    plt.setp(bp['whiskers'], color=color, linewidth=0.5)
+    plt.setp(bp['caps'], color=color, linewidth=0.5)
+    plt.setp(bp['medians'], color=color, linewidth=0.5)
+
+
+def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycentric, full_results_Raw=None):
+    plt.rc('font', family='serif', serif='Times New Roman')
+    plt.rc('text', usetex=True)
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
+    plt.rc('axes', labelsize=8)
+
+    fig, ax = plt.subplots()
+
+    factors = [2, 4, 8, 16]
+    ticks = [
+        r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} 1280$' % int(
+            (16 / factor) ** 2 * 5) for factor in factors]
+    # print(ticks)
+    # ticks = ['2','4','8','16']
+
+    upsample_16 = full_results_SRGAN[0]
+    upsample_8 = full_results_SRGAN[1]
+    upsample_4 = full_results_SRGAN[2]
+    upsample_2 = full_results_SRGAN[3]
+
+    upsample_16_b = full_results_Barycentric[0]
+    upsample_8_b = full_results_Barycentric[1]
+    upsample_4_b = full_results_Barycentric[2]
+    upsample_2_b = full_results_Barycentric[3]
+
+    if full_results_Raw != None:
+        upsample_16_r = full_results_Raw[0]
+        upsample_8_r = full_results_Raw[1]
+        upsample_4_r = full_results_Raw[2]
+        upsample_2_r = full_results_Raw[3]
+
+    data_a = np.vstack((upsample_2, upsample_4, upsample_8, upsample_16))
+
+    data_b = np.vstack((upsample_2_b, upsample_4_b, upsample_8_b, upsample_16_b))
+
+    if full_results_Raw != None:
+        data_c = np.vstack((upsample_2_r, upsample_4_r, upsample_8_r, upsample_16_r))
+
+    colour_2 = '#0047a4'
+    colour_1 = '#af211a'
+    colour_3 = 'g'
+
+    if full_results_Raw == None:
+        bpl = plt.boxplot(data_a.T, positions=np.array(range(len(data_a))) * 1.0 - 0.15,
+                          flierprops=dict(marker='x', markeredgecolor=colour_1, markersize=4), widths=0.17)
+        bpm = plt.boxplot(data_b.T, positions=np.array(range(len(data_b))) * 1.0 + 0.15,
+                          flierprops=dict(marker='x', markeredgecolor=colour_2, markersize=4), widths=0.17)
+    else:
+        bpl = plt.boxplot(data_a.T, positions=np.array(range(len(data_a))) * 2.0 - 0.4,
+                          flierprops=dict(marker='x', markeredgecolor=colour_1, markersize=4), widths=0.3)
+        bpm = plt.boxplot(data_b.T, positions=np.array(range(len(data_b))) * 2.0,
+                          flierprops=dict(marker='x', markeredgecolor=colour_2, markersize=4), widths=0.3)
+        bpr = plt.boxplot(data_c.T, positions=np.array(range(len(data_c))) * 2.0 + 0.4,
+                          flierprops=dict(marker='x', markeredgecolor=colour_3, markersize=4), widths=0.3)
+
+    for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+        plt.setp(bpl[element], color=colour_1, linewidth=0.7)
+        plt.setp(bpm[element], color=colour_2, linewidth=0.7)
+        if full_results_Raw != None:
+            plt.setp(bpr[element], color=colour_3, linewidth=0.7)
+
+    if full_results_Raw == None:
+        [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
+    else:
+        [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
+
+    # draw temporary red and blue lines and use them to create a legend
+    plt.plot([], c=colour_1, label='SRGAN')
+    plt.plot([], c=colour_2, label='SRGAN TL (Synthetic)')
+    if full_results_Raw != None:
+        plt.plot([], c=colour_3, label='SRGAN TL (Real)')
+
+    if full_results_Raw == None:
+        leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right",  # mode="expand",
+                        borderaxespad=0, ncol=3, handlelength=1.06)
+    else:
+        leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right",  # mode="expand",
+                        borderaxespad=0, ncol=2, handlelength=1.06)
+    leg.get_frame().set_linewidth(0.5)
+    leg.get_frame().set_edgecolor('k')
+
+    ax.yaxis.grid(zorder=0, linewidth=0.4)
+    plt.xlabel(
+        'Upsampling factor\n' + r'[No. of orginal nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes]')
+
+    plt.ylabel(ylabel)
+    if full_results_Raw == None:
+        plt.xticks(range(0, len(ticks), 1), ticks)
+        plt.xlim(-0.5, len(ticks) - 0.5)
+    else:
+        plt.xticks(range(0, len(ticks) * 2, 2), ticks)
+
+    w = 2.974
+    h = w / 1.5
+    fig.set_size_inches(w, h)
+    fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
+    fig.savefig(config.data_dirs_path + '/plots/' + name)
+
+
+def get_results(tag):
+    full_results = []
+    upscale_factors = [16, 8, 4, 2]
+    for upscale_factor in upscale_factors:
+        config = Config(tag + str(upscale_factor), using_hpc=hpc)
+        file_path = f'{config.path}/lsd_errors.pickle'
+        with open(file_path, 'rb') as file:
+            lsd_id_errors = pickle.load(file)
+        lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
+        print(f'Loading: {file_path}')
+        print('Mean: %s' % np.mean(lsd_errors))
+        print('STD: %s' % np.std(lsd_errors))
+        print('Full Results: %s' % max(lsd_errors))
+        full_results.append(lsd_errors)
+    return full_results
+
+def run_lsd_evaluation(hpc, experiment_id):
+
+    print(f'Running experiment {experiment_id}')
+    if experiment_id == 1:
+        upscale_factors = [2, 4, 8, 16]
+        datasets = ['ari', 'sonicom']
+        for dataset in datasets:
+            for upscale_factor in upscale_factors:
+
+                tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
+                        f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-{upscale_factor}']
+                for tag in tags:
+                    config = Config(tag, using_hpc=hpc)
+                    config.upscale_factor = upscale_factor
+                    config.dataset = dataset.upper()
+                    config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+                    main(config, 'test')
+    elif experiment_id == 2:
+        upscale_factors = [2, 4, 8, 16]
+        for upscale_factor in upscale_factors:
+            tags = [f'pub-prep-upscale-ari-{upscale_factor}',
+                    f'pub-prep-upscale-ari-sonicom-tl-{upscale_factor}',
+                    f'pub-prep-upscale-ari-sonicom-synthetic-tl-{upscale_factor}']
+            for tag in tags:
+                config = Config(tag, using_hpc=hpc)
+                config.upscale_factor = upscale_factor
+                config.dataset = 'ARI'
+                config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+                main(config, 'test')
+    else:
+        print('Experiment does not exist')
+
+
+
+def plot_lsd_evaluation(hpc, experiment_id):
+    tag = None
+    config = Config(tag, using_hpc=hpc)
+
+    if experiment_id == 1:
+        datasets = ['ari', 'sonicom']
+        for dataset in datasets:
+            full_results_SD_dataset = get_results(f'pub-prep-upscale-{dataset}-')
+            full_results_SD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-')
+            plot_boxplot(config, f'SD_boxplot_ex_1_{dataset}', 'SD error [dB]', full_results_SD_dataset, full_results_SD_dataset_sonicom_synthetic_tl)
+    elif experiment_id == 2:
+        full_results_SD_ari = get_results(f'pub-prep-upscale-ari-')
+        full_results_SD_ari_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-ari-sonicom-synthetic-tl-')
+        full_results_SD_ari_sonicom_tl = get_results(f'pub-prep-upscale-ari-sonicom-tl-')
+        plot_boxplot(config, f'SD_boxplot_ex_2_ari', 'SD error [dB]', full_results_SD_ari, full_results_SD_ari_sonicom_synthetic_tl, full_results_SD_ari_sonicom_tl)
+
+
+    else:
+        print('Experiment does not exist')
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode")
+    parser.add_argument("-c", "--hpc")
+    args = parser.parse_args()
+
+    if args.hpc == "True":
+        hpc = True
+    elif args.hpc == "False":
+        hpc = False
+    else:
+        raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
+
+    experiment_id = 1
+    if args.mode == 'Evaluation':
+        run_lsd_evaluation(hpc, experiment_id)
+    elif args.mode == 'Plot':
+        plot_lsd_evaluation(hpc, experiment_id)
+    else:
+        print('Please specify a valid mode')

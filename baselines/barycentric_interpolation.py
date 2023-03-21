@@ -6,6 +6,7 @@ import torch
 import shutil
 from pathlib import Path
 
+from model.dataset import downsample_hrtf
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft
 from preprocessing.convert_coordinates import convert_cube_to_sphere
@@ -36,8 +37,7 @@ def run_barycentric_interpolation(config, barycentric_data_folder, subject_file=
         with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
             hr_hrtf = pickle.load(f)
 
-        lr_hrtf = torch.permute(torch.nn.functional.interpolate(torch.permute(hr_hrtf, (3, 0, 1, 2)),
-                                                                scale_factor=1 / config.upscale_factor), (1, 2, 3, 0))
+        lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor), (1, 2, 3, 0))
 
         sphere_coords_lr = []
         sphere_coords_lr_index = []

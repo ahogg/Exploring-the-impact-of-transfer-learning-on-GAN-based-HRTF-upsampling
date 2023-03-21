@@ -11,9 +11,12 @@ class Config:
     def __init__(self, tag, using_hpc):
 
         # self.dataset = 'SONICOM'
-        self.dataset = 'SONICOMSynthetic'
-        #self.dataset = 'ARI'
-        self.tag = 'pub-prep-upscale-sonicom-synthetic-16'
+        # self.dataset = 'SONICOMSynthetic'
+        self.dataset = 'ARI'
+        # self.tag = 'pub-prep-upscale-sonicom-synthetic-16'
+
+        # self.tag = 'pub-prep-upscale-sonicom-2'
+        self.tag = 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
 
         self.start_with_existing_model = False
         self.existing_model_tag = 'pub-prep-upscale-sonicom-synthetic'
@@ -26,7 +29,7 @@ class Config:
         self.merge_flag = True
         self.gen_sofa_flag = True
         self.hrtf_size = 16
-        self.upscale_factor = 16  # can only take values: 2, 4 ,8, 16
+        self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
 
@@ -41,17 +44,18 @@ class Config:
             self.data_dirs_path = '/home/aos13/HRTF-GANs-27Sep22-prep-for-publication'
             self.raw_hrtf_dir = Path('/home/aos13/HRTF_datasets')
 
-        self.path = f'{self.data_dirs_path}/runs/{self.tag}'
-        self.existing_model_path = f'{self.data_dirs_path}/runs/{self.existing_model_tag}'
+        self.runs_folder = '/runs-hpc'
+        self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
+        self.existing_model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.existing_model_tag}'
 
-        self.valid_path = f'{self.data_dirs_path}/runs/{self.tag}/valid'
-        self.model_path = f'{self.data_dirs_path}/runs/{self.tag}'
+        self.valid_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}/valid'
+        self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
 
         self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/{self.dataset}_projection_{self.hrtf_size}'
         if  self.dataset == 'SONICOMSynthetic':
             self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/SONICOM_projection_{self.hrtf_size}'
 
-        self.data_dir = '/data-transfer-learning/' + self.dataset
+        self.data_dir = '/data/' + self.dataset
         self.baseline_dir = '/baseline/' + self.dataset
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'
@@ -67,8 +71,8 @@ class Config:
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
 
         # Training hyperparams
-        self.batch_size = 32
-        self.num_workers = 14
+        self.batch_size = 4
+        self.num_workers = 4
         self.num_epochs = 300  # was originally 250
         self.lr_gen = 0.0002
         self.lr_dis = 0.0000015
@@ -94,7 +98,7 @@ class Config:
         for k, v in self.__dict__.items():
             j[k] = v
         with open(f'{self.path}/config.json', 'w') as f:
-            json.dump(j, f)
+            json.dump(list(j), f)
 
     def load(self):
         with open(f'{self.path}/config.json', 'r') as f:

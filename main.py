@@ -24,9 +24,8 @@ torch.manual_seed(0)
 np.random.seed(0)
 
 
-def main(mode, tag, using_hpc):
+def main(config, mode):
     # Initialise Config object
-    config = Config(tag, using_hpc=using_hpc)
     data_dir = config.raw_hrtf_dir / config.dataset
     print(os.getcwd())
     print(config.dataset)
@@ -183,4 +182,6 @@ if __name__ == '__main__':
         tag = args.tag
     else:
         tag = None
-    main(args.mode, tag, hpc)
+
+    config = Config(tag, using_hpc=hpc)
+    main(config, args.mode)
