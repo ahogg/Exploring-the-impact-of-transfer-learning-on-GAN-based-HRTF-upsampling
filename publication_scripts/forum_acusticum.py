@@ -189,9 +189,9 @@ def get_results(tag, mode):
 
 
 
-def run_evaluation(hpc, experiment_id, mode, test_id=None):
+def run_evaluation(hpc, experiment_id, type, test_id=None):
 
-    print(f'Running {mode} experiment {experiment_id}')
+    print(f'Running {type} experiment {experiment_id}')
     config_files = []
     if experiment_id == 1:
         upscale_factors = [2, 4, 8, 16]
@@ -247,16 +247,18 @@ def run_evaluation(hpc, experiment_id, mode, test_id=None):
     for config in config_files:
         if experiment_id == 3:
             run_target_localisation_evaluation(config, config.valid_path)
-        elif mode == 'lsd':
+        elif type == 'lsd':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
             test(config, test_prefetcher)
             run_lsd_evaluation(config, config.valid_path)
-        elif mode == 'localisation':
+        elif type == 'localisation':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
             test(config, test_prefetcher)
             run_localisation_evaluation(config, config.valid_path)
+        else:
+            print(f'Type '{type}' does not exist')
 
 
 
@@ -312,11 +314,10 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
-
     # Note that experiment_id=3 does not have a mode
     if args.mode == 'evaluation':
-        run_evaluation(hpc, args.exp, args.type, args.test)
+        run_evaluation(hpc, int(args.exp), args.type, int(args.test))
     elif args.mode == 'plot':
-        plot_evaluation(hpc, args.exp, args.type)
+        plot_evaluation(hpc, int(args.exp), args.type)
     else:
         print('Please specify a valid mode')
