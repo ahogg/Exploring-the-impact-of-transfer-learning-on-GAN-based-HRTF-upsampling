@@ -189,20 +189,14 @@ def get_results(tag, mode):
 
 
 
-def run_evaluation(hpc, experiment_id, mode):
+def run_evaluation(hpc, experiment_id, mode, test_id=None):
 
     print(f'Running {mode} experiment {experiment_id}')
+    config_files = []
     if experiment_id == 1:
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
         for dataset in datasets:
-
-            tag = None
-            config = Config(tag, using_hpc=hpc)
-            config.dataset = 'ARI'
-            config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
-            run_target_localisation_evaluation(config)
-
             for upscale_factor in upscale_factors:
 
                 tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
@@ -212,26 +206,13 @@ def run_evaluation(hpc, experiment_id, mode):
                     config.upscale_factor = upscale_factor
                     config.dataset = dataset.upper()
                     config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
-
-                    _, test_prefetcher = load_dataset(config, mean=None, std=None)
-                    print("Loaded all datasets successfully.")
-                    test(config, test_prefetcher)
-                    if mode == 'lsd':
-                        run_lsd_evaluation(config, config.valid_path)
-                    elif mode == 'localisation':
-                        run_localisation_evaluation(config, config.valid_path)
+                    config_files.append(config)
+                    print(f'{len(config_files)} config files created successfully.')
 
     elif experiment_id == 2:
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
         for dataset in datasets:
-
-            tag = None
-            config = Config(tag, using_hpc=hpc)
-            config.dataset = 'ARI'
-            config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
-            run_target_localisation_evaluation(config)
-
             other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
             for upscale_factor in upscale_factors:
                 tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
@@ -242,17 +223,42 @@ def run_evaluation(hpc, experiment_id, mode):
                     config.upscale_factor = upscale_factor
                     config.dataset = 'ARI'
                     config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+                    config_files.append(config)
+        print(f'{len(config_files)} config files created successfully.')
 
-                    _, test_prefetcher = load_dataset(config, mean=None, std=None)
-                    print("Loaded all datasets successfully.")
+    elif experiment_id == 3:
+        datasets = ['ari', 'sonicom']
+        for dataset in datasets:
+            tag = None
+            config = Config(tag, using_hpc=hpc)
+            config.dataset = dataset
+            config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+            config_files.append(config)
+        print(f'{len(config_files)} config files created successfully.')
 
-                    test(config, test_prefetcher)
-                    if mode == 'lsd':
-                        run_lsd_evaluation(config, config.valid_path)
-                    elif mode == 'localisation':
-                        run_localisation_evaluation(config, config.valid_path)
     else:
         print('Experiment does not exist')
+        return
+
+    if test_id is not None:
+        config_files = [config_files[test_id]]
+
+    print(f'Running a total of {len(config_files)} config files')
+    for config in config_files:
+        if experiment_id == 3:
+            run_target_localisation_evaluation(config, config.valid_path)
+        elif mode == 'lsd':
+            _, test_prefetcher = load_dataset(config, mean=None, std=None)
+            print("Loaded all datasets successfully.")
+            test(config, test_prefetcher)
+            run_lsd_evaluation(config, config.valid_path)
+        elif mode == 'localisation':
+            _, test_prefetcher = load_dataset(config, mean=None, std=None)
+            print("Loaded all datasets successfully.")
+            test(config, test_prefetcher)
+            run_localisation_evaluation(config, config.valid_path)
+
+
 
 def plot_evaluation(hpc, experiment_id, mode):
     tag = None
@@ -294,6 +300,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("mode")
     parser.add_argument("-c", "--hpc")
+    parser.add_argument("exp")
+    parser.add_argument("type")
+    parser.add_argument("test")
     args = parser.parse_args()
 
     if args.hpc == "True":
@@ -303,10 +312,11 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
-    experiment_id = 2
+
+    # Note that experiment_id=3 does not have a mode
     if args.mode == 'Evaluation':
-        run_evaluation(hpc, experiment_id, 'localisation')
+        run_evaluation(hpc, args.exp, args.type, args.test)
     elif args.mode == 'Plot':
-        plot_evaluation(hpc, experiment_id, 'lsd')
+        plot_evaluation(hpc, args.exp, args.type)
     else:
         print('Please specify a valid mode')
