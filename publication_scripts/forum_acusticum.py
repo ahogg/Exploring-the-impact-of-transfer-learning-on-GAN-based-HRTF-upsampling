@@ -258,7 +258,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             test(config, test_prefetcher)
             run_localisation_evaluation(config, config.valid_path)
         else:
-            print(f'Type '{type}' does not exist')
+            print(f'Type ({type}) does not exist')
 
 
 
