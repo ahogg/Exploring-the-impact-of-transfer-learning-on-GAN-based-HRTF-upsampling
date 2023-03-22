@@ -300,9 +300,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("mode")
     parser.add_argument("-c", "--hpc")
-    parser.add_argument("exp")
-    parser.add_argument("type")
-    parser.add_argument("test")
+    parser.add_argument("--exp")
+    parser.add_argument("--type")
+    parser.add_argument("--test")
     args = parser.parse_args()
 
     if args.hpc == "True":
