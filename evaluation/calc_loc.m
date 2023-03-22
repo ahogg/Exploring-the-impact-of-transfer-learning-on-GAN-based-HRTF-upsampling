@@ -11,7 +11,7 @@ function [pol_acc1, pol_rms1, querr1] = calc_loc(fullSofa1FileName, fullSofa2Fil
     [h2,fs2,az2,el2] = sofa2hrtf(Sofa2);
     fs = 48000;
     fs2 = 48000;
-    num_exp = 1;
+    num_exp = 10;
 
     % Run barumerli2021 for h1
     disp('Running barumerli2021 for first HRTF...'), tic

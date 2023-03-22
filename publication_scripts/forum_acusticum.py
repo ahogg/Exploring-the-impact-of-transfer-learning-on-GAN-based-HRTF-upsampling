@@ -140,7 +140,7 @@ def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycent
 
     ax.yaxis.grid(zorder=0, linewidth=0.4)
     plt.xlabel(
-        'Upsampling factor\n' + r'[No. of orginal nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes]')
+        'Upsampling \n' + r'[No. of orginal nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes]')
 
     plt.ylabel(ylabel)
     if full_results_Raw == None:
@@ -156,25 +156,41 @@ def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycent
     fig.savefig(config.data_dirs_path + '/plots/' + name)
 
 
-def get_results(tag):
+def get_results(tag, mode):
     full_results = []
     upscale_factors = [16, 8, 4, 2]
     for upscale_factor in upscale_factors:
         config = Config(tag + str(upscale_factor), using_hpc=hpc)
-        file_path = f'{config.path}/lsd_errors.pickle'
-        with open(file_path, 'rb') as file:
-            lsd_id_errors = pickle.load(file)
-        lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
-        print(f'Loading: {file_path}')
-        print('Mean: %s' % np.mean(lsd_errors))
-        print('STD: %s' % np.std(lsd_errors))
-        print('Full Results: %s' % max(lsd_errors))
-        full_results.append(lsd_errors)
+        if mode == 'lsd':
+            file_path = f'{config.path}/lsd_errors.pickle'
+            with open(file_path, 'rb') as file:
+                lsd_id_errors = pickle.load(file)
+            lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
+            print(f'Loading: {file_path}')
+            print('Mean LSD: %s' % np.mean(lsd_errors))
+            print('STD LSD: %s' % np.std(lsd_errors))
+            full_results.append(lsd_errors)
+        elif mode == 'localisation':
+            file_path = f'{config.path}/loc_errors.pickle'
+            with open(file_path, 'rb') as file:
+                loc_id_errors = pickle.load(file)
+            pol_acc1 = [loc_error[1] for loc_error in loc_id_errors]
+            pol_rms1 = [loc_error[2] for loc_error in loc_id_errors]
+            querr1 = [loc_error[3] for loc_error in loc_id_errors]
+            print(f'Loading: {file_path}')
+            print('Mean (STD) ACC Error: %0.3f (%0.3f)' % (np.mean(pol_acc1), np.std(pol_acc1)))
+            print('Mean (STD) RMS Error: %0.3f (%0.3f)' % (np.mean(pol_rms1), np.std(pol_rms1)))
+            print('Mean (STD) QUERR Error: %0.3f (%0.3f)' % (np.mean(querr1), np.std(querr1)))
+            full_results.append([pol_acc1, pol_rms1, querr1])
+
     return full_results
 
-def lsd_evaluation(hpc, experiment_id):
 
-    print(f'Running LSD experiment {experiment_id}')
+
+
+def run_evaluation(hpc, experiment_id, mode):
+
+    print(f'Running {mode} experiment {experiment_id}')
     if experiment_id == 1:
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
@@ -192,66 +208,68 @@ def lsd_evaluation(hpc, experiment_id):
                     _, test_prefetcher = load_dataset(config, mean=None, std=None)
                     print("Loaded all datasets successfully.")
                     test(config, test_prefetcher)
-                    run_lsd_evaluation(config, config.valid_path)
+                    if mode == 'lsd':
+                        run_lsd_evaluation(config, config.valid_path)
+                    elif mode == 'localisation':
+                        run_localisation_evaluation(config, config.valid_path)
 
     elif experiment_id == 2:
         upscale_factors = [2, 4, 8, 16]
-        for upscale_factor in upscale_factors:
-            tags = [f'pub-prep-upscale-ari-{upscale_factor}',
-                    f'pub-prep-upscale-ari-sonicom-tl-{upscale_factor}',
-                    f'pub-prep-upscale-ari-sonicom-synthetic-tl-{upscale_factor}']
-            for tag in tags:
-                config = Config(tag, using_hpc=hpc)
-                config.upscale_factor = upscale_factor
-                config.dataset = 'ARI'
-                config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
-
-                _, test_prefetcher = load_dataset(config, mean=None, std=None)
-                print("Loaded all datasets successfully.")
-                test(config, test_prefetcher)
-                run_lsd_evaluation(config, config.valid_path)
-    else:
-        print('Experiment does not exist')
-
-def localisation_evaluation(hpc, experiment_id):
-    print(f'Running localisation experiment {experiment_id}')
-    if experiment_id == 1:
-        upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
         for dataset in datasets:
+            other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
             for upscale_factor in upscale_factors:
-
                 tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
+                        f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}',
                         f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-{upscale_factor}']
                 for tag in tags:
                     config = Config(tag, using_hpc=hpc)
                     config.upscale_factor = upscale_factor
-                    config.dataset = dataset.upper()
+                    config.dataset = 'ARI'
                     config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
 
                     _, test_prefetcher = load_dataset(config, mean=None, std=None)
                     print("Loaded all datasets successfully.")
+
                     test(config, test_prefetcher)
-                    run_localisation_evaluation(config, config.valid_path)
+                    if mode == 'lsd':
+                        run_lsd_evaluation(config, config.valid_path)
+                    elif mode == 'localisation':
+                        run_localisation_evaluation(config, config.valid_path)
     else:
         print('Experiment does not exist')
 
-def plot_lsd_evaluation(hpc, experiment_id):
+def plot_evaluation(hpc, experiment_id, mode):
     tag = None
     config = Config(tag, using_hpc=hpc)
 
     if experiment_id == 1:
         datasets = ['ari', 'sonicom']
         for dataset in datasets:
-            full_results_SD_dataset = get_results(f'pub-prep-upscale-{dataset}-')
-            full_results_SD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-')
-            plot_boxplot(config, f'SD_boxplot_ex_1_{dataset}', 'SD error [dB]', full_results_SD_dataset, full_results_SD_dataset_sonicom_synthetic_tl)
+            if mode == 'lsd':
+                full_results_LSD_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
+                full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
+                plot_boxplot(config, f'LSD_boxplot_ex_1_{dataset}', 'LSD error [dB]', full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl)
+            elif mode == 'localisation':
+                full_results_loc_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
+                full_results_loc_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
+                types = ['ACC', 'RMS', 'QUERR']
+                labels = ['Polar accuracy', 'Polar RMS', 'Quadrant']
+                for i in np.arange(np.shape(full_results_loc_dataset)[1]):
+                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', f'{labels[i]} error [dB]', np.array(full_results_loc_dataset)[:, i, :],
+                                np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :])
+
     elif experiment_id == 2:
-        full_results_SD_ari = get_results(f'pub-prep-upscale-ari-')
-        full_results_SD_ari_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-ari-sonicom-synthetic-tl-')
-        full_results_SD_ari_sonicom_tl = get_results(f'pub-prep-upscale-ari-sonicom-tl-')
-        plot_boxplot(config, f'SD_boxplot_ex_2_ari', 'SD error [dB]', full_results_SD_ari, full_results_SD_ari_sonicom_synthetic_tl, full_results_SD_ari_sonicom_tl)
-        create_table(full_results_SD_ari, full_results_SD_ari_sonicom_synthetic_tl, full_results_SD_ari_sonicom_tl)
+        if mode == 'lsd':
+            datasets = ['ari', 'sonicom']
+            for dataset in datasets:
+                other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
+                full_results_LSD_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
+                full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
+                full_results_LSD_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
+                plot_boxplot(config, f'LSD_boxplot_ex_2_{dataset}', 'LSD error [dB]', full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl, full_results_LSD_dataset_dataset_tl)
+                create_table(full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl, full_results_LSD_dataset_dataset_tl)
+
 
     else:
         print('Experiment does not exist')
@@ -270,11 +288,10 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
-    experiment_id = 1
+    experiment_id = 2
     if args.mode == 'Evaluation':
-        # lsd_evaluation(hpc, experiment_id)
-        localisation_evaluation(hpc, experiment_id)
+        run_evaluation(hpc, experiment_id, 'lsd')
     elif args.mode == 'Plot':
-        plot_lsd_evaluation(hpc, experiment_id)
+        plot_evaluation(hpc, experiment_id, 'lsd')
     else:
         print('Please specify a valid mode')
