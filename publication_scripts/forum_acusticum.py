@@ -8,7 +8,7 @@ import numpy as np
 from config import Config
 from model.test import test
 from model.util import load_dataset
-from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation
+from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation, run_target_localisation_evaluation
 
 plt.rcParams['legend.fancybox'] = False
 
@@ -196,6 +196,13 @@ def run_evaluation(hpc, experiment_id, mode):
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
         for dataset in datasets:
+
+            tag = None
+            config = Config(tag, using_hpc=hpc)
+            config.dataset = 'ARI'
+            config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+            run_target_localisation_evaluation(config)
+
             for upscale_factor in upscale_factors:
 
                 tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
@@ -218,6 +225,13 @@ def run_evaluation(hpc, experiment_id, mode):
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
         for dataset in datasets:
+
+            tag = None
+            config = Config(tag, using_hpc=hpc)
+            config.dataset = 'ARI'
+            config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+            run_target_localisation_evaluation(config)
+
             other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
             for upscale_factor in upscale_factors:
                 tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
@@ -291,7 +305,7 @@ if __name__ == '__main__':
 
     experiment_id = 2
     if args.mode == 'Evaluation':
-        run_evaluation(hpc, experiment_id, 'lsd')
+        run_evaluation(hpc, experiment_id, 'localisation')
     elif args.mode == 'Plot':
         plot_evaluation(hpc, experiment_id, 'lsd')
     else:
