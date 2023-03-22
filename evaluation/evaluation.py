@@ -110,10 +110,10 @@ def run_target_localisation_evaluation(config):
     eng.addpath(s, nargout=0)
 
     loc_target_errors = []
-    target_sofa_path = config.valid_hrtf_merge_dir + '/sofa_min_phase/'
+    target_sofa_path = config.valid_hrtf_merge_dir + '/sofa_min_phase'
     hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(target_sofa_path)]
     for file in hrtf_file_names:
-        target_sofa_file = target_sofa_path + file
+        target_sofa_file = target_sofa_path + '/' + file
         generated_sofa_file = target_sofa_file
         print(f'Target: {target_sofa_file}')
         print(f'Generated: {generated_sofa_file}')

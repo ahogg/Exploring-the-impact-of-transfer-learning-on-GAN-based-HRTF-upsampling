@@ -221,7 +221,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                 for tag in tags:
                     config = Config(tag, using_hpc=hpc)
                     config.upscale_factor = upscale_factor
-                    config.dataset = 'ARI'
+                    config.dataset = dataset.upper()
                     config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
                     config_files.append(config)
         print(f'{len(config_files)} config files created successfully.')
@@ -231,7 +231,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         for dataset in datasets:
             tag = None
             config = Config(tag, using_hpc=hpc)
-            config.dataset = dataset
+            config.dataset = dataset.upper()
             config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
             config_files.append(config)
         print(f'{len(config_files)} config files created successfully.')
@@ -246,7 +246,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     print(f'Running a total of {len(config_files)} config files')
     for config in config_files:
         if experiment_id == 3:
-            run_target_localisation_evaluation(config, config.valid_path)
+            run_target_localisation_evaluation(config)
         elif type == 'lsd':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
