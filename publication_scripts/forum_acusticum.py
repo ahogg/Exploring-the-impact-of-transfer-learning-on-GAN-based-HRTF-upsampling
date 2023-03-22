@@ -314,9 +314,9 @@ if __name__ == '__main__':
 
 
     # Note that experiment_id=3 does not have a mode
-    if args.mode == 'Evaluation':
+    if args.mode == 'evaluation':
         run_evaluation(hpc, args.exp, args.type, args.test)
-    elif args.mode == 'Plot':
+    elif args.mode == 'plot':
         plot_evaluation(hpc, args.exp, args.type)
     else:
         print('Please specify a valid mode')
