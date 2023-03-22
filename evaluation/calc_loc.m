@@ -1,6 +1,5 @@
 function [pol_acc1, pol_rms1, querr1] = calc_loc(fullSofa1FileName, fullSofa2FileName)
 
-    addpath('/home/aos13/AMT/amt_code')
     curdir = cd; amt_start(); cd(curdir); % start AMT
     pol_acc1_avg = 0.0;
     pol_rms1_avg = 0.0;

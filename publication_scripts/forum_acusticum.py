@@ -1,10 +1,11 @@
 import argparse
-from main import *
-
 import matplotlib as mpl
 mpl.use('pdf')
 import matplotlib.pyplot as plt
+import pickle
+import numpy as np
 
+from config import Config
 from model.test import test
 from model.util import load_dataset
 from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation

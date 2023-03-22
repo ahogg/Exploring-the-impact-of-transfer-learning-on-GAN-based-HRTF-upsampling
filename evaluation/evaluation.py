@@ -53,7 +53,7 @@ def run_lsd_evaluation(config, sr_dir):
     with open(f'{config.path}/lsd_errors.pickle', "wb") as file:
         pickle.dump(lsd_errors, file)
 
-def run_localisation_evaluation(config, sr_dir):
+def run_localisation_evaluation(config, sr_dir, run_target=False):
     sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
     sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
 
@@ -75,10 +75,13 @@ def run_localisation_evaluation(config, sr_dir):
     print('Created valid sofa files')
 
     eng = matlab.engine.start_matlab()
-    s = eng.genpath('../')
+    s = eng.genpath('/home/aos13/AMT/amt_code')
+    eng.addpath(s, nargout=0)
+    s = eng.genpath(config.data_dirs_path)
     eng.addpath(s, nargout=0)
 
     loc_errors = []
+    loc_target_errors = []
     hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(nodes_replaced_path+'/sofa_min_phase')]
     for file in hrtf_file_names:
         target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
@@ -92,8 +95,27 @@ def run_localisation_evaluation(config, sr_dir):
         print('pol_rms1: %s' % pol_rms1)
         print('querr1: %s' % querr1)
 
+        if run_target:
+            target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
+            generated_sofa_file = target_sofa_file
+            print(f'Target: {target_sofa_file}')
+            print(f'Generated: {generated_sofa_file}')
+            [pol_acc1, pol_rms1, querr1] = eng.calc_loc(generated_sofa_file, target_sofa_file, nargout=3)
+            subject_id = ''.join(re.findall(r'\d+', file_name))
+            loc_target_errors.append([subject_id, pol_acc1, pol_rms1, querr1])
+            print('pol_acc1: %s' % pol_acc1)
+            print('pol_rms1: %s' % pol_rms1)
+            print('querr1: %s' % querr1)
+
     print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_errors]))
     print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_errors]))
     print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_errors]))
     with open(f'{config.path}/loc_errors.pickle', "wb") as file:
         pickle.dump(loc_errors, file)
+
+    if run_target:
+        print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_target_errors]))
+        print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_target_errors]))
+        print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_target_errors]))
+        with open(f'{config.path}/loc_target_errors.pickle', "wb") as file:
+            pickle.dump(loc_target_errors, file)
