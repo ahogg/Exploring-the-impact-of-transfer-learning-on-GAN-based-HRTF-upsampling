@@ -11,11 +11,11 @@ from model.test import test
 from model.util import load_dataset
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft, generate_euclidean_cube, gen_sofa_baseline, \
-    load_data, merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories, convert_to_sofa
+    load_data, merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories
 from preprocessing.synthetic_data import interpolate_synthetic_fft
 from model import util
 from baselines.barycentric_interpolation import run_barycentric_interpolation
-from evaluation.lsd_metric_evaluation import run_lsd_evaluation
+from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation
 
 PI_4 = np.pi / 4
 
@@ -141,13 +141,8 @@ def main(config, mode):
         test(config, test_prefetcher)
 
         run_lsd_evaluation(config, config.valid_path)
+        run_localisation_evaluation(config, config.valid_path)
 
-        with open(config.projection_filename, "rb") as file:
-            cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
-
-        if config.gen_sofa_flag:
-            convert_to_sofa(config.valid_path, config, cube, sphere)
-            print('Created valid sofa files')
 
     elif mode == 'baseline':
         no_nodes = str(int(5 * (config.hrtf_size / config.upscale_factor) ** 2))

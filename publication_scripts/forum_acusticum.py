@@ -5,7 +5,48 @@ import matplotlib as mpl
 mpl.use('pdf')
 import matplotlib.pyplot as plt
 
+from model.test import test
+from model.util import load_dataset
+from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation
+
 plt.rcParams['legend.fancybox'] = False
+
+
+def get_means(full_results):
+    upsample_means = []
+    upsample_stds = []
+    for full_result in full_results:
+        upsample_means.insert(0, np.mean(full_result))
+        upsample_stds.insert(0, np.std(full_result))
+
+    return upsample_means, upsample_stds
+
+def create_table(full_results_SD_SRGAN, full_results_SD_SRGAN_synthetic, full_results_SD_SRGAN_Real):
+    upsample_SD_SRGAN_means, upsample_SD_SRGAN_stds = get_means(full_results_SD_SRGAN)
+    upsample_SD_SRGAN_synthetic_means, upsample_SD_SRGAN_synthetic_stds = get_means(full_results_SD_SRGAN_synthetic)
+    upsample_SD_SRGAN_real_means, upsample_SD_SRGAN_real_stds = get_means(full_results_SD_SRGAN_Real)
+
+    factors = [2, 4, 8, 16]
+    ticks = [r' \textbf{%s} $\,\rightarrow$ \textbf{1280}' % int((16 / factor) ** 2 * 5) for factor in factors]
+
+    print(r"\begin{tabular}{|c|c @{\hspace{-0.3\tabcolsep}}|c|c|c|c|}")
+    print(r"\hhline{-~----}")
+    print(
+        r"\multirow{2}{*}{\textbf{Method}} & & \multicolumn{4}{c|}{\textbf{Upsample Factor [No. orginal  $\,\rightarrow$ No. upsampled]}}                                                               \\ \cline{3-6}")
+    print(r"                        & & \multicolumn{1}{c|}{" + ticks[0] + r"} & \multicolumn{1}{c|}{" + ticks[
+        1] + r"} & \multicolumn{1}{c|}{" + ticks[2] + r"} & \multicolumn{1}{c|}{" + ticks[3] + r"} \\ \hhline{=~====}")
+    print(
+        r"\textbf{SRGAN}             & & %.2f (%.2f) & %.2f (%.2f)  & %.2f (%.2f)  & %.2f (%.2f)   \\ \hhline{-~----}" % tuple(
+            [val for pair in zip(upsample_SD_SRGAN_means, upsample_SD_SRGAN_stds) for val in pair]))
+    print(
+        r"\textbf{SRGAN TL (synthetic)}       & & %.2f (%.2f) & %.2f (%.2f)  & %.2f (%.2f)  & %.2f (%.2f)   \\ \hhline{=~====}" % tuple(
+            [val for pair in zip(upsample_SD_SRGAN_synthetic_means, upsample_SD_SRGAN_synthetic_stds) for val in pair]))
+    print(
+        r"\textbf{SRGAN TL (real)}       & & %.2f (%.2f) & %.2f (%.2f)  & %.2f (%.2f)  & %.2f (%.2f)   \\ \hhline{=~====}" % tuple(
+            [val for pair in zip(upsample_SD_SRGAN_real_means, upsample_SD_SRGAN_real_stds) for val in pair]))
+
+    print(r"\end{tabular}")
+    print('\n')
 
 
 def set_box_color(bp, color):
@@ -131,9 +172,9 @@ def get_results(tag):
         full_results.append(lsd_errors)
     return full_results
 
-def run_lsd_evaluation(hpc, experiment_id):
+def lsd_evaluation(hpc, experiment_id):
 
-    print(f'Running experiment {experiment_id}')
+    print(f'Running LSD experiment {experiment_id}')
     if experiment_id == 1:
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
@@ -147,7 +188,12 @@ def run_lsd_evaluation(hpc, experiment_id):
                     config.upscale_factor = upscale_factor
                     config.dataset = dataset.upper()
                     config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
-                    main(config, 'test')
+
+                    _, test_prefetcher = load_dataset(config, mean=None, std=None)
+                    print("Loaded all datasets successfully.")
+                    test(config, test_prefetcher)
+                    run_lsd_evaluation(config, config.valid_path)
+
     elif experiment_id == 2:
         upscale_factors = [2, 4, 8, 16]
         for upscale_factor in upscale_factors:
@@ -159,11 +205,36 @@ def run_lsd_evaluation(hpc, experiment_id):
                 config.upscale_factor = upscale_factor
                 config.dataset = 'ARI'
                 config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
-                main(config, 'test')
+
+                _, test_prefetcher = load_dataset(config, mean=None, std=None)
+                print("Loaded all datasets successfully.")
+                test(config, test_prefetcher)
+                run_lsd_evaluation(config, config.valid_path)
     else:
         print('Experiment does not exist')
 
+def localisation_evaluation(hpc, experiment_id):
+    print(f'Running localisation experiment {experiment_id}')
+    if experiment_id == 1:
+        upscale_factors = [2, 4, 8, 16]
+        datasets = ['ari', 'sonicom']
+        for dataset in datasets:
+            for upscale_factor in upscale_factors:
 
+                tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
+                        f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-{upscale_factor}']
+                for tag in tags:
+                    config = Config(tag, using_hpc=hpc)
+                    config.upscale_factor = upscale_factor
+                    config.dataset = dataset.upper()
+                    config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+
+                    _, test_prefetcher = load_dataset(config, mean=None, std=None)
+                    print("Loaded all datasets successfully.")
+                    test(config, test_prefetcher)
+                    run_localisation_evaluation(config, config.valid_path)
+    else:
+        print('Experiment does not exist')
 
 def plot_lsd_evaluation(hpc, experiment_id):
     tag = None
@@ -180,10 +251,11 @@ def plot_lsd_evaluation(hpc, experiment_id):
         full_results_SD_ari_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-ari-sonicom-synthetic-tl-')
         full_results_SD_ari_sonicom_tl = get_results(f'pub-prep-upscale-ari-sonicom-tl-')
         plot_boxplot(config, f'SD_boxplot_ex_2_ari', 'SD error [dB]', full_results_SD_ari, full_results_SD_ari_sonicom_synthetic_tl, full_results_SD_ari_sonicom_tl)
-
+        create_table(full_results_SD_ari, full_results_SD_ari_sonicom_synthetic_tl, full_results_SD_ari_sonicom_tl)
 
     else:
         print('Experiment does not exist')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -200,7 +272,8 @@ if __name__ == '__main__':
 
     experiment_id = 1
     if args.mode == 'Evaluation':
-        run_lsd_evaluation(hpc, experiment_id)
+        # lsd_evaluation(hpc, experiment_id)
+        localisation_evaluation(hpc, experiment_id)
     elif args.mode == 'Plot':
         plot_lsd_evaluation(hpc, experiment_id)
     else:
