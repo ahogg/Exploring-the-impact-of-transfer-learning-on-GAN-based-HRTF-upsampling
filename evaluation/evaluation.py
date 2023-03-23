@@ -127,5 +127,5 @@ def run_target_localisation_evaluation(config):
     print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_target_errors]))
     print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_target_errors]))
     print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_target_errors]))
-    with open(f'{target_sofa_path}/loc_target_errors.pickle', "wb") as file:
+    with open(f'{config.data_dir}/{config.dataset}_loc_target_valid_errors.pickle', "wb") as file:
         pickle.dump(loc_target_errors, file)

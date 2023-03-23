@@ -83,7 +83,7 @@ def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycent
     upsample_4_b = full_results_Barycentric[2]
     upsample_2_b = full_results_Barycentric[3]
 
-    if full_results_Raw != None:
+    if full_results_Raw is not None:
         upsample_16_r = full_results_Raw[0]
         upsample_8_r = full_results_Raw[1]
         upsample_4_r = full_results_Raw[2]
@@ -93,14 +93,14 @@ def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycent
 
     data_b = np.vstack((upsample_2_b, upsample_4_b, upsample_8_b, upsample_16_b))
 
-    if full_results_Raw != None:
+    if full_results_Raw is not None:
         data_c = np.vstack((upsample_2_r, upsample_4_r, upsample_8_r, upsample_16_r))
 
     colour_2 = '#0047a4'
     colour_1 = '#af211a'
     colour_3 = 'g'
 
-    if full_results_Raw == None:
+    if full_results_Raw is None:
         bpl = plt.boxplot(data_a.T, positions=np.array(range(len(data_a))) * 1.0 - 0.15,
                           flierprops=dict(marker='x', markeredgecolor=colour_1, markersize=4), widths=0.17)
         bpm = plt.boxplot(data_b.T, positions=np.array(range(len(data_b))) * 1.0 + 0.15,
@@ -116,10 +116,10 @@ def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycent
     for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
         plt.setp(bpl[element], color=colour_1, linewidth=0.7)
         plt.setp(bpm[element], color=colour_2, linewidth=0.7)
-        if full_results_Raw != None:
+        if full_results_Raw is not None:
             plt.setp(bpr[element], color=colour_3, linewidth=0.7)
 
-    if full_results_Raw == None:
+    if full_results_Raw is None:
         [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
     else:
         [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
@@ -127,10 +127,10 @@ def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycent
     # draw temporary red and blue lines and use them to create a legend
     plt.plot([], c=colour_1, label='SRGAN')
     plt.plot([], c=colour_2, label='SRGAN TL (Synthetic)')
-    if full_results_Raw != None:
+    if full_results_Raw is not None:
         plt.plot([], c=colour_3, label='SRGAN TL (Real)')
 
-    if full_results_Raw == None:
+    if full_results_Raw is None:
         leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right",  # mode="expand",
                         borderaxespad=0, ncol=3, handlelength=1.06)
     else:
@@ -144,7 +144,7 @@ def plot_boxplot(config, name, ylabel, full_results_SRGAN, full_results_Barycent
         'Upsampling \n' + r'[No. of orginal nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes]')
 
     plt.ylabel(ylabel)
-    if full_results_Raw == None:
+    if full_results_Raw is None:
         plt.xticks(range(0, len(ticks), 1), ticks)
         plt.xlim(-0.5, len(ticks) - 0.5)
     else:
@@ -241,6 +241,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         return
 
     if test_id is not None:
+        test_id = int(test_id)
         config_files = [config_files[test_id]]
 
     print(f'Running a total of {len(config_files)} config files')
@@ -283,16 +284,23 @@ def plot_evaluation(hpc, experiment_id, mode):
                                 np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :])
 
     elif experiment_id == 2:
-        if mode == 'lsd':
-            datasets = ['ari', 'sonicom']
-            for dataset in datasets:
-                other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
-                full_results_LSD_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
-                full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
-                full_results_LSD_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
+        datasets = ['ari', 'sonicom']
+        for dataset in datasets:
+            other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
+            full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
+            full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
+            full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
+            if mode == 'lsd':
                 plot_boxplot(config, f'LSD_boxplot_ex_2_{dataset}', 'LSD error [dB]', full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl, full_results_LSD_dataset_dataset_tl)
-                create_table(full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl, full_results_LSD_dataset_dataset_tl)
-
+                create_table(full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl)
+            elif mode == 'localisation':
+                types = ['ACC', 'RMS', 'QUERR']
+                labels = ['Polar accuracy', 'Polar RMS', 'Quadrant']
+                for i in np.arange(np.shape(full_results_dataset)[1]):
+                    print(np.array(full_results_dataset_dataset_tl)[:, i, :])
+                    print(np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :])
+                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', f'{labels[i]} error [dB]', np.array(full_results_dataset)[:, i, :],
+                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :])
 
     else:
         print('Experiment does not exist')
@@ -316,7 +324,7 @@ if __name__ == '__main__':
 
     # Note that experiment_id=3 does not have a mode
     if args.mode == 'evaluation':
-        run_evaluation(hpc, int(args.exp), args.type, int(args.test))
+        run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
     else:
