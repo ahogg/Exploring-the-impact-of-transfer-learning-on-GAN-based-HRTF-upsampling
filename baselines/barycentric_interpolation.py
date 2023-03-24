@@ -61,10 +61,9 @@ def run_barycentric_interpolation(config, barycentric_data_folder, subject_file=
             euclidean_sphere_coeffs.append(coeffs)
 
         cs = CubedSphere(sphere_coords=sphere_coords_lr, indices=sphere_coords_lr_index)
-        barycentric_hr = interpolate_fft(cs, lr_hrtf, sphere_coords, euclidean_sphere_triangles,
-                                         euclidean_sphere_coeffs, cube_coords,
-                                         fs_original=config.hrir_samplerate, edge_len=config.hrtf_size)
-
+        barycentric_hr = interpolate_fft(config, cs, lr_hrtf, sphere_coords, euclidean_sphere_triangles,
+                                         euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
+                                         edge_len=config.hrtf_size)
 
         with open(barycentric_output_path + file_name, "wb") as file:
             pickle.dump(barycentric_hr, file)
