@@ -56,7 +56,7 @@ class Config:
             self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/SONICOM_projection_{self.hrtf_size}'
 
         self.data_dir = '/data/' + self.dataset
-        self.baseline_dir = '/baseline/' + self.dataset
+        self.baseline_dir = '/baseline_results/' + self.dataset
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'
         self.train_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/original/train'
