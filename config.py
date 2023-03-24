@@ -10,8 +10,8 @@ class Config:
 
     def __init__(self, tag, using_hpc):
 
-        # self.dataset = 'SONICOM'
-        self.dataset = 'SONICOMSynthetic'
+        self.dataset = 'SONICOM'
+        # self.dataset = 'SONICOMSynthetic'
         # self.dataset = 'ARI'
         # self.tag = 'pub-prep-upscale-sonicom-synthetic-16'
 

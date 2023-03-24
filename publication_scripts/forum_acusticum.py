@@ -22,25 +22,34 @@ def get_means(full_results):
 
     return upsample_means, upsample_stds
 
-def create_table(legend, full_results):
+def create_table(legend, full_results, side_title=None):
     factors = [2, 4, 8, 16]
+    single_line = r"\hhline{-~----}" if side_title is None else r"\hhline{~-~----}"
+    double_lines = r"\hhline{=~====}" if side_title is None else r"\hhline{~=~====}"
+    title_lines = r"\hhline{~~----}" if side_title is None else r"\hhline{~~~----}"
+    extra_column_1 = r"" if side_title is None else r" & "
+    extra_column_2 = r"" if side_title is None else r"c"
+
+
     ticks = [r' \textbf{%s} $\,\rightarrow$ \textbf{1280}' % int((16 / factor) ** 2 * 5) for factor in factors]
 
-    print(r"\begin{tabular}{|c|c @{\hspace{-0.3\tabcolsep}}|c|c|c|c|}")
-    print(r"\hhline{-~----}")
-    print(
-        r"\multirow{2}{*}{\textbf{Method}} & & \multicolumn{4}{c|}{\textbf{Upsample Factor [No. orginal  $\,\rightarrow$ No. upsampled]}}                                                               \\ \cline{3-6}")
-    print(r"                        & & \multicolumn{1}{c|}{" + ticks[0] + r"} & \multicolumn{1}{c|}{" + ticks[
-        1] + r"} & \multicolumn{1}{c|}{" + ticks[2] + r"} & \multicolumn{1}{c|}{" + ticks[3] + r"} \\ \hhline{=~====}")
+    print(r"\begin{tabular}{%s|c|c @{\hspace{-0.3\tabcolsep}}|c|c|c|c|}" % extra_column_2)
+    print(single_line)
+    print(extra_column_1 +
+        r"\multirow{2}{*}{\textbf{Method}} & & \multicolumn{4}{c|}{\textbf{Upsample Factor [No. orginal  $\,\rightarrow$ No. upsampled]}} \\" + title_lines)
+    print(extra_column_1 + r"& & \multicolumn{1}{c|}{" + ticks[0] + r"} & \multicolumn{1}{c|}{" + ticks[
+        1] + r"} & \multicolumn{1}{c|}{" + ticks[2] + r"} & \multicolumn{1}{c|}{" + ticks[3] + r"} \\ " + double_lines)
+    if side_title is not None:
+        print(r"\parbox[t]{3.5mm}{\multirow{%s}{*}{\rotatebox[origin=c]{90}{\textbf{%s}}}}" % (len(full_results), side_title))
     for idx, full_result in enumerate(full_results):
         full_result_means, full_result_stds = get_means(full_result)
         if len(full_result_means) == 4:
-            print(
-                r"\textbf{%s}             & & %.2f (%.2f) & %.2f (%.2f)  & %.2f (%.2f)  & %.2f (%.2f)   \\ \hhline{-~----}" % tuple(
-                    [legend[idx]] + [val for pair in zip(full_result_means, full_result_stds) for val in pair]))
+            print(extra_column_1 +
+                r"\textbf{%s} & & %.2f (%.2f) & %.2f (%.2f)  & %.2f (%.2f)  & %.2f (%.2f)   \\ %s" % tuple(
+                    [legend[idx]] + [val for pair in zip(full_result_means, full_result_stds) for val in pair] + [single_line]))
         if len(full_result_means) == 1:
-            print(r"\textbf{%s}             & & \multicolumn{4}{c|}{%.2f (%.2f)}   \\ \hhline{-~----}" % tuple(
-                    [legend[idx]] + [val for pair in zip(full_result_means, full_result_stds) for val in pair]))
+            print(extra_column_1 + r"\textbf{%s} & & \multicolumn{4}{c|}{%.2f (%.2f)}   \\ %s" % tuple(
+                    [legend[idx]] + [val for pair in zip(full_result_means, full_result_stds) for val in pair] + [single_line]))
 
     print(r"\end{tabular}")
     print('\n')
@@ -53,7 +62,7 @@ def set_box_color(bp, color):
     plt.setp(bp['medians'], color=color, linewidth=0.5)
 
 
-def plot_boxplot(config, name, ylabel, full_results):
+def plot_boxplot(config, name, ylabel, full_results, legend):
     plt.rc('font', family='serif', serif='Times New Roman')
     plt.rc('text', usetex=True)
     plt.rc('xtick', labelsize=8)
@@ -68,7 +77,6 @@ def plot_boxplot(config, name, ylabel, full_results):
             (16 / factor) ** 2 * 5) for factor in factors]
 
     colours = ['#0047a4', '#af211a', 'g', '#6C0BA9']
-    labels = ['SRGAN', 'SRGAN TL (Synth)', 'SRGAN TL (Real)', 'Target']
     for idx, full_result in enumerate(full_results):
         data = np.vstack((full_result[3], full_result[2], full_result[1], full_result[0]))
 
@@ -78,7 +86,7 @@ def plot_boxplot(config, name, ylabel, full_results):
         for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
             plt.setp(blp[element], color=colours[idx], linewidth=0.7)
 
-        plt.plot([], c=colours[idx], label=labels[idx])
+        plt.plot([], c=colours[idx], label=legend[idx])
 
     if len(full_results) > 2:
         [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
@@ -111,52 +119,41 @@ def plot_boxplot(config, name, ylabel, full_results):
 
 def get_results(tag, mode, file_ext=None):
     full_results = []
-    if mode == 'target':
-        file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
-        file_path = tag + '/' + file_ext
-        with open(file_path, 'rb') as file:
-            loc_id_errors = pickle.load(file)
-        pol_acc1 = [loc_error[1] for loc_error in loc_id_errors]
-        pol_rms1 = [loc_error[2] for loc_error in loc_id_errors]
-        querr1 = [loc_error[3] for loc_error in loc_id_errors]
-        print(f'Loading: {file_path}')
-        print('Mean (STD) ACC Error: %0.3f (%0.3f)' % (np.mean(pol_acc1), np.std(pol_acc1)))
-        print('Mean (STD) RMS Error: %0.3f (%0.3f)' % (np.mean(pol_rms1), np.std(pol_rms1)))
-        print('Mean (STD) QUERR Error: %0.3f (%0.3f)' % (np.mean(querr1), np.std(querr1)))
-        full_results.append([pol_acc1, pol_rms1, querr1])
+    upscale_factors = [16, 8, 4, 2]
+    for upscale_factor in upscale_factors:
+        config = Config(tag + str(upscale_factor), using_hpc=hpc)
+        if mode == 'lsd':
+            file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
+            file_path = f'{config.path}/{file_ext}'
+            with open(file_path, 'rb') as file:
+                lsd_id_errors = pickle.load(file)
+            lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
+            print(f'Loading: {file_path}')
+            print('Mean LSD: %s' % np.mean(lsd_errors))
+            print('STD LSD: %s' % np.std(lsd_errors))
+            full_results.append(lsd_errors)
+        elif mode == 'localisation' or 'target':
+            file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
+            if mode == 'localisation':
+                file_path = f'{config.path}/{file_ext}'
+            elif mode == 'target' :
+                file_path = tag + '/' + file_ext
 
-    else:
-        upscale_factors = [16, 8, 4, 2]
-        for upscale_factor in upscale_factors:
-            config = Config(tag + str(upscale_factor), using_hpc=hpc)
-            if mode == 'lsd':
-                file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
-                file_path = f'{config.path}/lsd_errors.pickle'
-                with open(file_path, 'rb') as file:
-                    lsd_id_errors = pickle.load(file)
-                lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
-                print(f'Loading: {file_path}')
-                print('Mean LSD: %s' % np.mean(lsd_errors))
-                print('STD LSD: %s' % np.std(lsd_errors))
-                full_results.append(lsd_errors)
-            elif mode == 'localisation':
-                file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
-                file_path = f'{config.path}/loc_errors.pickle'
-                with open(file_path, 'rb') as file:
-                    loc_id_errors = pickle.load(file)
-                pol_acc1 = [loc_error[1] for loc_error in loc_id_errors]
-                pol_rms1 = [loc_error[2] for loc_error in loc_id_errors]
-                querr1 = [loc_error[3] for loc_error in loc_id_errors]
-                print(f'Loading: {file_path}')
-                print('Mean (STD) ACC Error: %0.3f (%0.3f)' % (np.mean(pol_acc1), np.std(pol_acc1)))
-                print('Mean (STD) RMS Error: %0.3f (%0.3f)' % (np.mean(pol_rms1), np.std(pol_rms1)))
-                print('Mean (STD) QUERR Error: %0.3f (%0.3f)' % (np.mean(querr1), np.std(querr1)))
-                full_results.append([pol_acc1, pol_rms1, querr1])
+            with open(file_path, 'rb') as file:
+                loc_id_errors = pickle.load(file)
+            pol_acc1 = [loc_error[1] for loc_error in loc_id_errors]
+            pol_rms1 = [loc_error[2] for loc_error in loc_id_errors]
+            querr1 = [loc_error[3] for loc_error in loc_id_errors]
+            print(f'Loading: {file_path}')
+            print('Mean (STD) ACC Error: %0.3f (%0.3f)' % (np.mean(pol_acc1), np.std(pol_acc1)))
+            print('Mean (STD) RMS Error: %0.3f (%0.3f)' % (np.mean(pol_rms1), np.std(pol_rms1)))
+            print('Mean (STD) QUERR Error: %0.3f (%0.3f)' % (np.mean(querr1), np.std(querr1)))
+            full_results.append([pol_acc1, pol_rms1, querr1])
+
+            if mode == 'target':
+                break
 
     return full_results
-
-
-
 
 def run_evaluation(hpc, experiment_id, type, test_id=None):
 
@@ -244,15 +241,17 @@ def plot_evaluation(hpc, experiment_id, mode):
             if mode == 'lsd':
                 full_results_LSD_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
                 full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
-                plot_boxplot(config, f'LSD_boxplot_ex_1_{dataset}', 'LSD error [dB]', [full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl])
+                legend = ['SRGAN', 'SRGAN TL (Synthetic)']
+                plot_boxplot(config, f'LSD_boxplot_ex_1_{dataset}', 'LSD error [dB]', [full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl], legend)
             elif mode == 'localisation':
                 full_results_loc_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
                 full_results_loc_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
                 types = ['ACC', 'RMS', 'QUERR']
-                labels = ['Polar accuracy', 'Polar RMS', 'Quadrant']
+                labels = [r'Polar accuracy error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
                 for i in np.arange(np.shape(full_results_loc_dataset)[1]):
-                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', f'{labels[i]} error [dB]', [np.array(full_results_loc_dataset)[:, i, :],
-                                np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]])
+                    legend = ['SRGAN', 'SRGAN TL (Synthetic)']
+                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', labels[i], [np.array(full_results_loc_dataset)[:, i, :],
+                                np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]], legend)
 
     elif experiment_id == 2:
         datasets = ['ari', 'sonicom']
@@ -262,19 +261,20 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
             full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
             if mode == 'lsd':
-                legend = ['SRGAN', 'SRGAN (Synth)', 'SRGAN (Real)']
-                plot_boxplot(config, f'LSD_boxplot_ex_2_{dataset}', 'LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl])
+                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)']
+                plot_boxplot(config, f'LSD_boxplot_ex_2_{dataset}', 'LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl], legend)
                 create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl])
             elif mode == 'localisation':
                 types = ['ACC', 'RMS', 'QUERR']
-                labels = ['Polar accuracy', 'Polar RMS', 'Quadrant']
-                legend = ['SRGAN', 'SRGAN (Synth)', 'SRGAN (Real)', 'Target']
+                labels = [r'Polar accuracy error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
+                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Target']
                 full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
-                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', f'{labels[i]} error [dB]', [np.array(full_results_dataset)[:, i, :],
-                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]])
+                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
+                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend)
+                    print(f'Generate table containing {types[i]} errors for the {dataset} dataset: \n')
                     create_table(legend, [np.array(full_results_dataset)[:, i, :],
-                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]])
+                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper())
     else:
         print('Experiment does not exist')
 
@@ -295,7 +295,7 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
-    # Note that experiment_id=3 does not have a mode
+    # Note that experiment_id=3 is always of localisation type
     if args.mode == 'evaluation':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':

@@ -29,8 +29,7 @@ def run_barycentric_interpolation(config, barycentric_data_folder, subject_file=
     shutil.rmtree(Path(barycentric_output_path), ignore_errors=True)
     Path(barycentric_output_path).mkdir(parents=True, exist_ok=True)
 
-    filename = 'projection_coordinates/%s_projection_%s' % (config.dataset, config.hrtf_size)
-    with open(filename, "rb") as f:
+    with open(config.projection_filename, "rb") as f:
         (cube_coords, sphere_coords, euclidean_sphere_triangles, euclidean_sphere_coeffs) = pickle.load(f)
 
     for file_name in valid_data_file_names:
