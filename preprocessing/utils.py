@@ -259,10 +259,6 @@ def gen_sofa_preprocess(config, cube, sphere, sphere_original):
         convert_to_sofa(config.valid_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
 
 
-def gen_sofa_baseline(config, barycentric_data_folder, cube, sphere):
-    convert_to_sofa(config.barycentric_hrtf_dir + barycentric_data_folder, config, cube, sphere)
-
-
 def generate_euclidean_cube(measured_coords, filename, edge_len=16):
     """Calculate barycentric coordinates for projection based on a specified cube sphere edge length and a set of
     measured coordinates, finally save them to the file"""

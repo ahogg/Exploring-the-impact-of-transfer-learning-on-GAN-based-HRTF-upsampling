@@ -114,7 +114,7 @@ def get_triangle_vertices(elevation, azimuth, sphere_coords):
         # failing that, examine all possible triangles
         # possible triangles is sorted from shortest total distance to longest total distance
         # possible_triangles = get_possible_triangles(len(point_distances) - 1, point_distances)
-        max_no_points = 500
+        max_no_points = 100
         max_vertex_index = len(point_distances) - 1 if len(point_distances) - 1 < max_no_points else max_no_points
         possible_triangles = get_possible_triangles(max_vertex_index, point_distances)
         for v0, v1, v2, _ in possible_triangles:

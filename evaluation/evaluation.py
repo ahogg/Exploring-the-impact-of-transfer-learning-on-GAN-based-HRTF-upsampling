@@ -38,7 +38,8 @@ def replace_nodes(config, sr_dir, file_name):
 
     return target, generated
 
-def run_lsd_evaluation(config, sr_dir):
+def run_lsd_evaluation(config, sr_dir, file_ext=None):
+    file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
     sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
     sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
 
@@ -50,7 +51,7 @@ def run_lsd_evaluation(config, sr_dir):
         lsd_errors.append([subject_id,  float(error.detach())])
         print('LSD Error of subject %s: %0.4f' % (subject_id, float(error.detach())))
     print('Mean LSD Error: %0.3f' % np.mean([error[1] for error in lsd_errors]))
-    with open(f'{config.path}/lsd_errors.pickle', "wb") as file:
+    with open(f'{config.path}/{file_ext}', "wb") as file:
         pickle.dump(lsd_errors, file)
 
 def run_localisation_evaluation(config, sr_dir):

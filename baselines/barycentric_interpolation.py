@@ -15,15 +15,13 @@ from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycent
 PI_4 = np.pi / 4
 
 
-def run_barycentric_interpolation(config, barycentric_data_folder, subject_file=None):
+def run_barycentric_interpolation(config, barycentric_output_path, subject_file=None):
 
     if subject_file is None:
         valid_data_paths = glob.glob('%s/%s_*' % (config.valid_hrtf_merge_dir, config.dataset))
         valid_data_file_names = ['/' + os.path.basename(x) for x in valid_data_paths]
     else:
         valid_data_file_names = ['/' + subject_file]
-
-    barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
 
     # Clear/Create directory
     shutil.rmtree(Path(barycentric_output_path), ignore_errors=True)
@@ -32,7 +30,7 @@ def run_barycentric_interpolation(config, barycentric_data_folder, subject_file=
     with open(config.projection_filename, "rb") as f:
         (cube_coords, sphere_coords, euclidean_sphere_triangles, euclidean_sphere_coeffs) = pickle.load(f)
 
-    for file_name in valid_data_file_names:
+    for file_name in [valid_data_file_names[1]]:
         with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
             hr_hrtf = pickle.load(f)
 
@@ -61,12 +59,21 @@ def run_barycentric_interpolation(config, barycentric_data_folder, subject_file=
             euclidean_sphere_coeffs.append(coeffs)
 
         cs = CubedSphere(sphere_coords=sphere_coords_lr, indices=sphere_coords_lr_index)
-        barycentric_hr = interpolate_fft(config, cs, lr_hrtf, sphere_coords, euclidean_sphere_triangles,
+
+        lr_hrtf_left = lr_hrtf[:, :, :, :128]
+        lr_hrtf_right = lr_hrtf[:, :, :, 128:]
+
+        barycentric_hr_left = interpolate_fft(config, cs, lr_hrtf_left, sphere_coords, euclidean_sphere_triangles,
                                          euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
                                          edge_len=config.hrtf_size)
+        barycentric_hr_right = interpolate_fft(config, cs, lr_hrtf_right, sphere_coords, euclidean_sphere_triangles,
+                                              euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
+                                              edge_len=config.hrtf_size)
+
+        barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=3))
 
         with open(barycentric_output_path + file_name, "wb") as file:
-            pickle.dump(barycentric_hr, file)
+            pickle.dump(barycentric_hr_merged, file)
 
         print('Created barycentric baseline %s' % file_name.replace('/', ''))
 

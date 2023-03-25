@@ -10,7 +10,7 @@ from model.train import train
 from model.test import test
 from model.util import load_dataset
 from preprocessing.cubed_sphere import CubedSphere
-from preprocessing.utils import interpolate_fft, generate_euclidean_cube, gen_sofa_baseline, \
+from preprocessing.utils import interpolate_fft, generate_euclidean_cube, convert_to_sofa, \
     load_data, merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories
 from preprocessing.synthetic_data import interpolate_synthetic_fft
 from model import util
@@ -149,15 +149,16 @@ def main(config, mode):
         no_full_nodes = str(int(5 * config.hrtf_size ** 2))
 
         barycentric_data_folder = '/barycentric_interpolated_data_%s_%s' % (no_nodes, no_full_nodes)
-        cube, sphere = run_barycentric_interpolation(config, barycentric_data_folder)
+        barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
+        cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
 
         if config.gen_sofa_flag:
-            gen_sofa_baseline(config, barycentric_data_folder, cube, sphere)
+            convert_to_sofa(barycentric_output_path, config, cube, sphere)
             print('Created barycentric baseline sofa files')
 
-        barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
-        run_lsd_evaluation(config, barycentric_output_path)
-
+        config.path = config.barycentric_hrtf_dir
+        file_ext = 'lsd_errors_barycentric_interpolated_data_%s_%s.pickle' % (no_nodes, no_full_nodes)
+        run_lsd_evaluation(config, barycentric_output_path, file_ext)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
