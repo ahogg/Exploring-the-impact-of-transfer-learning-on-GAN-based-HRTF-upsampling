@@ -178,8 +178,6 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     config.dataset = dataset.upper()
                     config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
                     config_files.append(config)
-                    print(f'{len(config_files)} config files created successfully.')
-
     elif experiment_id == 2:
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
@@ -195,8 +193,6 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     config.dataset = dataset.upper()
                     config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
                     config_files.append(config)
-        print(f'{len(config_files)} config files created successfully.')
-
     elif experiment_id == 3:
         datasets = ['ari', 'sonicom']
         for dataset in datasets:
@@ -205,9 +201,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             config.dataset = dataset.upper()
             config.data_dir = '/data/' + config.dataset
             config.valid_hrtf_merge_dir = config.data_dirs_path + config.data_dir + '/hr_merge/valid'
-
             config_files.append(config)
-        print(f'{len(config_files)} config files created successfully.')
     elif experiment_id == 4:
         upscale_factors = [2, 4, 8, 16]
         datasets = ['ari', 'sonicom']
@@ -227,6 +221,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         print('Experiment does not exist')
         return
 
+    print(f'{len(config_files)} config files created successfully.')
     if test_id is not None:
         test_id = int(test_id)
         config_files = [config_files[test_id]]
