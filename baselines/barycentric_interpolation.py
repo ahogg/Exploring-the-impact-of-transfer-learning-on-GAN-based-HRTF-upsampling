@@ -30,7 +30,7 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
     with open(config.projection_filename, "rb") as f:
         (cube_coords, sphere_coords, euclidean_sphere_triangles, euclidean_sphere_coeffs) = pickle.load(f)
 
-    for file_name in [valid_data_file_names[1]]:
+    for file_name in valid_data_file_names:
         with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
             hr_hrtf = pickle.load(f)
 

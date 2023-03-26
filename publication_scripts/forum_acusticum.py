@@ -122,9 +122,14 @@ def get_results(tag, mode, file_ext=None):
     upscale_factors = [16, 8, 4, 2]
     for upscale_factor in upscale_factors:
         config = Config(tag + str(upscale_factor), using_hpc=hpc)
-        if mode == 'lsd':
-            file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
-            file_path = f'{config.path}/{file_ext}'
+        if mode == 'lsd' or mode == 'baseline_lsd':
+            if mode == 'lsd':
+                file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
+                file_path = f'{config.path}/{file_ext}'
+            elif mode == 'baseline_lsd':
+                no_nodes = str(int(5 * (config.hrtf_size / upscale_factor) ** 2))
+                no_full_nodes = str(int(5 * config.hrtf_size ** 2))
+                file_path = '%s/lsd_errors_barycentric_interpolated_data_%s_%s.pickle' % (tag, no_nodes, no_full_nodes)
             with open(file_path, 'rb') as file:
                 lsd_id_errors = pickle.load(file)
             lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
@@ -203,6 +208,20 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
 
             config_files.append(config)
         print(f'{len(config_files)} config files created successfully.')
+    elif experiment_id == 4:
+        upscale_factors = [2, 4, 8, 16]
+        datasets = ['ari', 'sonicom']
+        for dataset in datasets:
+            for upscale_factor in upscale_factors:
+                tag = None
+                config = Config(tag, using_hpc=hpc)
+                config.dataset = dataset.upper()
+                config.data_dir = '/data/' + config.dataset
+                no_nodes = str(int(5 * (config.hrtf_size / upscale_factor) ** 2))
+                no_full_nodes = str(int(5 * config.hrtf_size ** 2))
+                config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
+                config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{no_nodes}_{no_full_nodes}'
+                config_files.append(config)
 
     else:
         print('Experiment does not exist')
@@ -216,6 +235,8 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     for config in config_files:
         if experiment_id == 3:
             run_target_localisation_evaluation(config)
+        elif experiment_id == 4:
+            run_localisation_evaluation(config, config.valid_path)
         elif type == 'lsd':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
@@ -242,7 +263,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 full_results_LSD_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
                 full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
                 legend = ['SRGAN', 'SRGAN TL (Synthetic)']
-                plot_boxplot(config, f'LSD_boxplot_ex_1_{dataset}', 'LSD error [dB]', [full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl], legend)
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', 'LSD error [dB]', [full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl], legend)
             elif mode == 'localisation':
                 full_results_loc_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
                 full_results_loc_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
@@ -250,7 +271,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 labels = [r'Polar accuracy error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
                 for i in np.arange(np.shape(full_results_loc_dataset)[1]):
                     legend = ['SRGAN', 'SRGAN TL (Synthetic)']
-                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', labels[i], [np.array(full_results_loc_dataset)[:, i, :],
+                    plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_loc_dataset)[:, i, :],
                                 np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]], legend)
 
     elif experiment_id == 2:
@@ -260,9 +281,10 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
             full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
             full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
+            full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid', mode='baseline_lsd', file_ext='lsd_errors_barycentric_interpolated_data_')
             if mode == 'lsd':
-                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)']
-                plot_boxplot(config, f'LSD_boxplot_ex_2_{dataset}', 'LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl], legend)
+                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline']
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', 'LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend)
                 create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl])
             elif mode == 'localisation':
                 types = ['ACC', 'RMS', 'QUERR']
@@ -270,7 +292,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Target']
                 full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
-                    plot_boxplot(config, f'{types[i]}_boxplot_ex_1_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
+                    plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
                                 np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend)
                     print(f'Generate table containing {types[i]} errors for the {dataset} dataset: \n')
                     create_table(legend, [np.array(full_results_dataset)[:, i, :],
