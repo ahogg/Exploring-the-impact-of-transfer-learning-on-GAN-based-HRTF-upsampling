@@ -211,10 +211,12 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                 config = Config(tag, using_hpc=hpc)
                 config.dataset = dataset.upper()
                 config.data_dir = '/data/' + config.dataset
+                config.upscale_factor = upscale_factor
                 no_nodes = str(int(5 * (config.hrtf_size / upscale_factor) ** 2))
                 no_full_nodes = str(int(5 * config.hrtf_size ** 2))
                 config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
                 config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{no_nodes}_{no_full_nodes}'
+                config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
                 config_files.append(config)
 
     else:
@@ -231,7 +233,9 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         if experiment_id == 3:
             run_target_localisation_evaluation(config)
         elif experiment_id == 4:
-            run_localisation_evaluation(config, config.valid_path)
+            no_nodes = str(int(5 * (config.hrtf_size / config.upscale_factor) ** 2))
+            no_full_nodes = str(int(5 * config.hrtf_size ** 2))
+            run_localisation_evaluation(config, config.valid_path, f'loc_errors_barycentric_interpolated_data_{no_nodes}_{no_full_nodes}.pickle')
         elif type == 'lsd':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")

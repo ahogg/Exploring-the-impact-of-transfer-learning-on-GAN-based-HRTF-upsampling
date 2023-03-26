@@ -54,7 +54,8 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None):
     with open(f'{config.path}/{file_ext}', "wb") as file:
         pickle.dump(lsd_errors, file)
 
-def run_localisation_evaluation(config, sr_dir):
+def run_localisation_evaluation(config, sr_dir, file_ext=None):
+    file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
     sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
     sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
 
@@ -98,7 +99,7 @@ def run_localisation_evaluation(config, sr_dir):
     print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_errors]))
     print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_errors]))
     print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_errors]))
-    with open(f'{config.path}/loc_errors.pickle', "wb") as file:
+    with open(f'{config.path}/{file_ext}', "wb") as file:
         pickle.dump(loc_errors, file)
 
 
