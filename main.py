@@ -145,10 +145,7 @@ def main(config, mode):
 
 
     elif mode == 'baseline':
-        no_nodes = str(int(5 * (config.hrtf_size / config.upscale_factor) ** 2))
-        no_full_nodes = str(int(5 * config.hrtf_size ** 2))
-
-        barycentric_data_folder = '/barycentric_interpolated_data_%s_%s' % (no_nodes, no_full_nodes)
+        barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
         barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
         cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
 
@@ -157,7 +154,7 @@ def main(config, mode):
             print('Created barycentric baseline sofa files')
 
         config.path = config.barycentric_hrtf_dir
-        file_ext = 'lsd_errors_barycentric_interpolated_data_%s_%s.pickle' % (no_nodes, no_full_nodes)
+        file_ext = f'lsd_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle'
         run_lsd_evaluation(config, barycentric_output_path, file_ext)
 
 if __name__ == '__main__':

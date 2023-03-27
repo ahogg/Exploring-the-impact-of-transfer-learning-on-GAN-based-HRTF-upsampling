@@ -62,7 +62,7 @@ def set_box_color(bp, color):
     plt.setp(bp['medians'], color=color, linewidth=0.5)
 
 
-def plot_boxplot(config, name, ylabel, full_results, legend):
+def plot_boxplot(config, name, ylabel, full_results, legend, colours):
     plt.rc('font', family='serif', serif='Times New Roman')
     plt.rc('text', usetex=True)
     plt.rc('xtick', labelsize=8)
@@ -76,12 +76,11 @@ def plot_boxplot(config, name, ylabel, full_results, legend):
         r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} 1280$' % int(
             (16 / factor) ** 2 * 5) for factor in factors]
 
-    colours = ['#0047a4', '#af211a', 'g', '#6C0BA9']
     for idx, full_result in enumerate(full_results):
         data = np.vstack((full_result[3], full_result[2], full_result[1], full_result[0]))
 
         blp = plt.boxplot(data.T, positions=np.array(range(len(data))) * 1.0 - np.linspace(0.15*(len(full_results)/2), -0.15*(len(full_results)/2), len(full_results))[idx],
-                                                flierprops=dict(marker='x', markeredgecolor=colours[idx], markersize=4), widths=0.17)
+                                                flierprops=dict(marker='x', markeredgecolor=colours[idx], markersize=4), widths=0.12)
 
         for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
             plt.setp(blp[element], color=colours[idx], linewidth=0.7)
@@ -137,12 +136,16 @@ def get_results(tag, mode, file_ext=None):
             print('Mean LSD: %s' % np.mean(lsd_errors))
             print('STD LSD: %s' % np.std(lsd_errors))
             full_results.append(lsd_errors)
-        elif mode == 'localisation' or 'target':
+        elif mode == 'loc' or mode == 'target' or mode == 'baseline_loc':
             file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
-            if mode == 'localisation':
+            if mode == 'loc':
                 file_path = f'{config.path}/{file_ext}'
             elif mode == 'target' :
                 file_path = tag + '/' + file_ext
+            elif mode == 'baseline_loc':
+                no_nodes = str(int(5 * (config.hrtf_size / upscale_factor) ** 2))
+                no_full_nodes = str(int(5 * config.hrtf_size ** 2))
+                file_path = f'{tag}/{file_ext}{no_nodes}_{no_full_nodes}.pickle'
 
             with open(file_path, 'rb') as file:
                 loc_id_errors = pickle.load(file)
@@ -241,15 +244,13 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             print("Loaded all datasets successfully.")
             test(config, test_prefetcher)
             run_lsd_evaluation(config, config.valid_path)
-        elif type == 'localisation':
+        elif type == 'loc':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
             test(config, test_prefetcher)
             run_localisation_evaluation(config, config.valid_path)
         else:
             print(f'Type ({type}) does not exist')
-
-
 
 def plot_evaluation(hpc, experiment_id, mode):
     tag = None
@@ -262,16 +263,18 @@ def plot_evaluation(hpc, experiment_id, mode):
                 full_results_LSD_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
                 full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
                 legend = ['SRGAN', 'SRGAN TL (Synthetic)']
-                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', 'LSD error [dB]', [full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl], legend)
-            elif mode == 'localisation':
+                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} LSD error [dB]', [full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl], legend, colours)
+            elif mode == 'loc':
                 full_results_loc_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
                 full_results_loc_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar accuracy error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
                 for i in np.arange(np.shape(full_results_loc_dataset)[1]):
                     legend = ['SRGAN', 'SRGAN TL (Synthetic)']
+                    colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_loc_dataset)[:, i, :],
-                                np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]], legend)
+                                np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]], legend, colours)
 
     elif experiment_id == 2:
         datasets = ['ari', 'sonicom']
@@ -280,22 +283,24 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
             full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
             full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
-            full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid', mode='baseline_lsd', file_ext='lsd_errors_barycentric_interpolated_data_')
+            full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid', mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
             if mode == 'lsd':
                 legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline']
-                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', 'LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend)
-                create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl])
-            elif mode == 'localisation':
+                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
+                create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline])
+            elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar accuracy error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
-                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Target']
+                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline', 'Target']
+                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
-                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend)
-                    print(f'Generate table containing {types[i]} errors for the {dataset} dataset: \n')
+                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours)
+                    print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
                     create_table(legend, [np.array(full_results_dataset)[:, i, :],
-                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper())
+                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper())
     else:
         print('Experiment does not exist')
 
