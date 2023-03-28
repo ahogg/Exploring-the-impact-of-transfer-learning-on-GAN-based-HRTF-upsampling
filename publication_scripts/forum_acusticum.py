@@ -126,9 +126,7 @@ def get_results(tag, mode, file_ext=None):
                 file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
                 file_path = f'{config.path}/{file_ext}'
             elif mode == 'baseline_lsd':
-                no_nodes = str(int(5 * (config.hrtf_size / upscale_factor) ** 2))
-                no_full_nodes = str(int(5 * config.hrtf_size ** 2))
-                file_path = '%s/lsd_errors_barycentric_interpolated_data_%s_%s.pickle' % (tag, no_nodes, no_full_nodes)
+                file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
             with open(file_path, 'rb') as file:
                 lsd_id_errors = pickle.load(file)
             lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
@@ -143,9 +141,7 @@ def get_results(tag, mode, file_ext=None):
             elif mode == 'target' :
                 file_path = tag + '/' + file_ext
             elif mode == 'baseline_loc':
-                no_nodes = str(int(5 * (config.hrtf_size / upscale_factor) ** 2))
-                no_full_nodes = str(int(5 * config.hrtf_size ** 2))
-                file_path = f'{tag}/{file_ext}{no_nodes}_{no_full_nodes}.pickle'
+                file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
 
             with open(file_path, 'rb') as file:
                 loc_id_errors = pickle.load(file)
@@ -215,10 +211,8 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                 config.dataset = dataset.upper()
                 config.data_dir = '/data/' + config.dataset
                 config.upscale_factor = upscale_factor
-                no_nodes = str(int(5 * (config.hrtf_size / upscale_factor) ** 2))
-                no_full_nodes = str(int(5 * config.hrtf_size ** 2))
                 config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
-                config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{no_nodes}_{no_full_nodes}'
+                config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
                 config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
                 config_files.append(config)
 
@@ -228,17 +222,21 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
 
     print(f'{len(config_files)} config files created successfully.')
     if test_id is not None:
-        test_id = int(test_id)
-        config_files = [config_files[test_id]]
+        if test_id.isnumeric():
+            test_id = int(test_id)
+            config_files = [config_files[test_id]]
+        else:
+            for config in config_files:
+                if config.tag == test_id:
+                    config_files = [config]
+                    break
 
     print(f'Running a total of {len(config_files)} config files')
     for config in config_files:
         if experiment_id == 3:
             run_target_localisation_evaluation(config)
         elif experiment_id == 4:
-            no_nodes = str(int(5 * (config.hrtf_size / config.upscale_factor) ** 2))
-            no_full_nodes = str(int(5 * config.hrtf_size ** 2))
-            run_localisation_evaluation(config, config.valid_path, f'loc_errors_barycentric_interpolated_data_{no_nodes}_{no_full_nodes}.pickle')
+            run_localisation_evaluation(config, config.valid_path, f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
         elif type == 'lsd':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
