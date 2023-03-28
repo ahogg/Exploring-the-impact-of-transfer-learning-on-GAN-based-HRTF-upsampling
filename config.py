@@ -8,22 +8,23 @@ class Config:
     Set using HPC to true in order to use appropriate paths for HPC
     """
 
-    def __init__(self, tag, using_hpc):
+    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None):
 
-        # self.dataset = 'SONICOM'
-        # self.dataset = 'SONICOMSynthetic'
+
         self.dataset = 'ARI'
-        # self.tag = 'pub-prep-upscale-sonicom-synthetic-16'
-
-        # self.tag = 'pub-prep-upscale-sonicom-2'
         self.tag = 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
 
         self.start_with_existing_model = False
         self.existing_model_tag = 'pub-prep-upscale-sonicom-synthetic'
 
-        # overwrite --tag with argument provided
+        # overwrite settings with arguments provided
         if tag is not None:
             self.tag = tag
+        if dataset is not None:
+            self.dataset = dataset
+        if existing_model_tag is not None:
+            self.start_with_existing_model = True
+            self.existing_model_tag = existing_model_tag
 
         # Data processing parameters
         self.merge_flag = True

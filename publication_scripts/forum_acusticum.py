@@ -9,6 +9,7 @@ from config import Config
 from model.test import test
 from model.util import load_dataset
 from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation, run_target_localisation_evaluation
+from main import main
 
 plt.rcParams['legend.fancybox'] = False
 
@@ -22,6 +23,7 @@ def get_means(full_results):
 
     return upsample_means, upsample_stds
 
+
 def create_table(legend, full_results, side_title=None):
     factors = [2, 4, 8, 16]
     single_line = r"\hhline{-~----}" if side_title is None else r"\hhline{~-~----}"
@@ -29,7 +31,6 @@ def create_table(legend, full_results, side_title=None):
     title_lines = r"\hhline{~~----}" if side_title is None else r"\hhline{~~~----}"
     extra_column_1 = r"" if side_title is None else r" & "
     extra_column_2 = r"" if side_title is None else r"c"
-
 
     ticks = [r' \textbf{%s} $\,\rightarrow$ \textbf{1280}' % int((16 / factor) ** 2 * 5) for factor in factors]
 
@@ -45,10 +46,10 @@ def create_table(legend, full_results, side_title=None):
         full_result_means, full_result_stds = get_means(full_result)
         if len(full_result_means) == 4:
             print(extra_column_1 +
-                r"\textbf{%s} & & %.2f (%.2f) & %.2f (%.2f)  & %.2f (%.2f)  & %.2f (%.2f)   \\ %s" % tuple(
+                r"\textbf{%s} & & %.2f (%.2f) & %.2f (%.2f) & %.2f (%.2f) & %.2f (%.2f) \\ %s" % tuple(
                     [legend[idx]] + [val for pair in zip(full_result_means, full_result_stds) for val in pair] + [single_line]))
         if len(full_result_means) == 1:
-            print(extra_column_1 + r"\textbf{%s} & & \multicolumn{4}{c|}{%.2f (%.2f)}   \\ %s" % tuple(
+            print(extra_column_1 + r"\textbf{%s} & & \multicolumn{4}{c|}{%.2f (%.2f)} \\ %s" % tuple(
                     [legend[idx]] + [val for pair in zip(full_result_means, full_result_stds) for val in pair] + [single_line]))
 
     print(r"\end{tabular}")
@@ -73,8 +74,8 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
 
     factors = [2, 4, 8, 16]
     ticks = [
-        r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} 1280$' % int(
-            (16 / factor) ** 2 * 5) for factor in factors]
+        r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (int(
+            (16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
 
     for idx, full_result in enumerate(full_results):
         data = np.vstack((full_result[3], full_result[2], full_result[1], full_result[0]))
@@ -131,14 +132,13 @@ def get_results(tag, mode, file_ext=None):
                 lsd_id_errors = pickle.load(file)
             lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
             print(f'Loading: {file_path}')
-            print('Mean LSD: %s' % np.mean(lsd_errors))
-            print('STD LSD: %s' % np.std(lsd_errors))
+            print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(lsd_errors),  np.std(lsd_errors)))
             full_results.append(lsd_errors)
         elif mode == 'loc' or mode == 'target' or mode == 'baseline_loc':
             file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
             if mode == 'loc':
                 file_path = f'{config.path}/{file_ext}'
-            elif mode == 'target' :
+            elif mode == 'target':
                 file_path = tag + '/' + file_ext
             elif mode == 'baseline_loc':
                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
@@ -159,8 +159,67 @@ def get_results(tag, mode, file_ext=None):
 
     return full_results
 
-def run_evaluation(hpc, experiment_id, type, test_id=None):
 
+def run_train(hpc, type, test_id=None):
+    print(f'Running training')
+    config_files = []
+    tags = []
+    upscale_factors = [2, 4, 8, 16]
+    datasets = ['ari', 'sonicom', 'sonicom-synthetic']
+    if type == 'tl':
+        datasets.remove('sonicom-synthetic')
+    for dataset in datasets:
+        other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
+        for upscale_factor in upscale_factors:
+            if type == 'base':
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
+            elif type == 'tl':
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-{upscale_factor}'},
+                        {'tag': f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-sonicom-synthetic-{upscale_factor}'}]
+            else:
+                print("Type not valid. Please use 'base' or 'tl'")
+
+            for tag in tags:
+                if type == 'base':
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset.upper())
+                    config.start_with_existing_model = False
+                elif type == 'tl':
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset.upper(), existing_model_tag=tag['existing_model_tag'])
+                config.upscale_factor = upscale_factor
+                config.lr_gen = 0.0002
+                config.lr_dis = 0.0000015
+                if upscale_factor == 2:
+                    config.content_weight = 0.1
+                    config.adversarial_weight = 0.001
+                elif upscale_factor == 4:
+                    config.content_weight = 0.01
+                    config.adversarial_weight = 0.1
+                elif upscale_factor == 8:
+                    config.content_weight = 0.001
+                    config.adversarial_weight = 0.001
+                elif upscale_factor == 16:
+                    config.content_weight = 0.01
+                    config.adversarial_weight = 0.01
+
+                config_files.append(config)
+
+    print(f'{len(config_files)} config files created successfully.')
+    if test_id is not None:
+        if test_id.isnumeric():
+            test_id = int(test_id)
+            config_files = [config_files[test_id]]
+        else:
+            for config in config_files:
+                if config.tag == test_id:
+                    config_files = [config]
+                    break
+
+    print(f'Running a total of {len(config_files)} config files')
+    for config in config_files:
+        main(config, args.mode)
+
+
+def run_evaluation(hpc, experiment_id, type, test_id=None):
     print(f'Running {type} experiment {experiment_id}')
     config_files = []
     if experiment_id == 1:
@@ -215,7 +274,6 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                 config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
                 config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
                 config_files.append(config)
-
     else:
         print('Experiment does not exist')
         return
@@ -285,6 +343,7 @@ def plot_evaluation(hpc, experiment_id, mode):
             if mode == 'lsd':
                 legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
+                full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
                 create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline])
             elif mode == 'loc':
@@ -319,8 +378,9 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
-    # Note that experiment_id=3 is always of localisation type
-    if args.mode == 'evaluation':
+    if args.mode == 'train':
+        run_train(hpc, args.type, args.test)
+    elif args.mode == 'evaluation':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
