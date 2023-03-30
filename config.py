@@ -11,7 +11,8 @@ class Config:
     def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None):
 
 
-        self.dataset = 'ARI'
+        self.dataset = 'SONICOMSynthetic'
+        # self.dataset = 'ARI'
         self.tag = 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
 
         self.start_with_existing_model = False
@@ -53,9 +54,6 @@ class Config:
         self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
 
         self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/{self.dataset}_projection_{self.hrtf_size}'
-        if  self.dataset == 'SONICOMSynthetic':
-            self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/SONICOM_projection_{self.hrtf_size}'
-
         self.data_dir = '/data/' + self.dataset
         self.baseline_dir = '/baseline_results/' + self.dataset
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'

@@ -26,7 +26,7 @@ class CubedSphere(object):
         if indices is None:
             # at this stage, we can simplify by acting as if there are the same number of elevation measurement points at
             # every azimuth angle
-            num_elevation_measurements = sphere_coords[0].shape[0]
+            num_elevation_measurements = sphere_coords[list(sphere_coords.keys())[0]].shape[0]
             elevation_indices = list(range(num_elevation_measurements))
 
             # loop through all azimuth positions
