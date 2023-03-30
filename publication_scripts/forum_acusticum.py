@@ -178,7 +178,7 @@ def run_train(hpc, type, test_id=None):
         for upscale_factor in upscale_factors:
             if type == 'base':
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
-            elif type == 'base_tl':
+            elif type == 'base-tl':
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
@@ -191,7 +191,7 @@ def run_train(hpc, type, test_id=None):
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
                     config.start_with_existing_model = False
                     config.data_dir = '/data/' + dataset
-                elif type == 'base_tl':
+                elif type == 'base-tl':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
                     config.start_with_existing_model = False
                     config.data_dir = '/data-transfer-learning/' + dataset
