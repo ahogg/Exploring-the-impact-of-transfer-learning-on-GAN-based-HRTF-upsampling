@@ -110,11 +110,16 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
     else:
         plt.xticks(range(0, len(ticks) * 2, 2), ticks)
 
+    ymin = np.nanmin(full_results) - 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
+    ymax = np.nanmax(full_results) + 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
+    ax.set_ylim((ymin, ymax))
+    ax.yaxis.set_label_coords(-0.12, 0.5)
+
     w = 2.974
     h = w / 1.5
     fig.set_size_inches(w, h)
     fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
-    fig.savefig(config.data_dirs_path + '/plots/' + name)
+    fig.savefig(config.data_dirs_path + '/plots/' + name, bbox_inches='tight')
 
 
 def get_results(tag, mode, file_ext=None):
@@ -165,7 +170,7 @@ def run_train(hpc, type, test_id=None):
     config_files = []
     tags = []
     upscale_factors = [2, 4, 8, 16]
-    datasets = ['ari', 'sonicom', 'sonicom-synthetic']
+    datasets = ['ARI', 'SONICOM', 'sonicom-synthetic']
     if type == 'tl':
         datasets.remove('sonicom-synthetic')
     for dataset in datasets:
@@ -181,10 +186,10 @@ def run_train(hpc, type, test_id=None):
 
             for tag in tags:
                 if type == 'base':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset.upper())
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
                     config.start_with_existing_model = False
                 elif type == 'tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset.upper(), existing_model_tag=tag['existing_model_tag'])
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'])
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
                 config.lr_dis = 0.0000015
@@ -343,14 +348,20 @@ def plot_evaluation(hpc, experiment_id, mode):
             if mode == 'lsd':
                 legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
-                full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
-                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
-                create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline])
+                # remove baseline results at upscale-16
+                # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
+                #######################################
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
+                create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], dataset.upper())
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
-                labels = [r'Polar accuracy error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
+                labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
+                labels = [f'{dataset.upper()} \n' + label for label in labels]
                 legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline', 'Target']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
+                # remove baseline results at upscale-16
+                # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
+                #######################################
                 full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
