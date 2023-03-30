@@ -170,7 +170,7 @@ def run_train(hpc, type, test_id=None):
     config_files = []
     tags = []
     upscale_factors = [2, 4, 8, 16]
-    datasets = ['ARI', 'SONICOM', 'sonicom-synthetic']
+    datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl':
         datasets.remove('sonicom-synthetic')
     for dataset in datasets:
