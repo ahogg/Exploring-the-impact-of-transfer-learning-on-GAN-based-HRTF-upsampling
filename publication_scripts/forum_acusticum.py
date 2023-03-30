@@ -171,16 +171,18 @@ def run_train(hpc, type, test_id=None):
     tags = []
     upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
-    if type == 'tl':
-        datasets.remove('sonicom-synthetic')
+    if type == 'tl' or 'base':
+        datasets.remove('SONICOMSynthetic')
     for dataset in datasets:
-        other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
+        other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
         for upscale_factor in upscale_factors:
             if type == 'base':
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
+            elif type == 'base_tl':
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-sonicom-synthetic-{upscale_factor}'}]
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
+                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
             else:
                 print("Type not valid. Please use 'base' or 'tl'")
 
@@ -188,7 +190,13 @@ def run_train(hpc, type, test_id=None):
                 if type == 'base':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
                     config.start_with_existing_model = False
+                    config.data_dir = '/data/' + dataset
+                elif type == 'base_tl':
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
+                    config.start_with_existing_model = False
+                    config.data_dir = '/data-transfer-learning/' + dataset
                 elif type == 'tl':
+                    config.data_dir = '/data/' + dataset
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'])
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
