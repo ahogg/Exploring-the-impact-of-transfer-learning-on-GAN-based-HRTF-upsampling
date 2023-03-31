@@ -64,6 +64,10 @@ def main(config, mode):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
 
+            if np.isnan(ds[i]['features']):
+                print(f'HRTF (Subject ID: {i}) contains nan values')
+                continue
+
             clean_hrtf = interpolate_fft(config, cs, ds[i]['features'], sphere, sphere_triangles, sphere_coeffs,
                                              cube, fs_original=ds.hrir_samplerate, edge_len=config.hrtf_size)
             hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(ds, i)
