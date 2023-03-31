@@ -64,7 +64,7 @@ def main(config, mode):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
 
-            if np.isnan(ds[i]['features']):
+            if np.isnan(ds[i]['features']).any():
                 print(f'HRTF (Subject ID: {i}) contains nan values')
                 continue
 
