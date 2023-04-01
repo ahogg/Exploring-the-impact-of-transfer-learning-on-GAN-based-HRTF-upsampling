@@ -8,15 +8,14 @@ class Config:
     Set using HPC to true in order to use appropriate paths for HPC
     """
 
-    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None):
-
+    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None):
 
         self.dataset = 'SONICOMSynthetic'
-        # self.dataset = 'ARI'
         self.tag = 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
 
         self.start_with_existing_model = False
         self.existing_model_tag = 'pub-prep-upscale-sonicom-synthetic'
+        self.data_dir = '/data/' + self.dataset
 
         # overwrite settings with arguments provided
         if tag is not None:
@@ -26,6 +25,8 @@ class Config:
         if existing_model_tag is not None:
             self.start_with_existing_model = True
             self.existing_model_tag = existing_model_tag
+        if data_dir is not None:
+            self.data_dir = data_dir
 
         # Data processing parameters
         self.merge_flag = True
@@ -54,8 +55,8 @@ class Config:
         self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
 
         self.projection_dir = f'{self.data_dirs_path}/projection_coordinates'
-        self.data_dir = '/data/' + self.dataset
         self.baseline_dir = '/baseline_results/' + self.dataset
+
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'
         self.train_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/original/train'

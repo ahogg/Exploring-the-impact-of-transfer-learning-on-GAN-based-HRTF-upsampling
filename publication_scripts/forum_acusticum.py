@@ -193,12 +193,11 @@ def run_preprocess(hpc, type, dataset_id=None):
     config_files = []
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     for dataset in datasets:
-        config = Config(tag=None, using_hpc=hpc, dataset=dataset)
         if type == 'base':
-            config.data_dir = '/data/' + dataset
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config.train_samples_ratio = 0.8
         elif type == 'tl':
-            config.data_dir = '/data-transfer-learning/' + dataset
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset)
             config.train_samples_ratio = 1.0
         config.hrtf_size = 16
         config_files.append(config)
