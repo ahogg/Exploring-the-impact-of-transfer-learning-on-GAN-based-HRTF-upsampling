@@ -188,11 +188,35 @@ def run_projection(hpc, dataset_id=None):
     for config in config_files:
         main(config, 'generate_projection')
 
-def run_preprocess(hpc, test_id=None):
-    print(f'Running preprocess')
+def run_preprocess(hpc, type, dataset_id=None):
+    print(f'Running projection')
     config_files = []
-    tags = []
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
+    for dataset in datasets:
+        config = Config(tag=None, using_hpc=hpc, dataset=dataset)
+        if type == 'base':
+            config.data_dir = '/data/' + dataset
+            config.train_samples_ratio = 0.8
+        elif type == 'tl':
+            config.data_dir = '/data-transfer-learning/' + dataset
+            config.train_samples_ratio = 1.0
+        config.hrtf_size = 16
+        config_files.append(config)
+
+    print(f'{len(config_files)} config files created successfully.')
+    if dataset_id is not None:
+        if dataset_id.isnumeric():
+            test_id = int(dataset_id)
+            config_files = [config_files[test_id]]
+        else:
+            for config in config_files:
+                if config.dataset == dataset_id:
+                    config_files = [config]
+                    break
+
+    print(f'Running a total of {len(config_files)} config files')
+    for config in config_files:
+        main(config, 'preprocess')
 
 def run_train(hpc, type, test_id=None):
     print(f'Running training')
@@ -429,7 +453,7 @@ if __name__ == '__main__':
     if args.mode == 'projection':
         run_projection(hpc, args.test)
     elif args.mode == 'preprocess':
-        run_preprocess(hpc, args.test)
+        run_preprocess(hpc, args.type, args.test)
     elif args.mode == 'train':
         run_train(hpc, args.type, args.test)
     elif args.mode == 'evaluation':
