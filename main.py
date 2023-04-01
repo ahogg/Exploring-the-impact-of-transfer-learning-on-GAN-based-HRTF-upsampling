@@ -47,7 +47,8 @@ def main(config, mode):
         cs = CubedSphere(sphere_coords=ds._selected_angles)
 
         # need to use protected member to get this data, no getters
-        with open(config.projection_filename, "rb") as file:
+        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
+        with open(projection_filename, "rb") as file:
             cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
 
         # Clear/Create directories
