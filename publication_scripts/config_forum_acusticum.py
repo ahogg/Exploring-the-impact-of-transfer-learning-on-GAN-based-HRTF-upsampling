@@ -53,7 +53,7 @@ class Config:
         self.valid_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}/valid'
         self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
 
-        self.projection_filename = f'{self.data_dirs_path}/projection_coordinates/{self.dataset}_projection_{self.hrtf_size}'
+        self.projection_dir = f'{self.data_dirs_path}/projection_coordinates'
         self.data_dir = '/data/' + self.dataset
         self.baseline_dir = '/baseline_results/' + self.dataset
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
