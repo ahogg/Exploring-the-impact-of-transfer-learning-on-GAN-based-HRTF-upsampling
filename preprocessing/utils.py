@@ -328,7 +328,7 @@ def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_c
     for p in triangle_vertices:
         if time_domain_flag:
             features_p = get_feature_for_point(p[0], p[1], all_coords, subject_features)
-            features_no_ITD = remove_itd(features_p, 10, len(features_p))
+            features_no_ITD = remove_itd(features_p, int(len(features_p)*0.04), len(features_p))
             features.append(features_no_ITD)
         else:
             features_p = get_feature_for_point_tensor(p[0], p[1], all_coords, subject_features)
