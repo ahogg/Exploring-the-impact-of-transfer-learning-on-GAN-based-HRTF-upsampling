@@ -70,7 +70,7 @@ class Discriminator(nn.Module):
             CubeSphereConv2D(64, 128, (3, 3), (1, 1), bias=False),
             nn.BatchNorm3d(128),
             nn.LeakyReLU(0.2, True),
-            # state size. (128) x 5 x 16 x 16
+            # state size. (nbins) x 5 x (hrtf_size) x (hrtf_size)
             CubeSpherePadding2D(1),
             CubeSphereConv2D(128, 128, (3, 3), (2, 2), bias=False),
             nn.BatchNorm3d(128),

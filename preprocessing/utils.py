@@ -99,7 +99,7 @@ def merge_files(config):
     merge_left_right_hrtfs(config.valid_original_hrtf_dir, config.valid_original_hrtf_merge_dir)
 
 
-def get_hrtf_from_ds(ds, index):
+def get_hrtf_from_ds(config, ds, index):
     coordinates = ds.row_angles, ds.column_angles
     position_grid = np.stack(np.meshgrid(*coordinates, indexing='ij'), axis=-1)
 
@@ -112,7 +112,7 @@ def get_hrtf_from_ds(ds, index):
                 el_temp = np.radians(position_grid[row_idx][column_idx][1])
                 sphere_temp.append([el_temp, az_temp])
                 hrir_temp.append(np.ma.getdata(ds[index]['features'][row_idx][column_idx]))
-    hrtf_temp, phase_temp = calc_hrtf(hrir_temp)
+    hrtf_temp, phase_temp = calc_hrtf(config, hrir_temp)
 
     return torch.tensor(np.array(hrtf_temp)), torch.tensor(np.array(phase_temp)), sphere_temp
 
@@ -139,7 +139,7 @@ def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343):
     return delayed_hrir, sofa_delay
 
 
-def gen_sofa_file(sphere_coords, left_hrtf, right_hrtf, count, left_phase=None, right_phase=None):
+def gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count, left_phase=None, right_phase=None):
     el = np.degrees(sphere_coords[count][0])
     az = np.degrees(sphere_coords[count][1])
     source_position = [az + 360 if az < 0 else az, el, 1.2]
@@ -151,8 +151,8 @@ def gen_sofa_file(sphere_coords, left_hrtf, right_hrtf, count, left_phase=None, 
         right_hrtf[right_hrtf == 0.0] = 1.0e-08
         right_phase = np.imag(-hilbert(np.log(np.abs(right_hrtf))))
 
-    left_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(left_hrtf[:127]))) * np.exp(1j * left_phase))[:128]
-    right_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(right_hrtf[:127]))) * np.exp(1j * right_phase))[:128]
+    left_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(left_hrtf[:config.nbins_hrtf-1]))) * np.exp(1j * left_phase))[:config.nbins_hrtf]
+    right_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(right_hrtf[:config.nbins_hrtf-1]))) * np.exp(1j * right_phase))[:config.nbins_hrtf]
 
     left_hrir, left_sample_delay = add_itd(az, el, left_hrir, side='left')
     right_hrir, right_sample_delay = add_itd(az, el, right_hrir, side='right')
@@ -170,31 +170,31 @@ def save_sofa(clean_hrtf, config, cube_coords, sphere_coords, sofa_path_output, 
     left_full_phase = None
     right_full_phase = None
     if cube_coords is None:
-        left_full_hrtf = clean_hrtf[:, :128]
-        right_full_hrtf = clean_hrtf[:, 128:]
+        left_full_hrtf = clean_hrtf[:, :config.nbins_hrtf]
+        right_full_hrtf = clean_hrtf[:, config.nbins_hrtf:]
 
         if phase is not None:
-            left_full_phase = phase[:, :128]
-            right_full_phase = phase[:, 128:]
+            left_full_phase = phase[:, :config.nbins_hrtf]
+            right_full_phase = phase[:, config.nbins_hrtf:]
 
         for count in range(len(sphere_coords)):
             left_hrtf = np.array(left_full_hrtf[count])
             right_hrtf = np.array(right_full_hrtf[count])
 
             if phase is None:
-                source_position, full_hrir, delay = gen_sofa_file(sphere_coords, left_hrtf, right_hrtf, count)
+                source_position, full_hrir, delay = gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count)
             else:
                 left_phase = np.array(left_full_phase[count])
                 right_phase = np.array(right_full_phase[count])
-                source_position, full_hrir, delay = gen_sofa_file(sphere_coords, left_hrtf, right_hrtf, count, left_phase, right_phase)
+                source_position, full_hrir, delay = gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count, left_phase, right_phase)
 
             full_hrirs.append(full_hrir)
             source_positions.append(source_position)
             delays.append(delay)
 
     else:
-        left_full_hrtf = clean_hrtf[:, :, :, :128]
-        right_full_hrtf = clean_hrtf[:, :, :, 128:]
+        left_full_hrtf = clean_hrtf[:, :, :, :config.nbins_hrtf]
+        right_full_hrtf = clean_hrtf[:, :, :, config.nbins_hrtf:]
 
         count = 0
         for panel, x, y in cube_coords:
@@ -205,7 +205,7 @@ def save_sofa(clean_hrtf, config, cube_coords, sphere_coords, sofa_path_output, 
 
             left_hrtf = np.array(left_full_hrtf[i, j, k])
             right_hrtf = np.array(right_full_hrtf[i, j, k])
-            source_position, full_hrir, delay = gen_sofa_file(sphere_coords, left_hrtf, right_hrtf, count)
+            source_position, full_hrir, delay = gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count)
             full_hrirs.append(full_hrir)
             source_positions.append(source_position)
             delays.append(delay)
@@ -363,15 +363,14 @@ def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sph
     return selected_feature_interpolated
 
 
-def calc_hrtf(hrirs):
+def calc_hrtf(config, hrirs):
     """FFT to obtain HRTF from HRIR"""
-    nbins = 256
     magnitudes = []
     phases = []
 
     for hrir in hrirs:
         # remove value that corresponds to 0 Hz
-        hrtf = scipy.fft.rfft(hrir, nbins)[1:]
+        hrtf = scipy.fft.rfft(hrir, config.nbins_hrtf*2)[1:]
         magnitude = abs(hrtf)
         phase = [cmath.phase(x) for x in hrtf]
         magnitudes.append(magnitude)
@@ -402,7 +401,7 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     number_of_samples = round(np.shape(interpolated_hrirs)[-1] * float(config.hrir_samplerate) / fs_original)
     interpolated_hrirs_resampled = sps.resample(np.array(interpolated_hrirs).T, number_of_samples).T
 
-    magnitudes, phases = calc_hrtf(interpolated_hrirs_resampled)
+    magnitudes, phases = calc_hrtf(config, interpolated_hrirs_resampled)
 
     # create empty list of lists of lists and initialize counter
     magnitudes_raw = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]

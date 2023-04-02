@@ -60,8 +60,8 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
 
         cs = CubedSphere(sphere_coords=sphere_coords_lr, indices=sphere_coords_lr_index)
 
-        lr_hrtf_left = lr_hrtf[:, :, :, :128]
-        lr_hrtf_right = lr_hrtf[:, :, :, 128:]
+        lr_hrtf_left = lr_hrtf[:, :, :, :config.nbins_hrtf]
+        lr_hrtf_right = lr_hrtf[:, :, :, config.nbins_hrtf:]
 
         barycentric_hr_left = interpolate_fft(config, cs, lr_hrtf_left, sphere_coords, euclidean_sphere_triangles,
                                          euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,

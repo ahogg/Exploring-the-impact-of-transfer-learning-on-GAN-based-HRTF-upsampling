@@ -14,9 +14,14 @@ def test(config, val_prefetcher):
     # Initialize super-resolution model
     ngpu = config.ngpu
     valid_dir = config.valid_path
+
+    nbins = config.nbins_hrtf
+    if config.merge_flag:
+        nbins = config.nbins_hrtf * 2
+
     device = torch.device(config.device_name if (
             torch.cuda.is_available() and ngpu > 0) else "cpu")
-    model = Generator(upscale_factor=config.upscale_factor, nbins=config.nbins_hrtf).to(device=device)
+    model = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device=device)
     print("Build SRGAN model successfully.")
 
     # Load super-resolution model weights (always uses the CPU due to HPC having long wait times)
