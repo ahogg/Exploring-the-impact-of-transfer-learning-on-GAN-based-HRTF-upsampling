@@ -31,6 +31,7 @@ class Config:
         # Data processing parameters
         self.merge_flag = True
         self.gen_sofa_flag = True
+        self.nbins_hrtf = 256
         self.hrtf_size = 16
         self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
@@ -73,8 +74,8 @@ class Config:
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
 
         # Training hyperparams
-        self.batch_size = 4
-        self.num_workers = 4
+        self.batch_size = 1
+        self.num_workers = 1
         self.num_epochs = 300  # was originally 250
         self.lr_gen = 0.0002
         self.lr_dis = 0.0000015
