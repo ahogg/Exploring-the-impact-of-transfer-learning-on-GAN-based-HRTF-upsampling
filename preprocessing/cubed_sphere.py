@@ -35,7 +35,10 @@ class CubedSphere(object):
             for azimuth_index, azimuth in enumerate(row_angles):
                 # convert degrees to radians by multiplying by a factor of pi/180
                 azimuth = azimuth * np.pi / 180
-                elevation_valid = list(map(elevation_validate, list(elevation), [x.flatten().any() for x in mask[azimuth_index]]))
+                if not mask:
+                    elevation_valid = elevation
+                else:
+                    elevation_valid = list(map(elevation_validate, list(elevation), [x.flatten().any() for x in mask[azimuth_index]]))
 
                 # sphere_coords is stored as (elevation, azimuth). Ultimately, we're creating a list of (elevation,
                 # azimuth) pairs for every measurement position in the sphere

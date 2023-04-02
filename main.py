@@ -35,7 +35,7 @@ def main(config, mode):
     if mode == 'generate_projection':
         # Must be run in this mode once per dataset, finds barycentric coordinates for each point in the cubed sphere
         # No need to load the entire dataset in this case
-        ds: load_function = load_function(data_dir, features_spec={'hrirs': {'side': 'left', 'domain': 'time'}}, subject_ids='first')
+        ds = load_function(data_dir, features_spec={'hrirs': {'samplerate': config.hrir_samplerate, 'side': 'left', 'domain': 'time'}}, subject_ids='first')
         # need to use protected member to get this data, no getters
         cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
         generate_euclidean_cube(config, cs.get_sphere_coords(), edge_len=config.hrtf_size)
@@ -43,7 +43,7 @@ def main(config, mode):
     elif mode == 'preprocess':
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
         # val sets and saves processed data
-        ds: load_function = load_function(data_dir, features_spec={'hrirs': {'side': 'both', 'domain': 'time'}})
+        ds = load_function(data_dir, features_spec={'hrirs': {'samplerate': config.hrir_samplerate, 'side': 'both', 'domain': 'time'}})
         cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
 
         # need to use protected member to get this data, no getters
