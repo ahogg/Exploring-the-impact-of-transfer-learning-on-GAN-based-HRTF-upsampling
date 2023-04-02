@@ -77,7 +77,7 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None):
     print('Created valid sofa files')
 
     eng = matlab.engine.start_matlab()
-    s = eng.genpath('/home/aos13/AMT/amt_code')
+    s = eng.genpath(config.amt_dir)
     eng.addpath(s, nargout=0)
     s = eng.genpath(config.data_dirs_path)
     eng.addpath(s, nargout=0)
@@ -106,7 +106,7 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None):
 def run_target_localisation_evaluation(config):
 
     eng = matlab.engine.start_matlab()
-    s = eng.genpath('/home/aos13/AMT/amt_code')
+    s = eng.genpath(config.amt_dir)
     eng.addpath(s, nargout=0)
     s = eng.genpath(config.data_dirs_path)
     eng.addpath(s, nargout=0)
