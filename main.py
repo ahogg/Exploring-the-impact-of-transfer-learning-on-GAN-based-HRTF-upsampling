@@ -11,7 +11,7 @@ from model.test import test
 from model.util import load_dataset
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft, generate_euclidean_cube, convert_to_sofa, \
-    load_data, merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories
+     merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories
 from model import util
 from baselines.barycentric_interpolation import run_barycentric_interpolation
 from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation
@@ -29,22 +29,22 @@ def main(config, mode):
     print(os.getcwd())
     print(config.dataset)
 
-    imp = importlib.import_module('hrtfdata.torch.full')
+    imp = importlib.import_module('hrtfdata.full')
     load_function = getattr(imp, config.dataset)
 
     if mode == 'generate_projection':
         # Must be run in this mode once per dataset, finds barycentric coordinates for each point in the cubed sphere
         # No need to load the entire dataset in this case
-        ds: load_function = load_data(data_folder=data_dir, load_function=load_function, domain='time', side='left', subject_ids='first')
+        ds: load_function = load_function(data_dir, features_spec={'hrirs': {'side': 'left', 'domain': 'time'}}, subject_ids='first')
         # need to use protected member to get this data, no getters
-        cs = CubedSphere(sphere_coords=ds._selected_angles)
+        cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
         generate_euclidean_cube(config, cs.get_sphere_coords(), edge_len=config.hrtf_size)
 
     elif mode == 'preprocess':
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
         # val sets and saves processed data
-        ds: load_function = load_data(data_folder=data_dir, load_function=load_function, domain='time', side='both')
-        cs = CubedSphere(sphere_coords=ds._selected_angles)
+        ds: load_function = load_function(data_dir, features_spec={'hrirs': {'side': 'both', 'domain': 'time'}})
+        cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
 
         # need to use protected member to get this data, no getters
         projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
@@ -70,7 +70,8 @@ def main(config, mode):
                 print(f'HRTF (Subject ID: {i}) contains nan values')
                 continue
 
-            clean_hrtf = interpolate_fft(config, cs, ds[i]['features'], sphere, sphere_triangles, sphere_coeffs,
+            features = ds[i]['features'].reshape(*ds[i]['features'].shape[:-2], -1)
+            clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
                                              cube, fs_original=ds.hrir_samplerate, edge_len=config.hrtf_size)
             hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i)
 

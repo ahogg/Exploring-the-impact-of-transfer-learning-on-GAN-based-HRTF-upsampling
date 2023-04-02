@@ -32,19 +32,6 @@ def clear_create_directories(config):
     Path(config.valid_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
 
 
-def load_data(data_folder, load_function, domain, side, subject_ids=None):
-    """Wrapper for the data loading functions from the hrtfdata package"""
-    if subject_ids:
-        return load_function(data_folder,
-                             feature_spec={"hrirs": {'side': side, 'domain': domain}},
-                             target_spec={"side": {}},
-                             group_spec={"subject": {}}, subject_ids=subject_ids)
-    return load_function(data_folder,
-                         feature_spec={"hrirs": {'side': side, 'domain': domain}},
-                         target_spec={"side": {}},
-                         group_spec={"subject": {}})
-
-
 def merge_left_right_hrtfs(input_dir, output_dir):
     # Clear/Create directory
     shutil.rmtree(Path(output_dir), ignore_errors=True)
@@ -107,7 +94,7 @@ def get_hrtf_from_ds(config, ds, index):
     hrir_temp = []
     for row_idx, row in enumerate(ds.row_angles):
         for column_idx, column in enumerate(ds.column_angles):
-            if not any(np.ma.getmaskarray(ds[index]['features'][row_idx][column_idx])):
+            if not any(np.ma.getmaskarray(ds[index]['features'][row_idx][column_idx].flatten())):
                 az_temp = np.radians(position_grid[row_idx][column_idx][0])
                 el_temp = np.radians(position_grid[row_idx][column_idx][1])
                 sphere_temp.append([el_temp, az_temp])
