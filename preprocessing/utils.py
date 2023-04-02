@@ -76,6 +76,13 @@ def merge_left_right_hrtfs(input_dir, output_dir):
             data_dict_left[file_ext][subj_id] = data
 
     for file_ext in data_dict_right.keys():
+        missing_subj_ids =  list(set(data_dict_right[file_ext].keys()) - set(data_dict_left[file_ext].keys()))
+        if len(missing_subj_ids) > 0:
+            print('Excluding subject IDs where both ears do not exist (IDs: %s)' % ', '.join(map(str, missing_subj_ids)))
+            for missing_subj_id in missing_subj_ids:
+                data_dict_right[file_ext].pop(missing_subj_id, None)
+                data_dict_left[file_ext].pop(missing_subj_id, None)
+
         for subj_id in data_dict_right[file_ext].keys():
             hrtf_r = data_dict_right[file_ext][subj_id]
             hrtf_l = data_dict_left[file_ext][subj_id]
