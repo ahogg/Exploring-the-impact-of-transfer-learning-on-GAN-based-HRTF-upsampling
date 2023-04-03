@@ -98,7 +98,7 @@ def get_hrtf_from_ds(config, ds, index):
                 az_temp = np.radians(position_grid[row_idx][column_idx][0])
                 el_temp = np.radians(position_grid[row_idx][column_idx][1])
                 sphere_temp.append([el_temp, az_temp])
-                hrir_temp.append(np.ma.getdata(ds[index]['features'][row_idx][column_idx]))
+                hrir_temp.append(np.ma.getdata(ds[index]['features'][row_idx][column_idx]).flatten())
     hrtf_temp, phase_temp = calc_hrtf(config, hrir_temp)
 
     return torch.tensor(np.array(hrtf_temp)), torch.tensor(np.array(phase_temp)), sphere_temp
