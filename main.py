@@ -70,13 +70,13 @@ def main(config, mode):
                 print(f'HRTF (Subject ID: {i}) contains nan values')
                 continue
 
-            features = ds[i]['features'].reshape(*ds[i]['features'].shape[:-2], -1)
+            features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
             clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
                                              cube, fs_original=ds.hrir_samplerate, edge_len=config.hrtf_size)
             hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i)
 
             # save cleaned hrtfdata
-            if ds[i]['group'] in train_sample:
+            if ds.subject_ids[i] in train_sample:
                 projected_dir = config.train_hrtf_dir
                 projected_dir_original = config.train_original_hrtf_dir
                 train_hrtfs[j] = clean_hrtf
@@ -85,8 +85,8 @@ def main(config, mode):
                 projected_dir = config.valid_hrtf_dir
                 projected_dir_original = config.valid_original_hrtf_dir
 
-            subject_id = str(ds[i]['group'])
-            side = ds[i]['target']
+            subject_id = str(ds.subject_ids[i])
+            side = ds.sides[i]
             with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
                 pickle.dump(clean_hrtf, file)
 
