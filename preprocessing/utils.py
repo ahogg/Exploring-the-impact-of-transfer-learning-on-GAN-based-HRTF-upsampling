@@ -408,6 +408,15 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     return torch.tensor(np.array(magnitudes_raw))
 
 
+def trim_hrir(hrir, start, stop):
+    if start < 0:
+        hrir_padded = np.pad(hrir, (abs(start), 0), mode='constant')
+        trimmed_hrir = hrir_padded[:stop]
+    else:
+        trimmed_hrir = hrir[start:stop]
+    return trimmed_hrir
+
+
 def remove_itd(hrir, pre_window, length):
     """Remove ITD from HRIR using kalman filter"""
     # normalize such that max(abs(hrir)) == 1
@@ -448,14 +457,17 @@ def remove_itd(hrir, pre_window, length):
 
     # trim HRIR based on first time threshold is exceeded
     start = over_threshold_index - pre_window
-    stop = start + length
+    if start < 0:
+        stop = length
+    else:
+        stop = start + length
 
     if len(hrir) >= stop:
-        trimmed_hrir = hrir[start:stop]
+        trimmed_hrir = trim_hrir(hrir, start, stop)
         fade_window = fadein + [1] * (length - fadein_len - fadeout_len) + fadeout
         faded_hrir = trimmed_hrir * fade_window
     else:
-        trimmed_hrir = hrir[start:]
+        trimmed_hrir = trim_hrir(hrir, start, -1)
         fade_window = fadein + [1] * (len(trimmed_hrir) - fadein_len - fadeout_len) + fadeout
         faded_hrir = trimmed_hrir * fade_window
         zero_pad = [0] * (length - len(trimmed_hrir))
