@@ -248,8 +248,8 @@ def run_train(hpc, type, test_id=None):
                     config.start_with_existing_model = False
                     config.data_dir = '/data-transfer-learning/' + dataset
                 elif type == 'tl':
-                    config.data_dir = '/data/' + dataset
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'])
+                    config.data_dir = '/data/' + dataset
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
                 config.lr_dis = 0.0000015
