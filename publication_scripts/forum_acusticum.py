@@ -223,7 +223,7 @@ def run_train(hpc, type, test_id=None):
     tags = []
     upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
-    if type == 'tl' or 'base':
+    if type == 'tl' or type == 'base':
         datasets.remove('SONICOMSynthetic')
     for dataset in datasets:
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
