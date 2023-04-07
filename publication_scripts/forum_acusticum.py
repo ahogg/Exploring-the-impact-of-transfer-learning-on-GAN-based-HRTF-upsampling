@@ -300,14 +300,13 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     config_files.append(config)
     elif experiment_id == 2:
         upscale_factors = [2, 4, 8, 16]
-        datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
+        datasets = ['ARI', 'SONICOM', ]
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             for upscale_factor in upscale_factors:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
-                if dataset == 'ARI' or dataset == 'SONICOM':
-                        tags.extend([{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
-                                     {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}])
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
+                        {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
+                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
                 for tag in tags:
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                     config.upscale_factor = upscale_factor
