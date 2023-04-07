@@ -367,17 +367,17 @@ def plot_evaluation(hpc, experiment_id, mode):
     config = Config(tag, using_hpc=hpc)
 
     if experiment_id == 1:
-        datasets = ['ari', 'sonicom']
+        datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             if mode == 'lsd':
                 full_results_LSD_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
-                full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
+                full_results_LSD_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-', mode)
                 legend = ['SRGAN', 'SRGAN TL (Synthetic)']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} LSD error [dB]', [full_results_LSD_dataset, full_results_LSD_dataset_sonicom_synthetic_tl], legend, colours)
             elif mode == 'loc':
                 full_results_loc_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
-                full_results_loc_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
+                full_results_loc_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-', mode)
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar accuracy error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
                 for i in np.arange(np.shape(full_results_loc_dataset)[1]):
@@ -387,11 +387,11 @@ def plot_evaluation(hpc, experiment_id, mode):
                                 np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]], legend, colours)
 
     elif experiment_id == 2:
-        datasets = ['ari', 'sonicom']
+        datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
-            other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
+            other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
-            full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-', mode)
+            full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-', mode)
             full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
             full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid', mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
             if mode == 'lsd':
