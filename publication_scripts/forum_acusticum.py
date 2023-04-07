@@ -289,12 +289,12 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     config_files = []
     if experiment_id == 1:
         upscale_factors = [2, 4, 8, 16]
-        datasets = ['ari', 'sonicom']
+        datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             for upscale_factor in upscale_factors:
 
                 tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
-                        f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-{upscale_factor}']
+                        f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}']
                 for tag in tags:
                     config = Config(tag, using_hpc=hpc)
                     config.upscale_factor = upscale_factor
@@ -303,36 +303,35 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     config_files.append(config)
     elif experiment_id == 2:
         upscale_factors = [2, 4, 8, 16]
-        datasets = ['ari', 'sonicom']
+        datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
         for dataset in datasets:
-            other_dataset = 'ari' if dataset == 'sonicom' else 'sonicom'
+            other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             for upscale_factor in upscale_factors:
-                tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
-                        f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}',
-                        f'pub-prep-upscale-{dataset}-sonicom-synthetic-tl-{upscale_factor}']
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
+                if dataset == 'ARI' or dataset == 'SONICOM':
+                        tags.extend([{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
+                                     {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}])
                 for tag in tags:
-                    config = Config(tag, using_hpc=hpc)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
                     config.upscale_factor = upscale_factor
-                    config.dataset = dataset.upper()
-                    config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
                     config_files.append(config)
     elif experiment_id == 3:
-        datasets = ['ari', 'sonicom']
+        datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             tag = None
             config = Config(tag, using_hpc=hpc)
-            config.dataset = dataset.upper()
+            config.dataset = dataset
             config.data_dir = '/data/' + config.dataset
             config.valid_hrtf_merge_dir = config.data_dirs_path + config.data_dir + '/hr_merge/valid'
             config_files.append(config)
     elif experiment_id == 4:
         upscale_factors = [2, 4, 8, 16]
-        datasets = ['ari', 'sonicom']
+        datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             for upscale_factor in upscale_factors:
                 tag = None
                 config = Config(tag, using_hpc=hpc)
-                config.dataset = dataset.upper()
+                config.dataset = dataset
                 config.data_dir = '/data/' + config.dataset
                 config.upscale_factor = upscale_factor
                 config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
