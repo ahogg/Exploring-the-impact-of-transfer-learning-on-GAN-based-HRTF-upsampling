@@ -292,14 +292,11 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             for upscale_factor in upscale_factors:
-
-                tags = [f'pub-prep-upscale-{dataset}-{upscale_factor}',
-                        f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}']
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
+                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
                 for tag in tags:
-                    config = Config(tag, using_hpc=hpc)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                     config.upscale_factor = upscale_factor
-                    config.dataset = dataset.upper()
-                    config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
                     config_files.append(config)
     elif experiment_id == 2:
         upscale_factors = [2, 4, 8, 16]
@@ -312,17 +309,14 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                         tags.extend([{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
                                      {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}])
                 for tag in tags:
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                     config.upscale_factor = upscale_factor
                     config_files.append(config)
     elif experiment_id == 3:
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             tag = None
-            config = Config(tag, using_hpc=hpc)
-            config.dataset = dataset
-            config.data_dir = '/data/' + config.dataset
-            config.valid_hrtf_merge_dir = config.data_dirs_path + config.data_dir + '/hr_merge/valid'
+            config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config_files.append(config)
     elif experiment_id == 4:
         upscale_factors = [2, 4, 8, 16]
@@ -330,11 +324,8 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         for dataset in datasets:
             for upscale_factor in upscale_factors:
                 tag = None
-                config = Config(tag, using_hpc=hpc)
-                config.dataset = dataset
-                config.data_dir = '/data/' + config.dataset
+                config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                 config.upscale_factor = upscale_factor
-                config.valid_hrtf_merge_dir = f'{config.data_dirs_path}/data/{config.dataset}/hr_merge/valid'
                 config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
                 config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
                 config_files.append(config)
