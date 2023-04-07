@@ -70,7 +70,8 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None):
         with open(nodes_replaced_path + file_name, "wb") as file:
             pickle.dump(torch.permute(generated[0], (1, 2, 3, 0)), file)
 
-    with open(config.projection_filename, "rb") as file:
+    projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
+    with open(projection_filename, "rb") as file:
         cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
 
     convert_to_sofa(nodes_replaced_path, config, cube, sphere)
