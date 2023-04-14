@@ -10,23 +10,17 @@ class Config:
 
     def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None):
 
-        self.dataset = 'SONICOM'
-        self.tag = 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
-
-        self.start_with_existing_model = False
-        self.existing_model_tag = 'pub-prep-upscale-sonicom-synthetic'
-        self.data_dir = '/data/' + self.dataset
-
         # overwrite settings with arguments provided
-        if tag is not None:
-            self.tag = tag
-        if dataset is not None:
-            self.dataset = dataset
+        self.tag = tag if tag is not None else 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
+        self.dataset = dataset if dataset is not None else 'SONICOM'
+        self.data_dir = data_dir if data_dir is not None else '/data/' + self.dataset
+
         if existing_model_tag is not None:
             self.start_with_existing_model = True
-            self.existing_model_tag = existing_model_tag
-        if data_dir is not None:
-            self.data_dir = data_dir
+        else:
+            self.start_with_existing_model = False
+
+        self.existing_model_tag = existing_model_tag if existing_model_tag is not None else None
 
         # Data processing parameters
         self.merge_flag = True

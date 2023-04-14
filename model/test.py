@@ -43,8 +43,7 @@ def test(config, val_prefetcher):
     print('model size: {:.3f}MB'.format(size_all_mb))
 
     # get list of positive frequencies of HRTF for plotting magnitude spectrum
-    hrir_samplerate = 48000.0
-    all_freqs = scipy.fft.fftfreq(256, 1 / hrir_samplerate)
+    all_freqs = scipy.fft.fftfreq(256, 1 / config.hrir_samplerate)
     pos_freqs = all_freqs[all_freqs >= 0]
 
     # Start the verification mode of the model.
