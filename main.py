@@ -114,7 +114,6 @@ def main(config, mode):
     elif mode == 'train':
         # Trains the GANs, according to the parameters specified in Config
         train_prefetcher, _ = load_dataset(config, mean=None, std=None)
-        print(config.dataset)
         print("Loaded all datasets successfully.")
 
         util.initialise_folders(config, overwrite=True)

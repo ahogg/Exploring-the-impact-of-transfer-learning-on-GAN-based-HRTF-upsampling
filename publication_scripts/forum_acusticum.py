@@ -240,16 +240,11 @@ def run_train(hpc, type, test_id=None):
 
             for tag in tags:
                 if type == 'base':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
-                    config.start_with_existing_model = False
-                    config.data_dir = '/data/' + dataset
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                 elif type == 'base-tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset)
-                    config.start_with_existing_model = False
-                    config.data_dir = '/data-transfer-learning/' + dataset
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset)
                 elif type == 'tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'])
-                    config.data_dir = '/data/' + dataset
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset)
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
                 config.lr_dis = 0.0000015
