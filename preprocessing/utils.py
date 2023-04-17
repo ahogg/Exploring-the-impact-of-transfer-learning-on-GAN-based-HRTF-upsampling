@@ -322,7 +322,10 @@ def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_c
             features.append(features_p)
 
     # based on equation 6 in "3D Tune-In Toolkit: An open-source library for real-time binaural spatialisation"
-    interpolated_feature = coeffs["alpha"] * features[0] + coeffs["beta"] * features[1] + coeffs["gamma"] * features[2]
+    if len(features) == 3:
+        interpolated_feature = coeffs["alpha"] * features[0] + coeffs["beta"] * features[1] + coeffs["gamma"] * features[2]
+    else:
+        interpolated_feature = features[0]
 
     return interpolated_feature
 
@@ -385,10 +388,10 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     interpolated_hrirs = calc_all_interpolated_features(cs, features, sphere, sphere_triangles, sphere_coeffs)
 
     # Resample data so that training and validation sets are created at the same fs ('config.hrir_samplerate').
-    number_of_samples = round(np.shape(interpolated_hrirs)[-1] * float(config.hrir_samplerate) / fs_original)
-    interpolated_hrirs_resampled = sps.resample(np.array(interpolated_hrirs).T, number_of_samples).T
+    # number_of_samples = round(np.shape(interpolated_hrirs)[-1] * float(config.hrir_samplerate) / fs_original)
+    # interpolated_hrirs_resampled = sps.resample(np.array(interpolated_hrirs).T, number_of_samples).T
 
-    magnitudes, phases = calc_hrtf(config, interpolated_hrirs_resampled)
+    magnitudes, phases = calc_hrtf(config, interpolated_hrirs)
 
     # create empty list of lists of lists and initialize counter
     magnitudes_raw = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]

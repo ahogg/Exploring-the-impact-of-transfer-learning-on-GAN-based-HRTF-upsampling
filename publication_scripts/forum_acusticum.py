@@ -273,6 +273,8 @@ def run_train(hpc, type, test_id=None):
                 if config.tag == test_id:
                     config_files = [config]
                     break
+                else:
+                    print(f'{test_id} not found')
 
     print(f'Running a total of {len(config_files)} config files')
     for config in config_files:
