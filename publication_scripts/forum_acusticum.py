@@ -419,6 +419,32 @@ def plot_evaluation(hpc, experiment_id, mode):
         print('Experiment does not exist')
 
 
+def run_baseline(hpc, test_id=None):
+    print(f'Running training')
+    config_files = []
+    upscale_factors = [2, 4, 8, 16]
+    datasets = ['ARI', 'SONICOM']
+    for dataset in datasets:
+        for upscale_factor in upscale_factors:
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+            config.upscale_factor = upscale_factor
+            config.dataset = dataset
+            config_files.append(config)
+
+    print(f'{len(config_files)} config files created successfully.')
+    if test_id is not None:
+        if test_id.isnumeric():
+            test_id = int(test_id)
+            config_files = [config_files[test_id]]
+        else:
+            print(f'{test_id} not found')
+
+    print(f'Running a total of {len(config_files)} config files')
+    for config in config_files:
+        main(config, args.mode)
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("mode")
@@ -445,5 +471,7 @@ if __name__ == '__main__':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
+    elif args.mode == 'baseline':
+        run_baseline(hpc, args.test)
     else:
         print('Please specify a valid mode')
