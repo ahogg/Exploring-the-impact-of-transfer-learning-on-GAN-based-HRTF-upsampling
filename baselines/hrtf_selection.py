@@ -37,12 +37,12 @@ def run_hrtf_selection(config, hrtf_selection_output_path, subject_file=None):
 
     # for each subject, compare their HRTF sets to all other subjects' HRTF sets via SD metric
     overall_avg_dict = {}
-    for subject_id_ref in subj_ids[0:3]:
+    for subject_id_ref in subj_ids:
         # the 'reference' HRTFs are considered as candidates for the non-individualized HRTFs
         # essentially, we are trying to find the subject whose HRTF sets are most "average"
         # relative to the rest of the training data
         running_total = 0
-        for subject_id in subj_ids[0:3]:
+        for subject_id in subj_ids:
             if subject_id != subject_id_ref:
                 # SD metric for right ear
                 sd_right = spectral_distortion_metric(hrtf_dict_right[subject_id_ref], hrtf_dict_right[subject_id])
