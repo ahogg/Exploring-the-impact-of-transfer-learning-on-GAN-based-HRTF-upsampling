@@ -66,6 +66,7 @@ class Config:
 
         self.mean_std_filename = self.data_dirs_path + self.data_dir + '/mean_std_' + self.dataset
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
+        self.hrtf_selection_dir = self.data_dirs_path + self.baseline_dir + '/hrtf_selection/valid'
 
         # Training hyperparams
         self.batch_size = 1

@@ -345,7 +345,10 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         if experiment_id == 3:
             run_target_localisation_evaluation(config)
         elif experiment_id == 4:
-            run_localisation_evaluation(config, config.valid_path, f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
+            if type == 'lsd':
+                run_lsd_evaluation(config, config.valid_path, f'lsd_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
+            elif type == 'loc':
+                run_localisation_evaluation(config, config.valid_path, f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
         elif type == 'lsd':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
@@ -425,9 +428,14 @@ def run_baseline(hpc, test_id=None):
     upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM']
     for dataset in datasets:
-        for upscale_factor in upscale_factors:
+        if args.mode == 'barycentric_baseline':
+            for upscale_factor in upscale_factors:
+                config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                config.upscale_factor = upscale_factor
+                config.dataset = dataset
+                config_files.append(config)
+        elif args.mode == 'hrtf_selection_baseline':
             config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-            config.upscale_factor = upscale_factor
             config.dataset = dataset
             config_files.append(config)
 
@@ -471,7 +479,7 @@ if __name__ == '__main__':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
-    elif args.mode == 'baseline':
+    elif args.mode == 'barycentric_baseline' or args.mode == 'hrtf_selection_baseline':
         run_baseline(hpc, args.test)
     else:
         print('Please specify a valid mode')
