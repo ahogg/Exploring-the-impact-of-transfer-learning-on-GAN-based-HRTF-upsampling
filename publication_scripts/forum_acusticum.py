@@ -110,6 +110,12 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
     else:
         plt.xticks(range(0, len(ticks) * 2, 2), ticks)
 
+    # Append nans to results to make them of equal length
+    maxlen = np.max([[len(j) for j in i] for i in full_results])
+    for full_result in full_results:
+        for result in full_result:
+            result[:] = [np.nan] * (maxlen - len(result)) + result
+
     ymin = np.nanmin(full_results) - 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
     ymax = np.nanmax(full_results) + 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
     ax.set_ylim((ymin, ymax))
@@ -314,17 +320,17 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             tag = None
             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config_files.append(config)
-    elif experiment_id == 4:
-        upscale_factors = [2, 4, 8, 16]
-        datasets = ['ARI', 'SONICOM']
-        for dataset in datasets:
-            for upscale_factor in upscale_factors:
-                tag = None
-                config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-                config.upscale_factor = upscale_factor
-                config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
-                config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
-                config_files.append(config)
+    # elif experiment_id == 4:
+    #     upscale_factors = [2, 4, 8, 16]
+    #     datasets = ['ARI', 'SONICOM']
+    #     for dataset in datasets:
+    #         for upscale_factor in upscale_factors:
+    #             tag = None
+    #             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+    #             config.upscale_factor = upscale_factor
+    #             config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
+    #             config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
+    #             config_files.append(config)
     else:
         print('Experiment does not exist')
         return
@@ -344,11 +350,11 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     for config in config_files:
         if experiment_id == 3:
             run_target_localisation_evaluation(config)
-        elif experiment_id == 4:
-            if type == 'lsd':
-                run_lsd_evaluation(config, config.valid_path, f'lsd_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
-            elif type == 'loc':
-                run_localisation_evaluation(config, config.valid_path, f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
+        # elif experiment_id == 4:
+        #     if type == 'lsd':
+        #         run_lsd_evaluation(config, config.valid_path, f'lsd_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
+        #     elif type == 'loc':
+        #         run_localisation_evaluation(config, config.valid_path, f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle')
         elif type == 'lsd':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
@@ -395,13 +401,13 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
             full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid', mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
             if mode == 'lsd':
-                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline']
+                legend = ['SRGAN', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
                 #######################################
-                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
                 create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], dataset.upper())
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
