@@ -24,7 +24,7 @@ def get_means(full_results):
     return upsample_means, upsample_stds
 
 
-def create_table(legend, full_results, side_title=None):
+def create_table(legend, full_results, side_title=None, units=None):
     factors = [2, 4, 8, 16]
     single_line = r"\hhline{-~----}" if side_title is None else r"\hhline{~-~----}"
     double_lines = r"\hhline{=~====}" if side_title is None else r"\hhline{~=~====}"
@@ -34,10 +34,15 @@ def create_table(legend, full_results, side_title=None):
 
     ticks = [r' \textbf{%s} $\,\rightarrow$ \textbf{1280}' % int((16 / factor) ** 2 * 5) for factor in factors]
 
+    if units is not None:
+        units = f' {units.strip()}'
+    else:
+        units = ''
+
     print(r"\begin{tabular}{%s|c|c @{\hspace{-0.3\tabcolsep}}|c|c|c|c|}" % extra_column_2)
     print(single_line)
     print(extra_column_1 +
-        r"\multirow{2}{*}{\textbf{Method}} & & \multicolumn{4}{c|}{\textbf{Upsample Factor [No. orginal  $\,\rightarrow$ No. upsampled]}} \\" + title_lines)
+        r"\multirow{2}{*}{\textbf{Method}} & & \multicolumn{4}{c|}{\textbf{Upsample Factor (No. orginal  $\,\rightarrow$ No. upsampled)"+units+"}} \\" + title_lines)
     print(extra_column_1 + r"& & \multicolumn{1}{c|}{" + ticks[0] + r"} & \multicolumn{1}{c|}{" + ticks[
         1] + r"} & \multicolumn{1}{c|}{" + ticks[2] + r"} & \multicolumn{1}{c|}{" + ticks[3] + r"} \\ " + double_lines)
     if side_title is not None:
@@ -101,7 +106,7 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
 
     ax.yaxis.grid(zorder=0, linewidth=0.4)
     plt.xlabel(
-        'Upsampling \n' + r'[No. of orginal nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes]')
+        'Upsample Factor\n' + r'(No. of orginal nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
 
     plt.ylabel(ylabel)
     if len(full_results) > 2:
@@ -406,12 +411,13 @@ def plot_evaluation(hpc, experiment_id, mode):
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
                 #######################################
-                create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], dataset.upper())
+                create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], dataset.upper(), units='[dB]')
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
                 labels = [f'{dataset.upper()} \n' + label for label in labels]
+                units = [r'[$^\circ$]', r'[$^\circ$]', '[\%]']
                 legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline', 'Target']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 # remove baseline results at upscale-16
@@ -423,7 +429,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                                 np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours)
                     print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
                     create_table(legend, [np.array(full_results_dataset)[:, i, :],
-                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper())
+                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper(), units=units[i])
     else:
         print('Experiment does not exist')
 
