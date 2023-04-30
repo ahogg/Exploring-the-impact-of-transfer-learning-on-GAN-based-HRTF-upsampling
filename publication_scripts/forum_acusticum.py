@@ -119,7 +119,8 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
     maxlen = np.max([[len(j) for j in i] for i in full_results])
     for full_result in full_results:
         for result in full_result:
-            result[:] = [np.nan] * (maxlen - len(result)) + result
+            if (maxlen - len(result)) > 0:
+                result[:] = [np.nan] * (maxlen - len(result)) + result
 
     ymin = np.nanmin(full_results) - 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
     ymax = np.nanmax(full_results) + 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
