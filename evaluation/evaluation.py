@@ -115,6 +115,10 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
     s = eng.genpath(config.data_dirs_path)
     eng.addpath(s, nargout=0)
 
+    file_path = config.path
+    if not os.path.exists(file_path):
+        raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
+
     loc_errors = []
     for file in hrtf_file_names:
         target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
@@ -135,7 +139,7 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
     print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_errors]))
     print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_errors]))
     print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_errors]))
-    with open(f'{config.path}/{file_ext}', "wb") as file:
+    with open(f'{file_path}/{file_ext}', "wb") as file:
         pickle.dump(loc_errors, file)
 
 
@@ -147,9 +151,9 @@ def run_target_localisation_evaluation(config):
     s = eng.genpath(config.data_dirs_path)
     eng.addpath(s, nargout=0)
 
-    file_path = f'{config.data_dirs_path}{config.data_dir}/{config.dataset}_loc_target_valid_errors.pickle'
+    file_path = f'{config.data_dirs_path}{config.data_dir}'
     if not os.path.exists(file_path):
-        raise Exception(f'File path does nt exist ({file_path})')
+        raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
 
     loc_target_errors = []
     target_sofa_path = config.valid_hrtf_merge_dir + '/sofa_min_phase'
@@ -169,5 +173,5 @@ def run_target_localisation_evaluation(config):
     print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_target_errors]))
     print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_target_errors]))
     print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_target_errors]))
-    with open(file_path, "wb") as file:
+    with open(f'{file_path}/{config.dataset}_loc_target_valid_errors.pickle', "wb") as file:
         pickle.dump(loc_target_errors, file)
