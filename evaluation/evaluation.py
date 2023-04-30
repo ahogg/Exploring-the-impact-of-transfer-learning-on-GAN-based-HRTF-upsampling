@@ -147,7 +147,7 @@ def run_target_localisation_evaluation(config):
     s = eng.genpath(config.data_dirs_path)
     eng.addpath(s, nargout=0)
 
-    file_path = f'{config.data_dirs_path}/{config.data_dir}/{config.dataset}_loc_target_valid_errors.pickle'
+    file_path = f'{config.data_dirs_path}{config.data_dir}/{config.dataset}_loc_target_valid_errors.pickle'
     if not os.path.exists(file_path):
         raise Exception(f'File path does nt exist ({file_path})')
 
