@@ -147,6 +147,10 @@ def run_target_localisation_evaluation(config):
     s = eng.genpath(config.data_dirs_path)
     eng.addpath(s, nargout=0)
 
+    file_path = f'{config.data_dirs_path}/{config.data_dir}/{config.dataset}_loc_target_valid_errors.pickle'
+    if not os.path.exists(file_path):
+        raise Exception(f'File path does nt exist ({file_path})')
+
     loc_target_errors = []
     target_sofa_path = config.valid_hrtf_merge_dir + '/sofa_min_phase'
     hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(target_sofa_path)]
@@ -165,5 +169,5 @@ def run_target_localisation_evaluation(config):
     print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_target_errors]))
     print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_target_errors]))
     print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_target_errors]))
-    with open(f'{config.data_dir}/{config.dataset}_loc_target_valid_errors.pickle', "wb") as file:
+    with open(file_path, "wb") as file:
         pickle.dump(loc_target_errors, file)
