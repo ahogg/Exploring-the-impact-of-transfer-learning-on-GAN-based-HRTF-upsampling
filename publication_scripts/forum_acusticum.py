@@ -419,7 +419,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
                 labels = [f'{dataset.upper()} \n' + label for label in labels]
                 units = [r'[$^\circ$]', r'[$^\circ$]', '[\%]']
-                legend = ['SRGAN', 'TL (Synthetic)', 'TL (Real)', 'Baseline', 'Target']
+                legend = ['SRGAN', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline', 'Target']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
