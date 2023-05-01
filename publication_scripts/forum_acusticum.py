@@ -42,7 +42,7 @@ def create_table(legend, full_results, side_title=None, units=None):
     print(r"\begin{tabular}{%s|c|c @{\hspace{-0.3\tabcolsep}}|c|c|c|c|}" % extra_column_2)
     print(single_line)
     print(extra_column_1 +
-        r"\multirow{2}{*}{\textbf{Method}} & & \multicolumn{4}{c|}{\textbf{Upsample Factor (No. orginal  $\,\rightarrow$ No. upsampled)"+units+"}} \\" + title_lines)
+        r"\multirow{2}{*}{\textbf{Method}} & & \multicolumn{4}{c|}{\textbf{Upsample Factor (No. original  $\,\rightarrow$ upsampled)"+units+"}} \\ " + title_lines)
     print(extra_column_1 + r"& & \multicolumn{1}{c|}{" + ticks[0] + r"} & \multicolumn{1}{c|}{" + ticks[
         1] + r"} & \multicolumn{1}{c|}{" + ticks[2] + r"} & \multicolumn{1}{c|}{" + ticks[3] + r"} \\ " + double_lines)
     if side_title is not None:
@@ -106,7 +106,7 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
 
     ax.yaxis.grid(zorder=0, linewidth=0.4)
     plt.xlabel(
-        'Upsample Factor\n' + r'(No. of orginal nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
+        'Upsample Factor\n' + r'(No. of original nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
 
     plt.ylabel(ylabel)
     if len(full_results) > 2:
