@@ -10,7 +10,11 @@ def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor):
     # downsample hrtf
     if upscale_factor == hrtf_size:
         mid_pos = int(hrtf_size / 2)
-        lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
+        panel=0
+        lr_hrtf = hr_hrtf[:, panel, mid_pos, mid_pos, None, None, None].repeat(1, 5, 1, 1)
+    # elif upscale_factor == hrtf_size:
+    #     mid_pos = int(hrtf_size / 2)
+    #     lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
     else:
         lr_hrtf = torch.nn.functional.interpolate(hr_hrtf, scale_factor=1 / upscale_factor)
 
@@ -25,19 +29,42 @@ class TrainValidHRTFDataset(Dataset):
         transform (callable): A function/transform that takes in an HRTF and returns a transformed version.
     """
 
-    def __init__(self, hrtf_dir: str, hrtf_size: int, upscale_factor: int, transform=None, run_validation =True) -> None:
+    def __init__(self, hrtf_dir: str, hrtf_size: int, upscale_factor: int, transform=None, run_validation=True) -> None:
         super(TrainValidHRTFDataset, self).__init__()
         # Get all hrtf file names in folder
         self.hrtf_file_names = [os.path.join(hrtf_dir, hrtf_file_name) for hrtf_file_name in os.listdir(hrtf_dir)
                                 if os.path.isfile(os.path.join(hrtf_dir, hrtf_file_name))]
 
         if run_validation:
+            print('Running Validation')
             valid_hrtf_file_names = []
             for hrtf_file_name in self.hrtf_file_names:
                 file = open(hrtf_file_name, 'rb')
                 hrtf = pickle.load(file)
                 if not np.isnan(np.sum(hrtf.cpu().data.numpy())):
-                    valid_hrtf_file_names.append(hrtf_file_name)
+                    if all(map(lambda i: isinstance(i, np.floating), np.array(hrtf.cpu().data.numpy().ravel()))):
+                        if np.logical_and(hrtf.cpu().data.numpy() > 0, hrtf.cpu().data.numpy() < 2).all():
+                            valid_hrtf_file_names.append(hrtf_file_name)
+                        else:
+                            count = 0
+                            err_count = 0
+                            for i in range(hrtf.cpu().data.numpy().shape[0]):
+                                for j in range(hrtf.cpu().data.numpy().shape[1]):
+                                    for k in range(hrtf.cpu().data.numpy().shape[2]):
+                                        count += 1
+                                        if not np.logical_and(hrtf.cpu().data.numpy()[i, j, k, :] > 0, hrtf.cpu().data.numpy()[i, j, k, :] < 2).all():
+                                            err_count += 1
+                                            print(f'Number of elements of of range: {np.logical_and(hrtf.cpu().data.numpy()[i, j, k, :] > 0, hrtf.cpu().data.numpy()[i, j, k, :] < 2).sum()}')
+                            print(f'Number of HRTFs in total: {count}')
+                            print(f'Number of HRTFs out of range: {err_count}')
+                            print(f'Minimum value: {min(np.array(hrtf.cpu().data.numpy().ravel()))}')
+                            print(f'Maximum value: {max(np.array(hrtf.cpu().data.numpy().ravel()))}')
+                            print(f'{hrtf_file_name} discarded due to impulse response not being in range')
+                    else:
+                        print(f'{hrtf_file_name} discarded due to impulse response not being stored as floats')
+                else:
+                    print(f'{hrtf_file_name} discarded due to nan')
+
             self.hrtf_file_names = valid_hrtf_file_names
 
         # Specify the high-resolution hrtf size, with equal length and width

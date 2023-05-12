@@ -85,7 +85,7 @@ class Config:
         self.beta1 = 0.9
         self.beta2 = 0.999
 
-        self.ngpu = 1
+        self.ngpu = 0
         if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:
