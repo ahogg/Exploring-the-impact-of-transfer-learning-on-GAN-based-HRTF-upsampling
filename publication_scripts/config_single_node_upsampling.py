@@ -44,7 +44,7 @@ class Config:
             self.raw_hrtf_dir = Path('/home/ahogg/Documents/HRTF Datasets')
             self.amt_dir = '/home/ahogg/PycharmProjects/HRTF-GAN/thirdParty'
 
-        self.runs_folder = '/runs-hpc'
+        self.runs_folder = '/runs-hpc-single-node'
         self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
         self.existing_model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.existing_model_tag}'
 
@@ -85,7 +85,7 @@ class Config:
         self.beta1 = 0.9
         self.beta2 = 0.999
 
-        self.ngpu = 0
+        self.ngpu = 1
         if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:

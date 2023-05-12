@@ -4,6 +4,9 @@ mpl.use('pdf')
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
+import sys
+
+sys.path.append('/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-adversarial-network-using-a-gnomonic-equiangular-projection/')
 
 from publication_scripts.config_single_node_upsampling import Config
 from model.test import test
@@ -206,10 +209,10 @@ def run_preprocess(hpc, type, dataset_id=None):
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     for dataset in datasets:
         if type == 'base':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config.train_samples_ratio = 0.8
         elif type == 'tl':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-single-node-transfer-learning/' + dataset)
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset)
             config.train_samples_ratio = 1.0
         config.hrtf_size = 16
         config_files.append(config)
@@ -252,11 +255,11 @@ def run_train(hpc, type, test_id=None):
 
             for tag in tags:
                 if type == 'base':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                 elif type == 'base-tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-single-node-transfer-learning/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset)
                 elif type == 'tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data-single-node/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset)
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
                 config.lr_dis = 0.0000015
@@ -304,7 +307,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
                         {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
                 for tag in tags:
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                     config.upscale_factor = upscale_factor
                     config_files.append(config)
     elif experiment_id == 2:
@@ -317,14 +320,14 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                         {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
                         {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
                 for tag in tags:
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                     config.upscale_factor = upscale_factor
                     config_files.append(config)
     elif experiment_id == 3:
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             tag = None
-            config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+            config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config_files.append(config)
     # elif experiment_id == 4:
     #     upscale_factors = [2, 4, 8, 16]
@@ -332,7 +335,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     #     for dataset in datasets:
     #         for upscale_factor in upscale_factors:
     #             tag = None
-    #             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+    #             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
     #             config.upscale_factor = upscale_factor
     #             config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
     #             config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
@@ -424,7 +427,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
                 #######################################
-                full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data-single-node/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
+                full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
                                 np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours)
@@ -443,12 +446,12 @@ def run_baseline(hpc, test_id=None):
     for dataset in datasets:
         if args.mode == 'barycentric_baseline':
             for upscale_factor in upscale_factors:
-                config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+                config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                 config.upscale_factor = upscale_factor
                 config.dataset = dataset
                 config_files.append(config)
         elif args.mode == 'hrtf_selection_baseline':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-single-node/' + dataset)
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config.dataset = dataset
             config_files.append(config)
 
