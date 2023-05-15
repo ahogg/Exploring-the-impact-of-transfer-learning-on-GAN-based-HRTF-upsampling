@@ -46,7 +46,10 @@ def train(config, train_prefetcher):
     pos_freqs = all_freqs[all_freqs >= 0]
 
     # Define Generator network and transfer to CUDA
-    netG = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
+    if config.upscale_factor == config.hrtf_size*5:
+        netG = GeneratorSingleNode(upscale_factor=config.hrtf_size, nbins=nbins).to(device)
+    else:
+        netG = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
     netD = Discriminator(nbins=nbins).to(device)
     if ('cuda' in str(device)) and (ngpu > 1):
         netD = (nn.DataParallel(netD, list(range(ngpu)))).to(device)

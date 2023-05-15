@@ -236,7 +236,7 @@ def run_train(hpc, type, test_id=None):
     print(f'Running training')
     config_files = []
     tags = []
-    upscale_factors = [2, 4, 8, 16]
+    upscale_factors = [2, 4, 8, 16, 80]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':
         datasets.remove('SONICOMSynthetic')
@@ -273,6 +273,9 @@ def run_train(hpc, type, test_id=None):
                     config.content_weight = 0.001
                     config.adversarial_weight = 0.001
                 elif upscale_factor == 16:
+                    config.content_weight = 0.01
+                    config.adversarial_weight = 0.01
+                elif upscale_factor == 80:
                     config.content_weight = 0.01
                     config.adversarial_weight = 0.01
 

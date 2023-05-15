@@ -8,13 +8,13 @@ from torch.utils.data import Dataset
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/7292452634137d8f5d4478e44727ec1166a89125/dataset.py
 def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor):
     # downsample hrtf
-    if upscale_factor == hrtf_size:
+    if upscale_factor == hrtf_size*5:
         mid_pos = int(hrtf_size / 2)
-        panel=0
+        panel = 1
         lr_hrtf = hr_hrtf[:, panel, mid_pos, mid_pos, None, None, None].repeat(1, 5, 1, 1)
-    # elif upscale_factor == hrtf_size:
-    #     mid_pos = int(hrtf_size / 2)
-    #     lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
+    elif upscale_factor == hrtf_size:
+        mid_pos = int(hrtf_size / 2)
+        lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
     else:
         lr_hrtf = torch.nn.functional.interpolate(hr_hrtf, scale_factor=1 / upscale_factor)
 
