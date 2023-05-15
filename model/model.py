@@ -16,11 +16,11 @@ class ResidualConvBlock(nn.Module):
         super(ResidualConvBlock, self).__init__()
         self.rcb = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(channels, channels, (3, 3), (1, 1), bias=False),
+            CubeSphereConv2D(channels, channels, (1, 1), (1, 1), bias=False),
             nn.BatchNorm3d(channels),
             nn.PReLU(),
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(channels, channels, (3, 3), (1, 1), bias=False),
+            CubeSphereConv2D(channels, channels, (1, 1), (1, 1), bias=False),
             nn.BatchNorm3d(channels),
         )
 
@@ -37,7 +37,7 @@ class UpsampleBlock(nn.Module):
         super(UpsampleBlock, self).__init__()
         self.upsample_block_1 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(channels, channels * 4, (3, 3), (1, 1))
+            CubeSphereConv2D(channels, channels * 4, (1, 1), (1, 1))
         )
         self.upsample_block_2 = nn.Sequential(
             nn.PixelShuffle(2),
@@ -119,7 +119,7 @@ class Generator(nn.Module):
         # First conv layer.
         self.conv_block1 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(self.nbins, self.ngf, (3, 3), (1, 1)),
+            CubeSphereConv2D(self.nbins, self.ngf, (1, 1), (1, 1)),
             nn.PReLU(),
         )
 
@@ -132,7 +132,7 @@ class Generator(nn.Module):
         # Second conv layer.
         self.conv_block2 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(self.ngf, self.ngf, (3, 3), (1, 1), bias=False),
+            CubeSphereConv2D(self.ngf, self.ngf, (1, 1), (1, 1), bias=False),
             nn.BatchNorm3d(self.ngf),
         )
 
@@ -145,7 +145,7 @@ class Generator(nn.Module):
         # Output layer.
         self.conv_block3 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(self.ngf, self.nbins, (3, 3), (1, 1))
+            CubeSphereConv2D(self.ngf, self.nbins, (1, 1), (1, 1))
         )
 
         self.classifier = nn.Softplus()
