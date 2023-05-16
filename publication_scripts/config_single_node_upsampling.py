@@ -34,12 +34,14 @@ class Config:
 
         # Data dirs
         if using_hpc:
+            self.ngpu = 1
             # HPC data dirs
             self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-' \
                                   'adversarial-network-using-a-gnomonic-equiangular-projection'
             self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
             self.amt_dir = '/rds/general/user/aos13/home/HRTF-GANs-27Sep22-prep-for-publication/thirdParty'
         else:
+            self.ngpu = 0  # Don't use GPU locally
             # local data dirs
             self.data_dirs_path = '/home/ahogg/PycharmProjects/HRTF-GAN'
             self.raw_hrtf_dir = Path('/home/ahogg/Documents/HRTF Datasets')
@@ -86,7 +88,6 @@ class Config:
         self.beta1 = 0.9
         self.beta2 = 0.999
 
-        self.ngpu = 0
         if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:
