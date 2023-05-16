@@ -6,11 +6,10 @@ from torch.utils.data import Dataset
 
 
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/7292452634137d8f5d4478e44727ec1166a89125/dataset.py
-def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor):
+def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor, panel=0):
     # downsample hrtf
     if upscale_factor == hrtf_size*5:
         mid_pos = int(hrtf_size / 2)
-        panel = 1
         lr_hrtf = hr_hrtf[:, panel, mid_pos, mid_pos, None, None, None].repeat(1, 5, 1, 1)
     elif upscale_factor == hrtf_size:
         mid_pos = int(hrtf_size / 2)
@@ -29,7 +28,7 @@ class TrainValidHRTFDataset(Dataset):
         transform (callable): A function/transform that takes in an HRTF and returns a transformed version.
     """
 
-    def __init__(self, hrtf_dir: str, hrtf_size: int, upscale_factor: int, transform=None, run_validation=True) -> None:
+    def __init__(self, hrtf_dir: str, hrtf_size: int, upscale_factor: int, panel: int, transform=None, run_validation=True) -> None:
         super(TrainValidHRTFDataset, self).__init__()
         # Get all hrtf file names in folder
         self.hrtf_file_names = [os.path.join(hrtf_dir, hrtf_file_name) for hrtf_file_name in os.listdir(hrtf_dir)
@@ -73,6 +72,8 @@ class TrainValidHRTFDataset(Dataset):
         self.upscale_factor = upscale_factor
         # transform to be applied to the data
         self.transform = transform
+        # panel used to select point when upscale_factor is 80
+        self.panel = panel
 
     def __getitem__(self, batch_index: int) -> [torch.Tensor, torch.Tensor]:
         # Read a batch of hrtf data
@@ -90,7 +91,7 @@ class TrainValidHRTFDataset(Dataset):
             hr_hrtf = torch.permute(hrtf, (3, 0, 1, 2))
 
         # downsample hrtf
-        lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor)
+        lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)
 
         return {"lr": lr_hrtf, "hr": hr_hrtf, "filename": self.hrtf_file_names[batch_index]}
 

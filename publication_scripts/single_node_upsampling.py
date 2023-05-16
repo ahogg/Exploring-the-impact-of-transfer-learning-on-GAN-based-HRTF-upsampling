@@ -244,7 +244,12 @@ def run_train(hpc, type, test_id=None):
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
         for upscale_factor in upscale_factors:
             if type == 'base':
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
+                if upscale_factor == 80:
+                    for panel in [0, 1, 2, 3, 4]:
+                        if type == 'base':
+                            tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'})
+                else:
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
             elif type == 'base-tl':
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
@@ -281,6 +286,7 @@ def run_train(hpc, type, test_id=None):
 
                 config_files.append(config)
 
+
     print(f'{len(config_files)} config files created successfully.')
     if test_id is not None:
         if test_id.isnumeric():
@@ -291,8 +297,8 @@ def run_train(hpc, type, test_id=None):
                 if config.tag == test_id:
                     config_files = [config]
                     break
-                else:
-                    print(f'{test_id} not found')
+            if len(config_files) != 1:
+                print(f'{test_id} not found... running all config files')
 
     print(f'Running a total of {len(config_files)} config files')
     for config in config_files:

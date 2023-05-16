@@ -27,6 +27,7 @@ class Config:
         self.gen_sofa_flag = True
         self.nbins_hrtf = 128  # make this a power of 2
         self.hrtf_size = 16
+        self.panel = 1  # panel used to select point when upscale_factor is 80
         self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
@@ -85,7 +86,7 @@ class Config:
         self.beta1 = 0.9
         self.beta2 = 0.999
 
-        self.ngpu = 1
+        self.ngpu = 0
         if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:
