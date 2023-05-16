@@ -4,7 +4,7 @@ import pickle
 import scipy
 import torch
 
-from model.model import Generator
+from model.model import Generator, GeneratorSingleNode
 import shutil
 from pathlib import Path
 
@@ -21,7 +21,10 @@ def test(config, val_prefetcher):
 
     device = torch.device(config.device_name if (
             torch.cuda.is_available() and ngpu > 0) else "cpu")
-    model = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device=device)
+    if config.upscale_factor == config.hrtf_size*5:
+        model = GeneratorSingleNode(upscale_factor=config.hrtf_size, nbins=nbins).to(device)
+    else:
+        model = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
     print("Build SRGAN model successfully.")
 
     # Load super-resolution model weights (always uses the CPU due to HPC having long wait times)
