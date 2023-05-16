@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from model.custom_conv import CubeSpherePadding2D, CubeSphereConv2D
+from model.custom_conv import CubeSpherePadding2D, CubeSphereConv2D, CubeSphereConv2DSingleNode
 
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/main/model.py
 
@@ -190,11 +190,11 @@ class ResidualConvBlockSingleNode(nn.Module):
         super(ResidualConvBlock, self).__init__()
         self.rcb = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(channels, channels, (1, 1), (1, 1), bias=False),
+            CubeSphereConv2DSingleNode(channels, channels, (1, 1), (1, 1), bias=False),
             nn.BatchNorm3d(channels),
             nn.PReLU(),
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(channels, channels, (1, 1), (1, 1), bias=False),
+            CubeSphereConv2DSingleNode(channels, channels, (1, 1), (1, 1), bias=False),
             nn.BatchNorm3d(channels),
         )
 
@@ -211,7 +211,7 @@ class UpsampleBlockSingleNode(nn.Module):
         super(UpsampleBlock, self).__init__()
         self.upsample_block_1 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(channels, channels * 4, (1, 1), (1, 1))
+            CubeSphereConv2DSingleNode(channels, channels * 4, (1, 1), (1, 1))
         )
         self.upsample_block_2 = nn.Sequential(
             nn.PixelShuffle(2),
@@ -235,7 +235,7 @@ class GeneratorSingleNode(nn.Module):
         # First conv layer.
         self.conv_block1 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(self.nbins, self.ngf, (1, 1), (1, 1)),
+            CubeSphereConv2DSingleNode(self.nbins, self.ngf, (1, 1), (1, 1)),
             nn.PReLU(),
         )
 
@@ -248,7 +248,7 @@ class GeneratorSingleNode(nn.Module):
         # Second conv layer.
         self.conv_block2 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(self.ngf, self.ngf, (1, 1), (1, 1), bias=False),
+            CubeSphereConv2DSingleNode(self.ngf, self.ngf, (1, 1), (1, 1), bias=False),
             nn.BatchNorm3d(self.ngf),
         )
 
@@ -261,7 +261,7 @@ class GeneratorSingleNode(nn.Module):
         # Output layer.
         self.conv_block3 = nn.Sequential(
             # CubeSpherePadding2D(1),
-            CubeSphereConv2D(self.ngf, self.nbins, (1, 1), (1, 1))
+            CubeSphereConv2DSingleNode(self.ngf, self.nbins, (1, 1), (1, 1))
         )
 
         self.classifier = nn.Softplus()
@@ -286,11 +286,20 @@ class GeneratorSingleNode(nn.Module):
 
     def _initialize_weights(self) -> None:
         for module in self.modules():
-            if isinstance(module, CubeSphereConv2D):
-                nn.init.kaiming_normal_(module.equatorial_weight)
+            if isinstance(module, CubeSphereConv2DSingleNode):
+                nn.init.kaiming_normal_(module.equatorial_weight_0)
+                nn.init.kaiming_normal_(module.equatorial_weight_1)
+                nn.init.kaiming_normal_(module.equatorial_weight_2)
+                nn.init.kaiming_normal_(module.equatorial_weight_3)
                 nn.init.kaiming_normal_(module.polar_weight)
-                if module.equatorial_bias is not None:
-                    nn.init.constant_(module.equatorial_bias, 0)
+                if module.equatorial_bias_0 is not None:
+                    nn.init.constant_(module.equatorial_bias_0, 0)
+                if module.equatorial_bias_1 is not None:
+                    nn.init.constant_(module.equatorial_bias_1, 0)
+                if module.equatorial_bias_2 is not None:
+                    nn.init.constant_(module.equatorial_bias_2, 0)
+                if module.equatorial_bias_3 is not None:
+                    nn.init.constant_(module.equatorial_bias_3, 0)
                     nn.init.constant_(module.polar_bias, 0)
             elif isinstance(module, nn.BatchNorm3d):
                 nn.init.constant_(module.weight, 1)
