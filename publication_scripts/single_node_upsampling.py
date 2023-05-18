@@ -234,7 +234,6 @@ def run_preprocess(hpc, type, dataset_id=None):
 def run_train(hpc, type, test_id=None):
     print(f'Running training')
     config_files = []
-    tags = []
     # upscale_factors = [2, 4, 8, 16, 80]
     upscale_factors = [80]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
@@ -243,27 +242,25 @@ def run_train(hpc, type, test_id=None):
     for dataset in datasets:
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
         for upscale_factor in upscale_factors:
+            tags = []
             if type == 'base':
                 if upscale_factor == 80:
                     for panel in [0, 1, 2, 3, 4]:
-                        if type == 'base':
-                            tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'})
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
             elif type == 'base-tl':
                 if upscale_factor == 80:
                     for panel in [0, 1, 2, 3, 4]:
-                        if type == 'base':
-                            tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel}'})
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
                 if upscale_factor == 80:
                     for panel in [0, 1, 2, 3, 4]:
-                        if type == 'base':
-                            tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
                                      'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel}'})
-                            tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
                                      'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
