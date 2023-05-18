@@ -4,7 +4,8 @@ import pickle
 import scipy
 import torch
 
-from model.model import Generator, GeneratorSingleNode
+from model.model import Generator
+from model.single_node.model_single_node import GeneratorSingleNode
 import shutil
 from pathlib import Path
 

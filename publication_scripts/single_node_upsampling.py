@@ -71,7 +71,7 @@ def set_box_color(bp, color):
     plt.setp(bp['medians'], color=color, linewidth=0.5)
 
 
-def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks):
+def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xlabel=None):
     plt.rc('font', family='serif', serif='Times New Roman')
     plt.rc('text', usetex=True)
     plt.rc('xtick', labelsize=8)
@@ -81,13 +81,21 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks):
     fig, ax = plt.subplots()
 
     for idx, full_result in enumerate(full_results):
-        data = np.vstack((full_result[3], full_result[2], full_result[1], full_result[0]))
+        # Append nans to results to make them of equal length
+        maxlen = np.max([len(i) for i in full_result])
+        for result in full_result:
+            if (maxlen - len(result)) > 0:
+                result[:] = [np.NaN] * (maxlen - len(result)) + result
 
-        blp = plt.boxplot(data.T, positions=np.array(range(len(data))) * 1.0 - np.linspace(0.15*(len(full_results)/2), -0.15*(len(full_results)/2), len(full_results))[idx],
-                                                flierprops=dict(marker='x', markeredgecolor=colours[idx], markersize=4), widths=0.12)
+        data = np.vstack(full_result)
 
-        for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-            plt.setp(blp[element], color=colours[idx], linewidth=0.7)
+        for i, d in enumerate(data):
+            filtered_data = d[~np.isnan(d)]
+            blp = plt.boxplot(filtered_data, positions=[(i * 2.0) - np.linspace(0.15 * (len(full_results) / 2), -0.15 * (len(full_results) / 2), len(full_results))[idx]],
+                              flierprops=dict(marker='x', markeredgecolor=colours[idx], markersize=4), widths=0.12)
+
+            for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+                plt.setp(blp[element], color=colours[idx], linewidth=0.7)
 
         plt.plot([], c=colours[idx], label=legend[idx])
 
@@ -103,8 +111,12 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks):
     leg.get_frame().set_edgecolor('k')
 
     ax.yaxis.grid(zorder=0, linewidth=0.4)
-    plt.xlabel(
-        'Upsample Factor\n' + r'(No. of original nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
+
+    if xlabel == None:
+        plt.xlabel(
+            'Upsample Factor\n' + r'(No. of original nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
+    else:
+        plt.xlabel(xlabel)
 
     plt.ylabel(ylabel)
     if len(full_results) > 2:
@@ -112,13 +124,6 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks):
         plt.xlim(-0.5, len(ticks) - 0.5)
     else:
         plt.xticks(range(0, len(ticks) * 2, 2), ticks)
-
-    # Append nans to results to make them of equal length
-    maxlen = np.max([[len(j) for j in i] for i in full_results])
-    for full_result in full_results:
-        for result in full_result:
-            if (maxlen - len(result)) > 0:
-                result[:] = [np.nan] * (maxlen - len(result)) + result
 
     ymin = np.nanmin(full_results) - 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
     ymax = np.nanmax(full_results) + 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
@@ -446,10 +451,15 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset_baseline = get_results(
                 f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid',
                 mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
-            factors = [0, 1, 2, 3, 4]
-            ticks = [
-                r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s (panel: %s)$' % (
-                    int(1), int(config.hrtf_size ** 2 * 5), factor) for factor in factors]
+            factors = [2, 4, 8, 16]
+            basline_ticks = [
+                r'$%s $' % (
+                    int((16 / factor) ** 2 * 5)) for factor in factors]
+            panels = [0, 1, 2, 3, 4]
+            ticks = basline_ticks + [
+                r'$%s (%s)$' % (
+                    int(1), panel) for panel in panels]
+            xlabel = 'Upsample Factor\n' + r'No. of original nodes (Panel No.)'
             if mode == 'lsd':
                 legend = ['SRGAN', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
@@ -460,7 +470,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                              units='[dB]')
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}',
                              f'{dataset.upper()} \n LSD error [dB]',
-                             [full_results_dataset, [full_results_dataset_baseline[0]]*5], legend, colours, ticks)
+                             [full_results_dataset_baseline[::-1]+full_results_dataset], legend, colours, ticks, xlabel)
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']

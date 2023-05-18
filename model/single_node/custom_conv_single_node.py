@@ -124,14 +124,14 @@ class CubeSpherePadding2D(Module):
         return outputs
 
 
-class _ConvNd(Module):
+class _ConvNdSingleNode(Module):
     __constants__ = ['stride', 'padding', 'dilation',
                      'padding_mode', 'output_padding', 'in_channels',
                      'out_channels', 'kernel_size']
-    __annotations__ = {'equatorial_bias': Optional[torch.Tensor], 'polar_bias': Optional[torch.Tensor]}
+    __annotations__ = {'equatorial_bias_0': Optional[torch.Tensor], 'equatorial_bias_1': Optional[torch.Tensor], 'equatorial_bias_2': Optional[torch.Tensor], 'equatorial_bias_3': Optional[torch.Tensor], 'polar_bias': Optional[torch.Tensor]}
 
-    def _conv_forward(self, input: Tensor, equatorial_weight: Tensor, polar_weight: Tensor,
-                      equatorial_bias: Optional[Tensor], polar_bias: Optional[Tensor]) -> Tensor:
+    def _conv_forward(self, input: Tensor, equatorial_weight_0: Tensor, equatorial_weight_1: Tensor, equatorial_weight_2: Tensor, equatorial_weight_3: Tensor, polar_weight: Tensor,
+                      equatorial_bias_0: Optional[Tensor], equatorial_bias_1: Optional[Tensor], equatorial_bias_2: Optional[Tensor], equatorial_bias_3: Optional[Tensor], polar_bias: Optional[Tensor]) -> Tensor:
         ...
 
     _in_channels: int
@@ -144,8 +144,14 @@ class _ConvNd(Module):
     transposed: bool
     output_padding: Tuple[int, ...]
     padding_mode: str
-    equatorial_weight: Tensor
-    equatorial_bias: Optional[Tensor]
+    equatorial_weight_0: Tensor
+    equatorial_weight_1: Tensor
+    equatorial_weight_2: Tensor
+    equatorial_weight_3: Tensor
+    equatorial_bias_0: Optional[Tensor]
+    equatorial_bias_1: Optional[Tensor]
+    equatorial_bias_2: Optional[Tensor]
+    equatorial_bias_3: Optional[Tensor]
     polar_weight: Tensor
     polar_bias: Optional[Tensor]
 
@@ -163,7 +169,7 @@ class _ConvNd(Module):
                  device=None,
                  dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
-        super(_ConvNd, self).__init__()
+        super(_ConvNdSingleNode, self).__init__()
         valid_padding_strings = {'same', 'valid'}
         if isinstance(padding, str):
             if padding not in valid_padding_strings:
@@ -205,20 +211,38 @@ class _ConvNd(Module):
             self._reversed_padding_repeated_twice = _reverse_repeat_tuple(self.padding, 2)
 
         if transposed:
-            self.equatorial_weight = Parameter(torch.empty(
+            self.equatorial_weight_0 = Parameter(torch.empty(
+                (in_channels, out_channels, *kernel_size), **factory_kwargs))
+            self.equatorial_weight_1 = Parameter(torch.empty(
+                (in_channels, out_channels, *kernel_size), **factory_kwargs))
+            self.equatorial_weight_2 = Parameter(torch.empty(
+                (in_channels, out_channels, *kernel_size), **factory_kwargs))
+            self.equatorial_weight_3 = Parameter(torch.empty(
                 (in_channels, out_channels, *kernel_size), **factory_kwargs))
             self.polar_weight = Parameter(torch.empty(
                 (in_channels, out_channels, *kernel_size), **factory_kwargs))
         else:
-            self.equatorial_weight = Parameter(torch.empty(
+            self.equatorial_weight_0 = Parameter(torch.empty(
+                (out_channels, in_channels, *kernel_size), **factory_kwargs))
+            self.equatorial_weight_1 = Parameter(torch.empty(
+                (out_channels, in_channels, *kernel_size), **factory_kwargs))
+            self.equatorial_weight_2 = Parameter(torch.empty(
+                (out_channels, in_channels, *kernel_size), **factory_kwargs))
+            self.equatorial_weight_3 = Parameter(torch.empty(
                 (out_channels, in_channels, *kernel_size), **factory_kwargs))
             self.polar_weight = Parameter(torch.empty(
                 (out_channels, in_channels, *kernel_size), **factory_kwargs))
         if bias:
-            self.equatorial_bias = Parameter(torch.empty(out_channels, **factory_kwargs))
+            self.equatorial_bias_0 = Parameter(torch.empty(out_channels, **factory_kwargs))
+            self.equatorial_bias_1 = Parameter(torch.empty(out_channels, **factory_kwargs))
+            self.equatorial_bias_2 = Parameter(torch.empty(out_channels, **factory_kwargs))
+            self.equatorial_bias_3 = Parameter(torch.empty(out_channels, **factory_kwargs))
             self.polar_bias = Parameter(torch.empty(out_channels, **factory_kwargs))
         else:
-            self.register_parameter('equatorial_bias', None)
+            self.register_parameter('equatorial_bias_0', None)
+            self.register_parameter('equatorial_bias_1', None)
+            self.register_parameter('equatorial_bias_2', None)
+            self.register_parameter('equatorial_bias_3', None)
             self.register_parameter('polar_bias', None)
 
         self.reset_parameters()
@@ -227,12 +251,34 @@ class _ConvNd(Module):
         # Setting a=sqrt(5) in kaiming_uniform is the same as initializing with
         # uniform(-1/sqrt(k), 1/sqrt(k)), where k = weight.size(1) * prod(*kernel_size)
         # For more details see: https://github.com/pytorch/pytorch/issues/15314#issuecomment-477448573
-        init.kaiming_uniform_(self.equatorial_weight, a=math.sqrt(5))
-        if self.equatorial_bias is not None:
-            fan_in, _ = init._calculate_fan_in_and_fan_out(self.equatorial_weight)
+        init.kaiming_uniform_(self.equatorial_weight_0, a=math.sqrt(5))
+        if self.equatorial_bias_0 is not None:
+            fan_in, _ = init._calculate_fan_in_and_fan_out(self.equatorial_weight_0)
             if fan_in != 0:
                 bound = 1 / math.sqrt(fan_in)
-                init.uniform_(self.equatorial_bias, -bound, bound)
+                init.uniform_(self.equatorial_bias_0, -bound, bound)
+
+        init.kaiming_uniform_(self.equatorial_weight_1, a=math.sqrt(5))
+        if self.equatorial_bias_1 is not None:
+            fan_in, _ = init._calculate_fan_in_and_fan_out(self.equatorial_weight_1)
+            if fan_in != 0:
+                bound = 1 / math.sqrt(fan_in)
+                init.uniform_(self.equatorial_bias_1, -bound, bound)
+
+        init.kaiming_uniform_(self.equatorial_weight_2, a=math.sqrt(5))
+        if self.equatorial_bias_2 is not None:
+            fan_in, _ = init._calculate_fan_in_and_fan_out(self.equatorial_weight_2)
+            if fan_in != 0:
+                bound = 1 / math.sqrt(fan_in)
+                init.uniform_(self.equatorial_bias_2, -bound, bound)
+
+        init.kaiming_uniform_(self.equatorial_weight_3, a=math.sqrt(5))
+        if self.equatorial_bias_3 is not None:
+            fan_in, _ = init._calculate_fan_in_and_fan_out(self.equatorial_weight_3)
+            if fan_in != 0:
+                bound = 1 / math.sqrt(fan_in)
+                init.uniform_(self.equatorial_bias_3, -bound, bound)
+
 
         init.kaiming_uniform_(self.polar_weight, a=math.sqrt(5))
         if self.polar_bias is not None:
@@ -250,8 +296,14 @@ class _ConvNd(Module):
             s += ', dilation={dilation}'
         if self.output_padding != (0,) * len(self.output_padding):
             s += ', output_padding={output_padding}'
-        if self.equatorial_bias is None:
-            s += ', equatorial_bias=False'
+        if self.equatorial_bias_0 is None:
+            s += ', equatorial_bias_0=False'
+        if self.equatorial_bias_1 is None:
+            s += ', equatorial_bias_1=False'
+        if self.equatorial_bias_2 is None:
+            s += ', equatorial_bias_2=False'
+        if self.equatorial_bias_3 is None:
+            s += ', equatorial_bias_3=False'
         if self.polar_bias is None:
             s += ', polar_bias=False'
         if self.padding_mode != 'zeros':
@@ -259,12 +311,12 @@ class _ConvNd(Module):
         return s.format(**self.__dict__)
 
     def __setstate__(self, state):
-        super(_ConvNd, self).__setstate__(state)
+        super(_ConvNdSingleNode, self).__setstate__(state)
         if not hasattr(self, 'padding_mode'):
             self.padding_mode = 'zeros'
 
 
-class CubeSphereConv2D(_ConvNd):
+class CubeSphereConv2DSingleNode(_ConvNdSingleNode):
     __doc__ = r"""Applies a 2D convolution over an input signal on a cubed sphere. Adapted from PyTorch Conv2d.
 
     In the simplest case, the output value of the layer with input size
@@ -363,13 +415,15 @@ class CubeSphereConv2D(_ConvNd):
         stride_ = _pair(stride)
         padding_ = padding if isinstance(padding, str) else _pair(padding)
         dilation_ = _pair(dilation)
-        super(CubeSphereConv2D, self).__init__(
+        super(CubeSphereConv2DSingleNode, self).__init__(
             in_channels, out_channels, kernel_size_, stride_, padding_, dilation_,
             False, _pair(0), bias, padding_mode, **factory_kwargs)
 
-    def _conv_forward(self, input: Tensor, equatorial_weight: Tensor, polar_weight: Tensor,
-                      equatorial_bias: Optional[Tensor], polar_bias: Optional[Tensor]):
+    def _conv_forward(self, input: Tensor, equatorial_weight_0: Tensor, equatorial_weight_1: Tensor, equatorial_weight_2: Tensor, equatorial_weight_3: Tensor, polar_weight: Tensor,
+                      equatorial_bias_0: Tensor, equatorial_bias_1: Tensor, equatorial_bias_2: Tensor, equatorial_bias_3: Tensor, polar_bias: Optional[Tensor]):
         outputs = []
+        equatorial_bias = [equatorial_bias_0, equatorial_bias_1, equatorial_bias_2, equatorial_bias_3]
+        equatorial_weight = [equatorial_weight_0, equatorial_weight_1, equatorial_weight_2, equatorial_weight_3]
         if self.padding_mode != 'zeros':
             # Equatorial panels
             for p in range(4):
@@ -377,7 +431,7 @@ class CubeSphereConv2D(_ConvNd):
                     torch.unsqueeze(
                         F.conv2d(
                             F.pad(input[:, :, p, :, :], self._reversed_padding_repeated_twice, mode=self.padding_mode),
-                            equatorial_weight, equatorial_bias, self.stride,
+                            equatorial_weight[p], equatorial_bias[p], self.stride,
                             _pair(0), self.dilation, self.groups), 2)
                 )
 
@@ -394,7 +448,7 @@ class CubeSphereConv2D(_ConvNd):
             for p in range(4):
                 outputs.append(
                     torch.unsqueeze(
-                        F.conv2d(input[:, :, p, :, :], equatorial_weight, equatorial_bias, self.stride,
+                        F.conv2d(input[:, :, p, :, :], equatorial_weight[p], equatorial_bias[p], self.stride,
                                  self.padding, self.dilation, self.groups), 2)
                 )
 
@@ -408,5 +462,8 @@ class CubeSphereConv2D(_ConvNd):
         return torch.cat(outputs, 2)
 
     def forward(self, input: Tensor) -> Tensor:
-        return self._conv_forward(input, self.equatorial_weight, self.polar_weight,
-                                  self.equatorial_bias, self.polar_bias)
+        return self._conv_forward(input, self.equatorial_weight_0, self.equatorial_weight_1, self.equatorial_weight_2, self.equatorial_weight_3, self.polar_weight,
+                                  self.equatorial_bias_0, self.equatorial_bias_1, self.equatorial_bias_2, self.equatorial_bias_3, self.polar_bias)
+
+
+

@@ -27,18 +27,21 @@ class Config:
         self.gen_sofa_flag = True
         self.nbins_hrtf = 128  # make this a power of 2
         self.hrtf_size = 16
+        self.panel = None  # panel used to select point when upscale_factor is 80
         self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
 
         # Data dirs
         if using_hpc:
+            self.ngpu = 1
             # HPC data dirs
             self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-' \
                                   'adversarial-network-using-a-gnomonic-equiangular-projection'
             self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
             self.amt_dir = '/rds/general/user/aos13/home/HRTF-GANs-27Sep22-prep-for-publication/thirdParty'
         else:
+            self.ngpu = 0
             # local data dirs
             self.data_dirs_path = '/home/ahogg/PycharmProjects/HRTF-GAN'
             self.raw_hrtf_dir = Path('/home/ahogg/Documents/HRTF Datasets')
@@ -85,7 +88,6 @@ class Config:
         self.beta1 = 0.9
         self.beta2 = 0.999
 
-        self.ngpu = 1
         if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:
