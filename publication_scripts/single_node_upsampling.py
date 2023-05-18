@@ -235,7 +235,8 @@ def run_train(hpc, type, test_id=None):
     print(f'Running training')
     config_files = []
     tags = []
-    upscale_factors = [2, 4, 8, 16, 80]
+    # upscale_factors = [2, 4, 8, 16, 80]
+    upscale_factors = [80]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':
         datasets.remove('SONICOMSynthetic')
@@ -250,10 +251,23 @@ def run_train(hpc, type, test_id=None):
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
             elif type == 'base-tl':
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
+                if upscale_factor == 80:
+                    for panel in [0, 1, 2, 3, 4]:
+                        if type == 'base':
+                            tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel}'})
+                else:
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
+                if upscale_factor == 80:
+                    for panel in [0, 1, 2, 3, 4]:
+                        if type == 'base':
+                            tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
+                                     'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel}'})
+                            tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
+                                     'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel}'})
+                else:
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
             else:
                 print("Type not valid. Please use 'base' or 'tl'")
 
