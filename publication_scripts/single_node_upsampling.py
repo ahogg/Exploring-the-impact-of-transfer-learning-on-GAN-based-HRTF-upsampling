@@ -447,7 +447,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
                 #######################################
-                full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
+                full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', file_ext=f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
                                 np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, ticks)
@@ -494,12 +494,11 @@ def plot_evaluation(hpc, experiment_id, mode):
                 #######################################
                 full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(),
                                                              'target',
-                                                             f'{dataset.upper()}_loc_target_valid_errors.pickle') * 4
+                                                             file_ext=f'{dataset.upper()}_loc_target_valid_errors.pickle') * 9
                 for i in np.arange(np.shape(full_results_dataset)[1]):
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i],
-                                 [np.array(full_results_dataset)[:, i, :],
-                                  np.array(full_results_dataset_baseline)[:, i, :],
-                                  np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours)
+                                 [np.concatenate((np.array(full_results_dataset_baseline)[::-1, i, :], np.array(full_results_dataset)[:, i, :])),
+                                  np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, ticks, xlabel)
                     print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
                     create_table(legend, [np.array(full_results_dataset)[:, i, :],
                                           np.array(full_results_dataset_baseline)[:, i, :],

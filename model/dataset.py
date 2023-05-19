@@ -41,28 +41,29 @@ class TrainValidHRTFDataset(Dataset):
                 file = open(hrtf_file_name, 'rb')
                 hrtf = pickle.load(file)
                 if not np.isnan(np.sum(hrtf.cpu().data.numpy())):
-                    if all(map(lambda i: isinstance(i, np.floating), np.array(hrtf.cpu().data.numpy().ravel()))):
-                        if np.logical_and(hrtf.cpu().data.numpy() > 0, hrtf.cpu().data.numpy() < 2).all():
-                            valid_hrtf_file_names.append(hrtf_file_name)
-                        else:
-                            count = 0
-                            err_count = 0
-                            for i in range(hrtf.cpu().data.numpy().shape[0]):
-                                for j in range(hrtf.cpu().data.numpy().shape[1]):
-                                    for k in range(hrtf.cpu().data.numpy().shape[2]):
-                                        count += 1
-                                        if not np.logical_and(hrtf.cpu().data.numpy()[i, j, k, :] > 0, hrtf.cpu().data.numpy()[i, j, k, :] < 2).all():
-                                            err_count += 1
-                                            print(f'Number of elements of of range: {np.logical_and(hrtf.cpu().data.numpy()[i, j, k, :] > 0, hrtf.cpu().data.numpy()[i, j, k, :] < 2).sum()}')
-                            print(f'Number of HRTFs in total: {count}')
-                            print(f'Number of HRTFs out of range: {err_count}')
-                            print(f'Minimum value: {min(np.array(hrtf.cpu().data.numpy().ravel()))}')
-                            print(f'Maximum value: {max(np.array(hrtf.cpu().data.numpy().ravel()))}')
-                            print(f'{hrtf_file_name} discarded due to impulse response not being in range')
-                    else:
-                        print(f'{hrtf_file_name} discarded due to impulse response not being stored as floats')
-                else:
-                    print(f'{hrtf_file_name} discarded due to nan')
+                    valid_hrtf_file_names.append(hrtf_file_name)
+                #     if all(map(lambda i: isinstance(i, np.floating), np.array(hrtf.cpu().data.numpy().ravel()))):
+                #         if np.logical_and(hrtf.cpu().data.numpy() > 0, hrtf.cpu().data.numpy() < 2).all():
+                #             valid_hrtf_file_names.append(hrtf_file_name)
+                #         else:
+                #             count = 0
+                #             err_count = 0
+                #             for i in range(hrtf.cpu().data.numpy().shape[0]):
+                #                 for j in range(hrtf.cpu().data.numpy().shape[1]):
+                #                     for k in range(hrtf.cpu().data.numpy().shape[2]):
+                #                         count += 1
+                #                         if not np.logical_and(hrtf.cpu().data.numpy()[i, j, k, :] > 0, hrtf.cpu().data.numpy()[i, j, k, :] < 2).all():
+                #                             err_count += 1
+                #                             print(f'Number of elements of of range: {np.logical_and(hrtf.cpu().data.numpy()[i, j, k, :] > 0, hrtf.cpu().data.numpy()[i, j, k, :] < 2).sum()}')
+                #             print(f'Number of HRTFs in total: {count}')
+                #             print(f'Number of HRTFs out of range: {err_count}')
+                #             print(f'Minimum value: {min(np.array(hrtf.cpu().data.numpy().ravel()))}')
+                #             print(f'Maximum value: {max(np.array(hrtf.cpu().data.numpy().ravel()))}')
+                #             print(f'{hrtf_file_name} discarded due to impulse response not being in range')
+                #     else:
+                #         print(f'{hrtf_file_name} discarded due to impulse response not being stored as floats')
+                # else:
+                #     print(f'{hrtf_file_name} discarded due to nan')
 
             self.hrtf_file_names = valid_hrtf_file_names
 
