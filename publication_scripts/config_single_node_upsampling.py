@@ -8,12 +8,13 @@ class Config:
     Set using HPC to true in order to use appropriate paths for HPC
     """
 
-    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None):
+    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None, runs_folder=None):
 
         # overwrite settings with arguments provided
         self.tag = tag if tag is not None else 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
         self.dataset = dataset if dataset is not None else 'SONICOM'
         self.data_dir = data_dir if data_dir is not None else '/data/' + self.dataset
+        self.runs_folder = runs_folder if runs_folder is not None else '/runs-hpc'
 
         if existing_model_tag is not None:
             self.start_with_existing_model = True
@@ -47,7 +48,6 @@ class Config:
             self.raw_hrtf_dir = Path('/home/ahogg/Documents/HRTF Datasets')
             self.amt_dir = '/home/ahogg/PycharmProjects/HRTF-GAN/thirdParty'
 
-        self.runs_folder = '/runs-hpc-single-node'
         self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
         self.existing_model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.existing_model_tag}'
 

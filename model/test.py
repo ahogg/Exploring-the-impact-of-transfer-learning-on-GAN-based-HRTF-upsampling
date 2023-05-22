@@ -26,7 +26,7 @@ def test(config, val_prefetcher):
         model = GeneratorSingleNode(upscale_factor=config.hrtf_size, nbins=nbins).to(device)
     else:
         model = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
-    print("Build SRGAN model successfully.")
+    print('Build SRGAN model successfully: %s' % config.model_path)
 
     # Load super-resolution model weights (always uses the CPU due to HPC having long wait times)
     model.load_state_dict(torch.load(f"{config.model_path}/Gen.pt", map_location=torch.device('cpu')))
