@@ -24,8 +24,10 @@ def test(config, val_prefetcher):
             torch.cuda.is_available() and ngpu > 0) else "cpu")
     if config.upscale_factor == config.hrtf_size*5:
         model = GeneratorSingleNode(upscale_factor=config.hrtf_size, nbins=nbins).to(device)
+        print('Using Single Node SRGAN model')
     else:
         model = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
+        print('Using SRGAN model')
     print('Build SRGAN model successfully: %s' % config.model_path)
 
     # Load super-resolution model weights (always uses the CPU due to HPC having long wait times)

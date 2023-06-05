@@ -74,12 +74,12 @@ class ResidualConvBlockSingleNode(nn.Module):
     def __init__(self, channels: int) -> None:
         super(ResidualConvBlockSingleNode, self).__init__()
         self.rcb = nn.Sequential(
-            # CubeSpherePadding2D(1),
-            CubeSphereConv2DSingleNode(channels, channels, (1, 1), (1, 1), bias=False),
+            CubeSpherePadding2D(1),
+            CubeSphereConv2DSingleNode(channels, channels, (3, 3), (1, 1), bias=False),
             nn.BatchNorm3d(channels),
             nn.PReLU(),
-            # CubeSpherePadding2D(1),
-            CubeSphereConv2DSingleNode(channels, channels, (1, 1), (1, 1), bias=False),
+            CubeSpherePadding2D(1),
+            CubeSphereConv2DSingleNode(channels, channels, (3, 3), (1, 1), bias=False),
             nn.BatchNorm3d(channels),
         )
 
@@ -91,11 +91,21 @@ class ResidualConvBlockSingleNode(nn.Module):
         return out
 
 
+class UpscalingBlockSingleNode(nn.Module):
+    def __init__(self, upscaling: float) -> None:
+        super(UpscalingBlockSingleNode, self).__init__()
+        self.upsample_block_1 = nn.Upsample(scale_factor=(upscaling, 1, 1), mode='nearest')
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.upsample_block_1(x)
+        return out
+
+
 class UpsampleBlockSingleNode(nn.Module):
     def __init__(self, channels: int) -> None:
         super(UpsampleBlockSingleNode, self).__init__()
         self.upsample_block_1 = nn.Sequential(
-            # CubeSpherePadding2D(1),
+            CubeSpherePadding2D(1),
             CubeSphereConv2DSingleNode(channels, channels * 4, (1, 1), (1, 1))
         )
         self.upsample_block_2 = nn.Sequential(
@@ -111,16 +121,20 @@ class UpsampleBlockSingleNode(nn.Module):
 
 
 class GeneratorSingleNode(nn.Module):
-    def __init__(self, upscale_factor: int, nbins: int) -> None:
+    def __init__(self, hrtf_size: int, upscale_factor: int, nbins: int) -> None:
         super(GeneratorSingleNode, self).__init__()
         self.nbins = nbins
         self.ngf = 512
-        self.num_upsampling_blocks = int(np.log(upscale_factor)/np.log(2))
+        self.num_upsampling_blocks = int(np.log(hrtf_size)/np.log(2))-2
+        self.num_upscaling_blocks = upscale_factor / hrtf_size
+
+        # Upscale block
+        self.upscaling = UpscalingBlockSingleNode(self.num_upscaling_blocks)
 
         # First conv layer.
         self.conv_block1 = nn.Sequential(
-            # CubeSpherePadding2D(1),
-            CubeSphereConv2DSingleNode(self.nbins, self.ngf, (1, 1), (1, 1)),
+           CubeSpherePadding2D(1),
+            CubeSphereConv2DSingleNode(self.nbins, self.ngf, (3, 3), (1, 1)),
             nn.PReLU(),
         )
 
@@ -132,12 +146,12 @@ class GeneratorSingleNode(nn.Module):
 
         # Second conv layer.
         self.conv_block2 = nn.Sequential(
-            # CubeSpherePadding2D(1),
-            CubeSphereConv2DSingleNode(self.ngf, self.ngf, (1, 1), (1, 1), bias=False),
+           CubeSpherePadding2D(1),
+            CubeSphereConv2DSingleNode(self.ngf, self.ngf, (3, 3), (1, 1), bias=False),
             nn.BatchNorm3d(self.ngf),
         )
 
-        # Upscale block
+        # Upsampling block
         upsampling = []
         for _ in range(self.num_upsampling_blocks):
             upsampling.append(UpsampleBlockSingleNode(self.ngf))
@@ -145,8 +159,8 @@ class GeneratorSingleNode(nn.Module):
 
         # Output layer.
         self.conv_block3 = nn.Sequential(
-            # CubeSpherePadding2D(1),
-            CubeSphereConv2DSingleNode(self.ngf, self.nbins, (1, 1), (1, 1))
+           CubeSpherePadding2D(1),
+            CubeSphereConv2DSingleNode(self.ngf, self.nbins, (3, 3), (1, 1))
         )
 
         self.classifier = nn.Softplus()
@@ -159,7 +173,8 @@ class GeneratorSingleNode(nn.Module):
 
     # Support torch.script function
     def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
-        out1 = self.conv_block1(x)
+        outx = self.upscaling(x)
+        out1 = self.conv_block1(outx)
         out = self.trunk(out1)
         out2 = self.conv_block2(out)
         out = torch.add(out1, out2)

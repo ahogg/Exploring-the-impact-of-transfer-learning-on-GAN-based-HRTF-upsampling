@@ -71,7 +71,7 @@ def set_box_color(bp, color):
     plt.setp(bp['medians'], color=color, linewidth=0.5)
 
 
-def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xlabel=None):
+def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xlabel=None, hrtf_selection_results=None):
     plt.rc('font', family='serif', serif='Times New Roman')
     plt.rc('text', usetex=True)
     plt.rc('xtick', labelsize=8)
@@ -99,10 +99,32 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xla
 
         plt.plot([], c=colours[idx], label=legend[idx])
 
+    if hrtf_selection_results is not None:
+        ticks += ['Sel']
+        c = ['#00FFFF', '#FFC300']
+        l = ['Selection-1', 'Selection-2']
+        for idx, hrtf_selection_result in enumerate(hrtf_selection_results):
+            blp = plt.boxplot(hrtf_selection_result, positions=[(len(data) * 1.0) - np.linspace(0.15 * (len(full_results) / 2),
+                                                                                        -0.15 * (len(full_results) / 2),
+                                                                                        len(full_results))[idx+1]],
+                              flierprops=dict(marker='x', markeredgecolor=c[idx], markersize=4), widths=0.12)
+            for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+                plt.setp(blp[element], color=c[idx], linewidth=0.7)
+
+            plt.plot([], c=c[idx], label=l[idx])
+
     if len(full_results) > 2:
-        [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
+        if hrtf_selection_results is not None:
+            plt.axvline(range(0, (len(ticks) - 1), 1)[-1] + 0.5, color='#a6a6a6', linewidth=1)
+            [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 2), 1)]
+        else:
+            [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
     else:
-        [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
+        if hrtf_selection_results is not None:
+            plt.axvline(range(0, (len(ticks) - 1) * 2, 2)[-1] + 1, color='#a6a6a6', linewidth=1)
+            [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 2) * 2, 2)]
+        else:
+            [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
 
     leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right",  # mode="expand",
                         borderaxespad=0, ncol=2, handlelength=1.06)
@@ -149,7 +171,7 @@ def get_results(tag, mode, upscale_factors=[16, 8, 4, 2], file_ext=None, runs_fo
                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
             with open(file_path, 'rb') as file:
                 lsd_id_errors = pickle.load(file)
-            lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
+            lsd_errors = [lsd_error[1] if not np.isinf(lsd_error[1]) else np.nan for lsd_error in lsd_id_errors]
             print(f'Loading: {file_path}')
             print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(lsd_errors),  np.std(lsd_errors)))
             full_results.append(lsd_errors)
@@ -234,7 +256,7 @@ def run_preprocess(hpc, type, dataset_id=None):
 def run_train(hpc, type, test_id=None):
     print(f'Running training')
     config_files = []
-    upscale_factors = [2, 4, 8, 16, 80]
+    upscale_factors = [2, 4, 8, 16, 40, 80]
     # upscale_factors = [80]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':
@@ -247,21 +269,33 @@ def run_train(hpc, type, test_id=None):
                 if upscale_factor == 80:
                     for panel in [0, 1, 2, 3, 4]:
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'})
+                elif upscale_factor == 40:
+                    panel = [1, 3]
+                    tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel[0]}-{panel[1]}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
             elif type == 'base-tl':
                 if upscale_factor == 80:
                     for panel in [0, 1, 2, 3, 4]:
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel}'})
+                elif upscale_factor == 40:
+                    panel = [1, 3]
+                    tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
                 if upscale_factor == 80:
                     for panel in [0, 1, 2, 3, 4]:
-                        tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
-                                     'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel}'})
-                        tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
-                                     'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel}'})
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}',
+                                     'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel[0]}-{panel[1]}',
+                                     'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
+                if upscale_factor == 40:
+                    panel = [1, 3]
+                    tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
+                                 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel}'})
+                    tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
+                                 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
                             {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
@@ -269,7 +303,14 @@ def run_train(hpc, type, test_id=None):
                 print("Type not valid. Please use 'base' or 'tl'")
 
             for tag in tags:
-                runs_folder = '/runs-hpc-single-node' if config.upscale_factor == 80 else '/runs-hpc'
+
+                if upscale_factor == 80:
+                    runs_folder = '/runs-hpc-single-node'
+                elif upscale_factor == 40:
+                    runs_folder = '/runs-hpc-double-node'
+                else:
+                    runs_folder ='/runs-hpc'
+
                 if type == 'base':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
                 elif type == 'base-tl':
@@ -291,6 +332,10 @@ def run_train(hpc, type, test_id=None):
                 elif upscale_factor == 16:
                     config.content_weight = 0.01
                     config.adversarial_weight = 0.01
+                elif upscale_factor == 40:
+                    config.content_weight = 0.01
+                    config.adversarial_weight = 0.01
+                    config.panel = [1, 3]
                 elif upscale_factor == 80:
                     config.content_weight = 0.01
                     config.adversarial_weight = 0.01
@@ -358,8 +403,9 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             for upscale_factor in upscale_factors:
                 runs_folder = '/runs-hpc-single-node' if upscale_factor == 80 else '/runs-hpc'
                 for panel in panels:
-                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'},
-                            {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-{upscale_factor}-{panel}'},
+                    tags = [
+                            # {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}'},
                             {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}'}]
                     for tag in tags:
                         config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
@@ -465,7 +511,7 @@ def plot_evaluation(hpc, experiment_id, mode):
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             full_results_dataset_single_node = get_results(f'pub-prep-upscale-{dataset}-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
             full_results_dataset_sonicom_synthetic_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-80-', mode,  upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
-
+            full_results_dataset_dataset_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
             full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-',
                                                                     mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
@@ -473,6 +519,10 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset_baseline = get_results(
                 f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid',
                 mode=f'baseline_{mode}', upscale_factors=[2, 4, 8, 16], file_ext=f'{mode}_errors_barycentric_interpolated_data_')
+            full_results_dataset_baseline_hrtf_selection = get_results(
+                f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/hrtf_selection/valid',
+                mode=f'baseline_{mode}', upscale_factors=['minimum_data', 'maximum_data'],
+                file_ext=f'{mode}_errors_hrtf_selection_')
             factors = [2, 4, 8, 16]
             basline_ticks = [
                 r'$%s $' % (
@@ -490,14 +540,16 @@ def plot_evaluation(hpc, experiment_id, mode):
                 #######################################
                 pad_no = 5
                 full_results_dataset_baseline = np.concatenate((full_results_dataset_baseline, [np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()]*pad_no))
-                full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, [np.full(shape=len(full_results_dataset_sonicom_synthetic_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
-                full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, [np.full(shape=len(full_results_dataset_dataset_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
+                full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, full_results_dataset_sonicom_synthetic_tl_single_node))
+                full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, full_results_dataset_dataset_tl_single_node))
+                # full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, [np.full(shape=len(full_results_dataset_sonicom_synthetic_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
+                # full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, [np.full(shape=len(full_results_dataset_dataset_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
                 #######################################
                 create_table(legend, [full_results_dataset+full_results_dataset_single_node], dataset.upper(),
                              units='[dB]')
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}',
                              f'{dataset.upper()} \n LSD error [dB]',
-                             [full_results_dataset+full_results_dataset_single_node, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours, ticks, xlabel)
+                             [full_results_dataset+full_results_dataset_single_node, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours, ticks, xlabel, hrtf_selection_results=full_results_dataset_baseline_hrtf_selection)
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']

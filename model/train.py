@@ -47,8 +47,8 @@ def train(config, train_prefetcher):
     pos_freqs = all_freqs[all_freqs >= 0]
 
     # Define Generator network and transfer to CUDA
-    if config.upscale_factor == config.hrtf_size*5:
-        netG = GeneratorSingleNode(upscale_factor=config.hrtf_size, nbins=nbins).to(device)
+    if config.upscale_factor == config.hrtf_size*5 or config.upscale_factor == config.hrtf_size*2.5:
+        netG = GeneratorSingleNode(hrtf_size=config.hrtf_size, upscale_factor=config.upscale_factor, nbins=nbins).to(device)
     else:
         netG = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
     netD = Discriminator(nbins=nbins).to(device)
