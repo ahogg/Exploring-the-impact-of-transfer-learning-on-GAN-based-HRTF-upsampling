@@ -22,8 +22,8 @@ def test(config, val_prefetcher):
 
     device = torch.device(config.device_name if (
             torch.cuda.is_available() and ngpu > 0) else "cpu")
-    if config.upscale_factor == config.hrtf_size*5:
-        model = GeneratorSingleNode(upscale_factor=config.hrtf_size, nbins=nbins).to(device)
+    if config.upscale_factor == config.hrtf_size * 5 or config.upscale_factor == config.hrtf_size * 2.5:
+        model = GeneratorSingleNode(hrtf_size=config.hrtf_size, upscale_factor=config.upscale_factor, nbins=nbins).to(device)
         print('Using Single Node SRGAN model')
     else:
         model = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)

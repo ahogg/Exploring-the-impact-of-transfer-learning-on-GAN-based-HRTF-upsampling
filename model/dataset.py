@@ -13,7 +13,7 @@ def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor, panel=0):
         lr_hrtf = hr_hrtf[:, panel, mid_pos, mid_pos, None, None, None]
     elif upscale_factor == hrtf_size*2.5:
         mid_pos = int(hrtf_size / 2)
-        lr_hrtf = np.concatenate((hr_hrtf[:, panel[0], mid_pos, mid_pos, None, None, None], hr_hrtf[:, panel[1], mid_pos, mid_pos, None, None, None]), axis=1)
+        lr_hrtf = torch.tensor(np.concatenate((hr_hrtf[:, panel[0], mid_pos, mid_pos, None, None, None], hr_hrtf[:, panel[1], mid_pos, mid_pos, None, None, None]), axis=1))
     elif upscale_factor == hrtf_size:
         mid_pos = int(hrtf_size / 2)
         lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]

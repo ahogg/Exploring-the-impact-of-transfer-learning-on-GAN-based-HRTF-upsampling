@@ -257,7 +257,7 @@ def run_train(hpc, type, test_id=None):
     print(f'Running training')
     config_files = []
     upscale_factors = [2, 4, 8, 16, 40, 80]
-    # upscale_factors = [80]
+    double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':
         datasets.remove('SONICOMSynthetic')
@@ -270,8 +270,8 @@ def run_train(hpc, type, test_id=None):
                     for panel in [0, 1, 2, 3, 4]:
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'})
                 elif upscale_factor == 40:
-                    panel = [1, 3]
-                    tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel[0]}-{panel[1]}'})
+                    for panel in double_panels:
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel[0]}-{panel[1]}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
             elif type == 'base-tl':
@@ -279,8 +279,8 @@ def run_train(hpc, type, test_id=None):
                     for panel in [0, 1, 2, 3, 4]:
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel}'})
                 elif upscale_factor == 40:
-                    panel = [1, 3]
-                    tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
+                    for panel in double_panels:
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
@@ -291,11 +291,11 @@ def run_train(hpc, type, test_id=None):
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel[0]}-{panel[1]}',
                                      'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
                 if upscale_factor == 40:
-                    panel = [1, 3]
-                    tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
-                                 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel}'})
-                    tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
-                                 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel}'})
+                    for panel in double_panels:
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
+                                     'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel}'})
+                        tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
+                                     'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel}'})
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
                             {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
@@ -335,10 +335,11 @@ def run_train(hpc, type, test_id=None):
                 elif upscale_factor == 40:
                     config.content_weight = 0.01
                     config.adversarial_weight = 0.01
-                    config.panel = [1, 3]
+                    config.panel = [int(config.tag[-3]), int(config.tag[-1])]
                 elif upscale_factor == 80:
                     config.content_weight = 0.01
                     config.adversarial_weight = 0.01
+                    config.panel = int(config.tag[-1])
 
                 config_files.append(config)
 
@@ -395,20 +396,33 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config_files.append(config)
     elif experiment_id == 4:
-        upscale_factors = [80]
+        upscale_factors = [80, 40]
         panels = [0, 1, 2, 3, 4]
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             for upscale_factor in upscale_factors:
-                runs_folder = '/runs-hpc-single-node' if upscale_factor == 80 else '/runs-hpc'
-                for panel in panels:
+                if upscale_factor == 80:
+                    runs_folder = '/runs-hpc-single-node'
+                    for panel in panels:
+                        tags = [
+                                {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'},
+                                {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}'},
+                                {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}'}
+                        ]
+                        for tag in tags:
+                            config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
+                            config.upscale_factor = upscale_factor
+                            config_files.append(config)
+                elif upscale_factor == 40:
+                    runs_folder = '/runs-hpc-double-node'
                     tags = [
-                            # {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'},
-                            {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}'},
-                            {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}'}]
+                            {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-1-3'}
+                    ]
                     for tag in tags:
-                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
+                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset,
+                                        runs_folder=runs_folder)
+                        config.panel = [1, 3]
                         config.upscale_factor = upscale_factor
                         config_files.append(config)
 

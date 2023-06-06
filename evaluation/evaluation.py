@@ -23,7 +23,7 @@ def replace_nodes(config, sr_dir, file_name):
         sr_hrtf = pickle.load(f)
 
     lr_hrtf = torch.permute(
-        downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor),
+        downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor, config.panel),
         (1, 2, 3, 0))
 
     lr = lr_hrtf.detach().cpu()
