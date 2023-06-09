@@ -152,8 +152,10 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xla
     ax.set_ylim((ymin, ymax))
     ax.yaxis.set_label_coords(-0.12, 0.5)
 
-    w = 2.974
-    h = w / 1.5
+    # w = 2.974
+    # h = w / 1.5
+    w = 5
+    h = w / 2.5
     fig.set_size_inches(w, h)
     fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
     fig.savefig(config.data_dirs_path + '/plots/' + name, bbox_inches='tight')
@@ -284,14 +286,14 @@ def run_train(hpc, type, test_id=None):
                 else:
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
             elif type == 'tl':
-                if upscale_factor == 80:
-                    for panel in [0, 1, 2, 3, 4]:
+                if upscale_factor == 40:
+                    for panel in double_panels:
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}',
                                      'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel[0]}-{panel[1]}',
                                      'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}-{panel[0]}-{panel[1]}'})
-                if upscale_factor == 40:
-                    for panel in double_panels:
+                elif upscale_factor == 80:
+                    for panel in [0, 1, 2, 3, 4]:
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}',
                                      'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}-{panel}'})
                         tags.append({'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}',
@@ -396,8 +398,10 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config_files.append(config)
     elif experiment_id == 4:
-        upscale_factors = [80, 40]
+        upscale_factors = [2, 4, 8, 16, 40, 80]
+        # upscale_factors = [16]
         panels = [0, 1, 2, 3, 4]
+        double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
@@ -407,22 +411,35 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     for panel in panels:
                         tags = [
                                 {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'},
-                                {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}'},
-                                {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}'}
+                                # {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}'},
+                                # {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}'}
                         ]
                         for tag in tags:
-                            config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
+                            config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset,
+                                            runs_folder=runs_folder)
                             config.upscale_factor = upscale_factor
+                            config.panel = panel
                             config_files.append(config)
                 elif upscale_factor == 40:
                     runs_folder = '/runs-hpc-double-node'
-                    tags = [
-                            {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-1-3'}
-                    ]
+                    for panel in double_panels:
+                        tags = [
+                            {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel[0]}-{panel[1]}'}
+                        ]
+                        for tag in tags:
+                            config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset,
+                                            runs_folder=runs_folder)
+                            config.panel = panel
+                            config.upscale_factor = upscale_factor
+                            config_files.append(config)
+                else:
+                    runs_folder = '/runs-hpc'
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
                     for tag in tags:
                         config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset,
                                         runs_folder=runs_folder)
-                        config.panel = [1, 3]
                         config.upscale_factor = upscale_factor
                         config_files.append(config)
 
@@ -524,8 +541,9 @@ def plot_evaluation(hpc, experiment_id, mode):
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             full_results_dataset_single_node = get_results(f'pub-prep-upscale-{dataset}-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
-            full_results_dataset_sonicom_synthetic_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-80-', mode,  upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
-            full_results_dataset_dataset_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
+            full_results_dataset_double_node = get_results(f'pub-prep-upscale-{dataset}-40-', mode, upscale_factors=['0-2', '1-3', '0-1', '2-3'], runs_folder='/runs-hpc-double-node')
+            # full_results_dataset_sonicom_synthetic_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-80-', mode,  upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
+            # full_results_dataset_dataset_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
             full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-',
                                                                     mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
@@ -541,9 +559,13 @@ def plot_evaluation(hpc, experiment_id, mode):
             basline_ticks = [
                 r'$%s $' % (
                     int((16 / factor) ** 2 * 5)) for factor in factors]
+            double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
+            double_ticks = [
+                r'$%s(%s,%s)$' % (
+                    int(2), panel[0], panel[1]) for panel in double_panels]
             panels = [0, 1, 2, 3, 4]
-            ticks = basline_ticks + [
-                r'$%s (%s)$' % (
+            ticks = basline_ticks + double_ticks + [
+                r'$%s(%s)$' % (
                     int(1), panel) for panel in panels]
             xlabel = 'Upsample Factor\n' + r'No. of original nodes (Panel No.)'
             if mode == 'lsd':
@@ -552,10 +574,12 @@ def plot_evaluation(hpc, experiment_id, mode):
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
                 #######################################
-                pad_no = 5
+                pad_no = 9
                 full_results_dataset_baseline = np.concatenate((full_results_dataset_baseline, [np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()]*pad_no))
-                full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, full_results_dataset_sonicom_synthetic_tl_single_node))
-                full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, full_results_dataset_dataset_tl_single_node))
+                # full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, full_results_dataset_sonicom_synthetic_tl_single_node))
+                # full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, full_results_dataset_dataset_tl_single_node))
+                full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, [np.full(shape=len(full_results_dataset_single_node[-1]), fill_value=np.nan).tolist()]*pad_no))
+                full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, [np.full(shape=len(full_results_dataset_single_node[-1]), fill_value=np.nan).tolist()]*pad_no))
                 # full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, [np.full(shape=len(full_results_dataset_sonicom_synthetic_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
                 # full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, [np.full(shape=len(full_results_dataset_dataset_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
                 #######################################
@@ -563,7 +587,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                              units='[dB]')
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}',
                              f'{dataset.upper()} \n LSD error [dB]',
-                             [full_results_dataset+full_results_dataset_single_node, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours, ticks, xlabel, hrtf_selection_results=full_results_dataset_baseline_hrtf_selection)
+                             [full_results_dataset+full_results_dataset_double_node+full_results_dataset_single_node, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours, ticks, xlabel, hrtf_selection_results=full_results_dataset_baseline_hrtf_selection)
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']

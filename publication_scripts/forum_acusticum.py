@@ -407,7 +407,7 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
             full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid', mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
             if mode == 'lsd':
-                legend = ['SRGAN', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline']
+                legend = ['SRGAN (No TL)', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
@@ -419,7 +419,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
                 labels = [f'{dataset.upper()} \n' + label for label in labels]
                 units = [r'[$^\circ$]', r'[$^\circ$]', '[\%]']
-                legend = ['SRGAN', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline', 'Target']
+                legend = ['SRGAN (No TL)', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline', 'Target']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
