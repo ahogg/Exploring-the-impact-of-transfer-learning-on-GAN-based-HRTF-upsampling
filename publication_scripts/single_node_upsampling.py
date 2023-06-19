@@ -258,7 +258,8 @@ def run_preprocess(hpc, type, dataset_id=None):
 def run_train(hpc, type, test_id=None):
     print(f'Running training')
     config_files = []
-    upscale_factors = [2, 4, 8, 16, 40, 80]
+    # upscale_factors = [2, 4, 8, 16, 40, 80]
+    upscale_factors = [2, 4, 8, 16]
     double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':
@@ -320,7 +321,7 @@ def run_train(hpc, type, test_id=None):
                 elif type == 'tl':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, runs_folder=runs_folder)
                 config.upscale_factor = upscale_factor
-                config.lr_gen = 0.0001
+                config.lr_gen = 0.0002
                 config.lr_dis = 0.0000015
                 if upscale_factor == 2:
                     config.content_weight = 0.1
@@ -399,7 +400,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             config_files.append(config)
     elif experiment_id == 4:
         upscale_factors = [2, 4, 8, 16, 40, 80]
-        # upscale_factors = [16]
+        # upscale_factors = [2, 4, 8, 16]
         panels = [0, 1, 2, 3, 4]
         double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
         datasets = ['ARI', 'SONICOM']
@@ -411,8 +412,8 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     for panel in panels:
                         tags = [
                                 {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel}'},
-                                # {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}'},
-                                # {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}'}
+                                {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel}'},
+                                {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel}'}
                         ]
                         for tag in tags:
                             config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset,
@@ -424,7 +425,9 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     runs_folder = '/runs-hpc-double-node'
                     for panel in double_panels:
                         tags = [
-                            {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel[0]}-{panel[1]}'}
+                            {'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}-{panel[0]}-{panel[1]}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}-{panel[0]}-{panel[1]}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}-{panel[0]}-{panel[1]}'}
                         ]
                         for tag in tags:
                             config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset,
@@ -542,8 +545,10 @@ def plot_evaluation(hpc, experiment_id, mode):
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             full_results_dataset_single_node = get_results(f'pub-prep-upscale-{dataset}-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
             full_results_dataset_double_node = get_results(f'pub-prep-upscale-{dataset}-40-', mode, upscale_factors=['0-2', '1-3', '0-1', '2-3'], runs_folder='/runs-hpc-double-node')
-            # full_results_dataset_sonicom_synthetic_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-80-', mode,  upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
-            # full_results_dataset_dataset_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
+            full_results_dataset_sonicom_synthetic_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-80-', mode,  upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
+            full_results_dataset_sonicom_synthetic_tl_double_node = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-40-', mode, upscale_factors=['0-2', '1-3', '0-1', '2-3'], runs_folder='/runs-hpc-double-node')
+            full_results_dataset_dataset_tl_single_node = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-80-', mode, upscale_factors=[0, 1, 2, 3, 4], runs_folder='/runs-hpc-single-node')
+            full_results_dataset_dataset_tl_double_node = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-40-', mode, upscale_factors=['0-2', '1-3', '0-1', '2-3'], runs_folder='/runs-hpc-double-node')
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
             full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-',
                                                                     mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
@@ -578,8 +583,12 @@ def plot_evaluation(hpc, experiment_id, mode):
                 full_results_dataset_baseline = np.concatenate((full_results_dataset_baseline, [np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()]*pad_no))
                 # full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, full_results_dataset_sonicom_synthetic_tl_single_node))
                 # full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, full_results_dataset_dataset_tl_single_node))
-                full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, [np.full(shape=len(full_results_dataset_single_node[-1]), fill_value=np.nan).tolist()]*pad_no))
-                full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, [np.full(shape=len(full_results_dataset_single_node[-1]), fill_value=np.nan).tolist()]*pad_no))
+
+                # full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, [np.full(shape=len(full_results_dataset_single_node[-1]), fill_value=np.nan).tolist()]*pad_no))
+                full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, full_results_dataset_sonicom_synthetic_tl_double_node, full_results_dataset_sonicom_synthetic_tl_single_node))
+                # full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, [np.full(shape=len(full_results_dataset_single_node[-1]), fill_value=np.nan).tolist()]*pad_no))
+                full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, full_results_dataset_dataset_tl_single_node, full_results_dataset_dataset_tl_double_node))
+
                 # full_results_dataset_sonicom_synthetic_tl = np.concatenate((full_results_dataset_sonicom_synthetic_tl, [np.full(shape=len(full_results_dataset_sonicom_synthetic_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
                 # full_results_dataset_dataset_tl = np.concatenate((full_results_dataset_dataset_tl, [np.full(shape=len(full_results_dataset_dataset_tl[-1]), fill_value=np.nan).tolist()]*pad_no))
                 #######################################
