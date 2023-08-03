@@ -8,17 +8,21 @@ from torch.utils.data import Dataset
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/7292452634137d8f5d4478e44727ec1166a89125/dataset.py
 def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor, panel=0):
     # downsample hrtf
-    if upscale_factor == hrtf_size*5:
-        mid_pos = int(hrtf_size / 2)
-        lr_hrtf = hr_hrtf[:, panel, mid_pos, mid_pos, None, None, None]
-    elif upscale_factor == hrtf_size*2.5:
-        mid_pos = int(hrtf_size / 2)
-        lr_hrtf = torch.tensor(np.concatenate((hr_hrtf[:, panel[0], mid_pos, mid_pos, None, None, None], hr_hrtf[:, panel[1], mid_pos, mid_pos, None, None, None]), axis=1))
-    elif upscale_factor == hrtf_size:
-        mid_pos = int(hrtf_size / 2)
-        lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
+
+    if len(hr_hrtf.size()) == 3:  # Single panel
+        lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / upscale_factor)[0]
     else:
-        lr_hrtf = torch.nn.functional.interpolate(hr_hrtf, scale_factor=1 / upscale_factor)
+        if upscale_factor == hrtf_size*5:
+            mid_pos = int(hrtf_size / 2)
+            lr_hrtf = hr_hrtf[:, panel, mid_pos, mid_pos, None, None, None]
+        elif upscale_factor == hrtf_size*2.5:
+            mid_pos = int(hrtf_size / 2)
+            lr_hrtf = torch.tensor(np.concatenate((hr_hrtf[:, panel[0], mid_pos, mid_pos, None, None, None], hr_hrtf[:, panel[1], mid_pos, mid_pos, None, None, None]), axis=1))
+        elif upscale_factor == hrtf_size:
+            mid_pos = int(hrtf_size / 2)
+            lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
+        else:
+            lr_hrtf = torch.nn.functional.interpolate(hr_hrtf, scale_factor=1 / upscale_factor)
 
     return lr_hrtf
 
@@ -91,8 +95,8 @@ class TrainValidHRTFDataset(Dataset):
             # Then, transform hr_hrtf to normalize and swap panel/channel dims to get channels first
             hr_hrtf = torch.permute(self.transform(hr_hrtf), (1, 0, 2, 3))
         else:
-            # If no transform, go directly to (channels, panels, X, Y)
-            hr_hrtf = torch.permute(hrtf, (3, 0, 1, 2))
+            # If no transform, go directly to (channels, ..., X, Y)
+            hr_hrtf = torch.moveaxis(hrtf, -1, 0)
 
         # downsample hrtf
         lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)

@@ -90,6 +90,11 @@ def spectral_distortion_metric(generated, target, reduction='mean'):
     H is height, and W is width.
 
     Computes the mean over every HRTF in the batch"""
+
+    if len(generated.size()) == 4:  # single panel
+        generated = generated[:, :, None, :]
+        target = target[:, :, None, :]
+
     batch_size = generated.size(0)
     num_panels = generated.size(2)
     height = generated.size(3)
@@ -143,6 +148,11 @@ def ILD_metric_inner(config, input_spectrum, target_spectrum):
 
 
 def ILD_metric(config, generated, target, reduction="mean"):
+
+    if len(generated.size()) == 4:  # single panel
+        generated = generated[:, :, None, :]
+        target = target[:, :, None, :]
+
     batch_size = generated.size(0)
     num_panels = generated.size(2)
     height = generated.size(3)

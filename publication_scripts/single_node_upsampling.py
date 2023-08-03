@@ -399,8 +399,8 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config_files.append(config)
     elif experiment_id == 4:
-        upscale_factors = [2, 4, 8, 16, 40, 80]
-        # upscale_factors = [2, 4, 8, 16]
+        # upscale_factors = [2, 4, 8, 16, 40, 80]
+        upscale_factors = [2, 4, 8, 16]
         panels = [0, 1, 2, 3, 4]
         double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
         datasets = ['ARI', 'SONICOM']

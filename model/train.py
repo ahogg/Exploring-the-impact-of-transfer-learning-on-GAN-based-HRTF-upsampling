@@ -5,6 +5,7 @@ import scipy
 from model.util import *
 from model.model import *
 from model.single_node.model_single_node import *
+from model.single_panel.model_single_panel import *
 
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
@@ -47,7 +48,9 @@ def train(config, train_prefetcher):
     pos_freqs = all_freqs[all_freqs >= 0]
 
     # Define Generator network and transfer to CUDA
-    if config.upscale_factor == config.hrtf_size*5 or config.upscale_factor == config.hrtf_size*2.5:
+    if config.single_panel:
+        netG = GeneratorSinglePanel(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
+    elif config.upscale_factor == config.hrtf_size*5 or config.upscale_factor == config.hrtf_size*2.5:
         netG = GeneratorSingleNode(hrtf_size=config.hrtf_size, upscale_factor=config.upscale_factor, nbins=nbins).to(device)
     else:
         netG = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
@@ -209,12 +212,12 @@ def train(config, train_prefetcher):
         # create magnitude spectrum plot every 25 epochs and last epoch
         if epoch % 25 == 0 or epoch == (num_epochs - 1):
             i_plot = 0
-            magnitudes_real = torch.permute(hr.detach().cpu()[i_plot], (1, 2, 3, 0))
-            magnitudes_interpolated = torch.permute(sr.detach().cpu()[i_plot], (1, 2, 3, 0))
+            magnitudes_real = torch.moveaxis(hr.detach().cpu()[i_plot], -1, 0)
+            magnitudes_interpolated = torch.moveaxis(sr.detach().cpu()[i_plot], -1, 0)
 
-            plot_label = filename[i_plot].split('/')[-1] + '_epoch' + str(epoch)
-            plot_magnitude_spectrums(pos_freqs, magnitudes_real[:, :, :, :config.nbins_hrtf], magnitudes_interpolated[:, :, :, :config.nbins_hrtf],
-                                     "left", "training", plot_label, path, log_scale_magnitudes=True)
+            # plot_label = filename[i_plot].split('/')[-1] + '_epoch' + str(epoch)
+            # plot_magnitude_spectrums(pos_freqs, magnitudes_real[:, :, :, :config.nbins_hrtf], magnitudes_interpolated[:, :, :, :config.nbins_hrtf],
+            #                          "left", "training", plot_label, path, log_scale_magnitudes=True)
 
     plot_losses(train_losses_D, train_losses_G,
                 label_1='Discriminator loss', label_2='Generator loss',

@@ -60,7 +60,10 @@ def main(config, mode):
         train_sample = np.random.choice(list(set(ds.subject_ids)), train_size, replace=False)
 
         # collect all train_hrtfs to get mean and sd
-        train_hrtfs = torch.empty(size=(2 * train_size, 5, config.hrtf_size, config.hrtf_size, config.nbins_hrtf))
+        if config.single_panel:
+            train_hrtfs = torch.empty(size=(2 * train_size, 4*config.hrtf_size, int(config.hrtf_size*1.5), config.nbins_hrtf))
+        else:
+            train_hrtfs = torch.empty(size=(2 * train_size, 5, config.hrtf_size, config.hrtf_size, config.nbins_hrtf))
         j = 0
         for i in range(len(ds)):
             if i % 10 == 0:
