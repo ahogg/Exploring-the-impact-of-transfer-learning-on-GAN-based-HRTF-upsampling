@@ -22,19 +22,33 @@ def replace_nodes(config, sr_dir, file_name):
     with open(sr_dir + file_name, "rb") as f:
         sr_hrtf = pickle.load(f)
 
-    lr_hrtf = torch.permute(
-        downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor, config.panel),
-        (1, 2, 3, 0))
+    # lr_hrtf = torch.permute(
+    #     downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor, config.panel),
+    #     (1, 2, 3, 0))
+
+    lr_hrtf = torch.moveaxis(
+        downsample_hrtf(torch.moveaxis(hr_hrtf, -1, 0), config.hrtf_size, config.upscale_factor, config.panel),
+        0, -1)
 
     lr = lr_hrtf.detach().cpu()
-    for p in range(5):
-        for w in range(config.hrtf_size):
-            for h in range(config.hrtf_size):
-                if hr_hrtf[p, w, h] in lr:
-                    sr_hrtf[p, w, h] = hr_hrtf[p, w, h]
 
-    generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
-    target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
+    if len(lr.size()) == 3:  # single panel
+            for w in range(config.hrtf_size):
+                for h in range(config.hrtf_size):
+                    if hr_hrtf[w, h] in lr:
+                        sr_hrtf[w, h] = hr_hrtf[w, h]
+
+            generated = torch.permute(sr_hrtf[:, None], (1, 3, 0, 2))
+            target = torch.permute(hr_hrtf[:, None], (1, 3, 0, 2))
+    else:
+        for p in range(5):
+            for w in range(config.hrtf_size):
+                for h in range(config.hrtf_size):
+                    if hr_hrtf[p, w, h] in lr:
+                        sr_hrtf[p, w, h] = hr_hrtf[p, w, h]
+
+        generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
+        target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
 
     return target, generated
 

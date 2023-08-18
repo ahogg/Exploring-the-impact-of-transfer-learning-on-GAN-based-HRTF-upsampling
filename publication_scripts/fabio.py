@@ -6,7 +6,12 @@ import scipy
 from os import listdir
 from os.path import isfile, join
 
-from model.util import spectral_distortion_inner
+
+def spectral_distortion_inner(input_spectrum, target_spectrum):
+    numerator = target_spectrum
+    denominator = input_spectrum
+    return torch.mean((20 * torch.log10(numerator / denominator)) ** 2)
+
 
 path = '/home/ahogg/PycharmProjects/HRTF-GAN/fabio_results/'
 onlyfiles = [f for f in listdir(path) if isfile(join(path, f)) and 'orginal' in f]

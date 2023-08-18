@@ -5,7 +5,9 @@ import scipy
 import torch
 
 from model.model import Generator
-from model.single_node.model_single_node import GeneratorSingleNode
+from model.single_node.model_single_node import *
+from model.single_panel.model_single_panel import *
+
 import shutil
 from pathlib import Path
 
@@ -22,7 +24,12 @@ def test(config, val_prefetcher):
 
     device = torch.device(config.device_name if (
             torch.cuda.is_available() and ngpu > 0) else "cpu")
-    if config.upscale_factor == config.hrtf_size * 5 or config.upscale_factor == config.hrtf_size * 2.5:
+
+    # Define Generator network and transfer to CUDA
+    if config.single_panel:
+        model = GeneratorSinglePanel(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
+        print('Using Single Panel SRGAN model')
+    elif config.upscale_factor == config.hrtf_size*5 or config.upscale_factor == config.hrtf_size*2.5:
         model = GeneratorSingleNode(hrtf_size=config.hrtf_size, upscale_factor=config.upscale_factor, nbins=nbins).to(device)
         print('Using Single Node SRGAN model')
     else:
@@ -74,7 +81,8 @@ def test(config, val_prefetcher):
 
         file_name = '/' + os.path.basename(batch_data["filename"][0])
         with open(valid_dir + file_name, "wb") as file:
-            pickle.dump(torch.permute(sr[0], (1, 2, 3, 0)).detach().cpu(), file)
+            # pickle.dump(torch.permute(sr[0], (1, 2, 3, 0)).detach().cpu(), file)
+            pickle.dump(torch.moveaxis(sr[0], 0, -1).detach().cpu(), file)
 
         # Preload the next batch of data
         batch_data = val_prefetcher.next()
