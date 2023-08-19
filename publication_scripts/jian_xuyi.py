@@ -81,8 +81,8 @@ class SphericalHarmonicsTransform:
 
     def __init__(self, max_degree, row_angles, column_angles, radii, selection_mask, coordinate_system='spherical', PLOT_FLAG=False):
 
-        # row_angles = np.linspace(-180, 180, 3, endpoint=False)
-        # column_angles = np.linspace(-90, 90, 3, endpoint=False)
+        # row_angles = np.linspace(-180, 180, 100, endpoint=False)
+        # column_angles = np.linspace(-90, 90, 100, endpoint=False)
         # selection_mask = np.zeros((len(row_angles), len(column_angles), 1), dtype=bool)
 
         self.grid = np.stack(np.meshgrid(row_angles, column_angles, radii, indexing='ij'), axis=-1)
@@ -106,9 +106,14 @@ class SphericalHarmonicsTransform:
         # self._harmonics = np.column_stack(
         #     [np.real(sph_harm(order, degree, self.selected_angles[:, 1], self.selected_angles[:, 0])) for degree in
         #      np.arange(max_degree + 1) for order in np.arange(-degree, degree + 1)])
-        self._harmonics = np.column_stack(
-            [np.sqrt(2) * (-1.0)**order * np.real(sph_harm(order, degree, self.selected_angles[:, 1], self.selected_angles[:, 0])) if order >= 0 else np.sqrt(2) * (-1.0)**order * np.imag(sph_harm(order, degree, self.selected_angles[:, 1], self.selected_angles[:, 0])) for degree in
-             np.arange(max_degree + 1) for order in np.arange(-degree, degree)])
+        self._harmonics = np.transpose(
+            [np.real(sph_harm(order, degree, self.selected_angles[:, 1], self.selected_angles[:, 0]))
+             if order == 0 else
+             np.sqrt(2) * (-1.0)**order * np.real(sph_harm(order, degree, self.selected_angles[:, 1], self.selected_angles[:, 0]))
+             if order > 0 else
+             np.sqrt(2) * (-1.0)**order * np.imag(sph_harm(order, degree, self.selected_angles[:, 1], self.selected_angles[:, 0]))
+             for degree in
+             np.arange(max_degree + 1) for order in np.arange(-degree, degree + 1)])
 
         # Plot single harmonic
         if PLOT_FLAG:
@@ -119,9 +124,11 @@ class SphericalHarmonicsTransform:
 
     def __call__(self, hrirs):
         # max_degree = int(np.sqrt(np.shape(self._harmonics)[1]) - 1)
-        coef = np.linalg.lstsq(self._harmonics, hrirs[self._valid_mask].data, rcond=None)[0]
-        # self._harmonics_inv = np.linalg.pinv(self._harmonics)
-        # coef = self._harmonics_inv @ hrirs[self._valid_mask].data
+        # coef = np.linalg.lstsq(self._harmonics, hrirs[self._valid_mask].data, rcond=None)[0]
+        self._harmonics_inv = scipy.linalg.pinv(self._harmonics)
+        coef = self._harmonics_inv @ hrirs[self._valid_mask].data
+        # coef = self._harmonics_inv @ np.swapaxes(hrirs.data, 1, 0)[np.swapaxes(self._valid_mask, 1, 0)].data
+        #
 
         # [plot_Y(order, degree, self._harmonics, self.grid, ~self._valid_mask) for order in
         #  np.arange(max_degree + 1) for
@@ -161,7 +168,7 @@ print(config.dataset)
 imp = importlib.import_module('hrtfdata.full')
 load_function = getattr(imp, config.dataset)
 
-domain = 'magnitude_db'
+domain = 'time'
 
 left_hrtf = load_function(data_dir, features_spec={'hrirs': {'samplerate': config.hrir_samplerate,
                                                             'side': 'left', 'domain': domain}},  subject_ids='first')
@@ -188,28 +195,29 @@ valid_dir = config.valid_path
 # print(min_list)
 # print("avg min: ", np.average(min_list))
 
-order = 30
-for order in [5]:
+for order in [8]:
 
     sample_id = 0
-    left = left_hrtf[sample_id]['features'][:, :, :, :]
-    right = right_hrtf[sample_id]['features'][:, :, :, :]
-
     if domain == 'time':
-        left = np.array([[[remove_itd(x[0]*10, int(len(x[0]) * 0.04), len(x[0]))] for x in y] for y in left])
-        right = np.array([[[remove_itd(x[0]*10, int(len(x[0]) * 0.04), len(x[0]))] for x in y] for y in right])
+        left = left_hrtf[sample_id]['features'][:, :, :, :]
+        right = right_hrtf[sample_id]['features'][:, :, :, :]
+        left = np.array([[[remove_itd(x[0], int(len(x[0]) * 0.04), len(x[0]))] for x in y] for y in left])
+        right = np.array([[[remove_itd(x[0], int(len(x[0]) * 0.04), len(x[0]))] for x in y] for y in right])
+    else:
+        left = left_hrtf[sample_id]['features'][:, :, :, 1:]
+        right = right_hrtf[sample_id]['features'][:, :, :, 1:]
 
     merge = np.ma.concatenate([left, right], axis=3)
     # merge = right
 
-    # super_threshold_indices = merge < 0.01
-    # merge[super_threshold_indices] = 0.01
+    # super_threshold_indices = merge < 0.001
+    # merge[super_threshold_indices] = 0.001
     # merge = merge[:, :, :, 0, None]
     mask = np.ones((len(left_hrtf.row_angles), len(left_hrtf.column_angles), 1), dtype=bool)
     original_mask = np.all(np.ma.getmaskarray(left), axis=3)
 
-    row_ratio = 1
-    col_ratio = 1
+    row_ratio = 2
+    col_ratio = 2
     for i in range(len(left_hrtf.row_angles) // row_ratio):
         for j in range(len(left_hrtf.column_angles) // col_ratio):
             # print(f'index: ({row_ratio * i}, {col_ratio * j})')
@@ -236,7 +244,6 @@ for order in [5]:
     print(f'Number of points in output: {len(merge[~original_mask].data)}')
 
     # SHT
-    order = 50
     # order = int(np.ceil(np.sqrt(len(merge[~mask].data))))
     print(f'Order: {order}')
     SHT = SphericalHarmonicsTransform(order, left_hrtf.row_angles, left_hrtf.column_angles, left_hrtf.radii, mask)
@@ -245,13 +252,15 @@ for order in [5]:
 
     # inverse SHT
     SHT_orig = SphericalHarmonicsTransform(order, left_hrtf.row_angles, left_hrtf.column_angles, left_hrtf.radii, original_mask, PLOT_FLAG=False)
-    harmonics = SHT_orig.get_harmonics()
-    print("harmonics shape: ", harmonics.shape, harmonics.dtype)
+    harmonics_orig = SHT_orig.get_harmonics()
+    harmonics = SHT.get_harmonics()
+    print("harmonics shape: ", harmonics_orig.shape, harmonics_orig.dtype)
+    inverse_orig = harmonics_orig @ sh_coef
     inverse = harmonics @ sh_coef
     print("inverse: ", inverse.shape)
 
     ori_hrtf = merge[~original_mask].data
-    recon_hrtf = inverse
+    recon_hrtf = inverse_orig
 
     def plot_tf(ir_id):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
@@ -263,7 +272,7 @@ for order in [5]:
 
         plt.show()
 
-    total_positions = len(inverse)
+    total_positions = len(ori_hrtf)
     total_all_positions = 0
 
     total_sd_metric = 0
@@ -283,7 +292,6 @@ for order in [5]:
             average_over_frequencies = spectral_distortion_inner(abs(gen), abs(ori))
             total_all_positions += np.sqrt(average_over_frequencies)
         elif domain == 'time':
-
             nbins = 128
             ori_tf_left = abs(scipy.fft.rfft(ori[:nbins], nbins*2)[1:])
             ori_tf_right = abs(scipy.fft.rfft(ori[nbins:], nbins*2)[1:])
@@ -296,7 +304,7 @@ for order in [5]:
             average_over_frequencies = spectral_distortion_inner(gen_tf, ori_tf)
             total_all_positions += np.sqrt(average_over_frequencies)
 
-        print('Log SD (for %s position): %s' % (ir_id, np.sqrt(average_over_frequencies)))
+        # print('Log SD (for %s position): %s' % (ir_id, np.sqrt(average_over_frequencies)))
         if max_value is None or np.sqrt(average_over_frequencies) > max_value:
             max_value = np.sqrt(average_over_frequencies)
             max_id = ir_id
