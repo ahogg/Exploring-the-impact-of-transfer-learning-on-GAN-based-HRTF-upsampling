@@ -195,7 +195,7 @@ valid_dir = config.valid_path
 # print(min_list)
 # print("avg min: ", np.average(min_list))
 
-for order in [8]:
+for order in [80]:
 
     sample_id = 0
     if domain == 'time':
@@ -216,8 +216,8 @@ for order in [8]:
     mask = np.ones((len(left_hrtf.row_angles), len(left_hrtf.column_angles), 1), dtype=bool)
     original_mask = np.all(np.ma.getmaskarray(left), axis=3)
 
-    row_ratio = 2
-    col_ratio = 2
+    row_ratio = 3
+    col_ratio = 3
     for i in range(len(left_hrtf.row_angles) // row_ratio):
         for j in range(len(left_hrtf.column_angles) // col_ratio):
             # print(f'index: ({row_ratio * i}, {col_ratio * j})')
@@ -244,7 +244,7 @@ for order in [8]:
     print(f'Number of points in output: {len(merge[~original_mask].data)}')
 
     # SHT
-    # order = int(np.ceil(np.sqrt(len(merge[~mask].data))))
+    order = int(np.ceil(np.sqrt(len(merge[~mask].data)))) - 1
     print(f'Order: {order}')
     SHT = SphericalHarmonicsTransform(order, left_hrtf.row_angles, left_hrtf.column_angles, left_hrtf.radii, mask)
     sh_coef = SHT(merge)
