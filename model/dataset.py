@@ -10,7 +10,12 @@ def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor, panel=0):
     # downsample hrtf
 
     if len(hr_hrtf.size()) == 3:  # Single panel
-        lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / upscale_factor)[0]
+        if upscale_factor == 80:
+            lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / 16)[0][:, panel, :, None]
+        elif upscale_factor == 40:
+            lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / 16)[0][:, panel, :]
+        else:
+            lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / upscale_factor)[0]
     else:
         if upscale_factor == hrtf_size*5:
             mid_pos = int(hrtf_size / 2)

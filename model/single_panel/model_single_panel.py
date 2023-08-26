@@ -104,14 +104,14 @@ class ResidualConvBlockSinglePanel(nn.Module):
 
 
 class UpsampleBlockSinglePanel(nn.Module):
-    def __init__(self, channels: int) -> None:
+    def __init__(self, channels: int, upscale_factor: int) -> None:
         super(UpsampleBlockSinglePanel, self).__init__()
         self.upsample_block_1 = nn.Sequential(
             # CubeSpherePadding2D(1),
             CubeSphereConv2DSinglePanel(channels, channels * 4, (3, 3), (1, 1))
         )
         self.upsample_block_2 = nn.Sequential(
-            nn.PixelShuffle(2),
+            nn.PixelShuffle(upscale_factor),
             nn.PReLU(),
         )
 
@@ -155,8 +155,18 @@ class GeneratorSinglePanel(nn.Module):
 
         # Upscale block
         upsampling = []
+
+        if self.num_upsampling_blocks == 4:
+            upsampling.append(torch.nn.Upsample(scale_factor=(2, 3)))
+            self.num_upsampling_blocks -= 1
+        elif self.num_upsampling_blocks == 5:
+            upsampling.append(torch.nn.Upsample(scale_factor=(4, 3)))
+            self.num_upsampling_blocks -= 2
+        elif self.num_upsampling_blocks == 6:
+            print('NOT DONE')
+
         for _ in range(self.num_upsampling_blocks):
-            upsampling.append(UpsampleBlockSinglePanel(self.ngf))
+            upsampling.append(UpsampleBlockSinglePanel(self.ngf, 2))
         self.upsampling = nn.Sequential(*upsampling)
 
         # Output layer.
@@ -171,6 +181,7 @@ class GeneratorSinglePanel(nn.Module):
         self._initialize_weights()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # print(np.shape(x))
         return self._forward_impl(x)
 
     # Support torch.script function

@@ -258,8 +258,8 @@ def run_preprocess(hpc, type, dataset_id=None):
 def run_train(hpc, type, test_id=None):
     print(f'Running training')
     config_files = []
-    # upscale_factors = [2, 4, 8, 16, 40, 80]
-    upscale_factors = [2, 4, 8, 16]
+    upscale_factors = [2, 4, 8, 16, 40]
+    # upscale_factors = [2, 4, 8, 16]
     double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':

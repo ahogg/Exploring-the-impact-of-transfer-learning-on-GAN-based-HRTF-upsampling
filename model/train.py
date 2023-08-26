@@ -132,12 +132,14 @@ def train(config, train_prefetcher):
 
             # Calculate the classification score of the discriminator model for real samples
             label = torch.full((batch_size, ), 1., dtype=hr.dtype, device=device)
+            # print(f'hr: {np.shape(hr)}')
             output = netD(hr).view(-1)
             loss_D_hr = adversarial_criterion(output, label)
             loss_D_hr.backward()
 
             # train on SR hrtfs
             label.fill_(0.)
+            # print(f'sr: {np.shape(sr.detach().clone())}')
             output = netD(sr.detach().clone()).view(-1)
             loss_D_sr = adversarial_criterion(output, label)
             loss_D_sr.backward()
