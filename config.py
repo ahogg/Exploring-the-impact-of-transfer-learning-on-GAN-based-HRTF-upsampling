@@ -12,8 +12,8 @@ class Config:
 
         # overwrite settings with arguments provided
         self.tag = tag if tag is not None else 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
-        self.dataset = dataset if dataset is not None else 'SONICOM'
-        self.data_dir = data_dir if data_dir is not None else '/data/' + self.dataset
+        self.dataset = dataset if dataset is not None else 'ARI'
+        self.data_dir = data_dir if data_dir is not None else '/data/' + self.dataset + '/cube_sphere'
 
         if existing_model_tag is not None:
             self.start_with_existing_model = True
@@ -27,6 +27,7 @@ class Config:
         self.gen_sofa_flag = True
         self.nbins_hrtf = 128  # make this a power of 2
         self.hrtf_size = 16
+        self.panel = None
         self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
@@ -40,9 +41,10 @@ class Config:
             self.amt_dir = '/rds/general/user/aos13/home/HRTF-GANs-27Sep22-prep-for-publication/thirdParty'
         else:
             # local data dirs
-            self.data_dirs_path = '/home/aos13/HRTF-GANs-27Sep22-prep-for-publication'
+            self.data_dirs_path = '/home/ahogg/PycharmProjects/HRTF-GAN'
             self.raw_hrtf_dir = Path('/home/aos13/HRTF_datasets')
             self.amt_dir = '/home/aos13/AMT/amt_code'
+            self.supdeq_dir = '/home/ahogg/Documents/SUpDEq'
 
         self.runs_folder = '/runs-hpc'
         self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
@@ -66,6 +68,7 @@ class Config:
 
         self.mean_std_filename = self.data_dirs_path + self.data_dir + '/mean_std_' + self.dataset
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
+        self.sh_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/sh/valid'
         self.hrtf_selection_dir = self.data_dirs_path + self.baseline_dir + '/hrtf_selection/valid'
 
         # Training hyperparams

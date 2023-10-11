@@ -14,6 +14,7 @@ from preprocessing.utils import interpolate_fft, generate_euclidean_cube, conver
      merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories
 from model import util
 from baselines.barycentric_interpolation import run_barycentric_interpolation
+from baselines.sh_interpolation import run_sh_interpolation
 from baselines.hrtf_selection import run_hrtf_selection
 from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation
 
@@ -149,6 +150,23 @@ def main(config, mode):
         file_ext = f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle'
         run_localisation_evaluation(config, barycentric_output_path, file_ext)
 
+    elif mode == 'sh_baseline':
+        sh_data_folder = f'/sh_interpolated_data_{config.upscale_factor}'
+        sh_output_path = config.sh_hrtf_dir + sh_data_folder
+        cube, sphere = run_sh_interpolation(config, sh_output_path)
+
+        if config.gen_sofa_flag:
+            convert_to_sofa(sh_output_path, config, cube, sphere)
+            print('Created sh baseline sofa files')
+
+        config.path = config.sh_hrtf_dir
+
+        file_ext = f'lsd_errors_sh_interpolated_data_{config.upscale_factor}.pickle'
+        run_lsd_evaluation(config, sh_output_path, file_ext)
+
+        file_ext = f'loc_errors_sh_interpolated_data_{config.upscale_factor}.pickle'
+        run_localisation_evaluation(config, sh_output_path, file_ext)
+
     elif mode == 'hrtf_selection_baseline':
 
         run_hrtf_selection(config, config.hrtf_selection_dir)
@@ -159,7 +177,7 @@ def main(config, mode):
 
         if config.gen_sofa_flag:
             convert_to_sofa(config.hrtf_selection_dir, config, cube, sphere)
-            print('Created barycentric baseline sofa files')
+            print('Created hrtf selection baseline sofa files')
 
         config.path = config.hrtf_selection_dir
 
