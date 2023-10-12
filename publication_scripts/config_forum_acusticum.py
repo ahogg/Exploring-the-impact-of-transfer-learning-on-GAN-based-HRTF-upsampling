@@ -31,6 +31,7 @@ class Config:
         self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
+        self.single_panel = False
 
         # Data dirs
         if using_hpc:
