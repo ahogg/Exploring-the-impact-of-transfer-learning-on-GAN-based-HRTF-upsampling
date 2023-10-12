@@ -28,7 +28,7 @@ class Config:
         self.nbins_hrtf = 128  # make this a power of 2
         self.hrtf_size = 16
         self.panel = None
-        self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
+        self.upscale_factor = 4  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
 
@@ -39,6 +39,7 @@ class Config:
                                   'adversarial-network-using-a-gnomonic-equiangular-projection'
             self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
             self.amt_dir = '/rds/general/user/aos13/home/HRTF-GANs-27Sep22-prep-for-publication/thirdParty'
+            self.supdeq_dir = '/rds/general/user/aos13/home/SUpDEq'
         else:
             # local data dirs
             self.data_dirs_path = '/home/ahogg/PycharmProjects/HRTF-GAN'

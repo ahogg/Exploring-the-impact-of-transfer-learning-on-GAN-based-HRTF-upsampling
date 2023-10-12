@@ -14,7 +14,7 @@
 % function supdeq_interpHRTF, used throughout this demo script.
 %
 % Reference:
-% J. M. Arend, C. Pörschmann, S. Weinzierl, F. Brinkmann, 
+% J. M. Arend, C. Pï¿½rschmann, S. Weinzierl, F. Brinkmann, 
 % "Magnitude-Corrected and Time-Aligned Interpolation of 
 % Head-Related Transfer Functions," (Manuscript submitted for publication).
 %
@@ -22,7 +22,7 @@
 %               TU Berlin
 %               Audio Communication Group
 
-function interpHRTF_sh = supdeq_baseline(samplingGrid,samplingGridInterp,fs,HRTF_L,HRTF_R)
+function interpHRTF_mca = supdeq_baseline(samplingGrid,samplingGridInterp,fs,HRTF_L,HRTF_R)
 % (1) - Define sparse and dense grid
 
 
@@ -80,11 +80,11 @@ headRadius = 0.0875; %Also default value in function
 
 %Interpolation / upsampling with SH interpolation but without any
 %pre/post-processing ('none'), called SH here
-interpHRTF_sh = supdeq_interpHRTF(sparseHRTF,sgD,'None','SH',nan,headRadius);
+%interpHRTF_sh = supdeq_interpHRTF(sparseHRTF,sgD,'None','SH',nan,headRadius);
 
 %Interpolation / upsampling with SUpDEq time alignment and SH
 %interpolation, called 'conventional'
-% interpHRTF_con = supdeq_interpHRTF(sparseHRTF,sgD,'SUpDEq','SH',nan,headRadius);
+%interpHRTF_con = supdeq_interpHRTF(sparseHRTF,sgD,'SUpDEq','SH',nan,headRadius);
 
 %Interpolation / upsampling with MCA interpolation, i.e., in this example
 %SUpDEq time alignment and SH interpolation plus post-interpolation
@@ -96,7 +96,7 @@ interpHRTF_sh = supdeq_interpHRTF(sparseHRTF,sgD,'None','SH',nan,headRadius);
 % frequency fA
 % (b) Soft-limiting knee set to 0dB (no knee)
 % (c) Magnitude-correction filters are designed as minimum phase filters
-% interpHRTF_mca = supdeq_interpHRTF(sparseHRTF,sgD,'SUpDEq','SH',inf,headRadius);
+interpHRTF_mca = supdeq_interpHRTF(sparseHRTF,sgD,'SUpDEq','SH',inf,headRadius);
 
 %The resulting datasets can be saved as SOFA files using the function
 %supdeq_writeSOFAobj

@@ -40,12 +40,14 @@ class Config:
                                   'adversarial-network-using-a-gnomonic-equiangular-projection'
             self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
             self.amt_dir = '/rds/general/user/aos13/home/HRTF-GANs-27Sep22-prep-for-publication/thirdParty'
+            self.supdeq_dir = '/rds/general/user/aos13/home/SUpDEq'
         else:
             self.ngpu = 0
             # local data dirs
             self.data_dirs_path = '/home/ahogg/PycharmProjects/HRTF-GAN'
             self.raw_hrtf_dir = Path('/home/ahogg/Documents/HRTF Datasets')
             self.amt_dir = '/home/ahogg/PycharmProjects/HRTF-GAN/thirdParty'
+            self.supdeq_dir = '/home/ahogg/Documents/SUpDEq'
 
         self.runs_folder = '/runs-pub-fa'
         self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
@@ -72,6 +74,7 @@ class Config:
 
         self.mean_std_filename = self.data_dirs_path + self.data_dir + '/mean_std_' + self.dataset
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
+        self.sh_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/sh/valid'
         self.hrtf_selection_dir = self.data_dirs_path + self.baseline_dir + '/hrtf_selection/valid'
 
         # Training hyperparams

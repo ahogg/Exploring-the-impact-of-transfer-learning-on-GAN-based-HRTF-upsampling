@@ -441,7 +441,7 @@ def run_baseline(hpc, test_id=None):
     upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM']
     for dataset in datasets:
-        if args.mode == 'barycentric_baseline':
+        if args.mode == 'barycentric_baseline' or args.mode == 'sh_baseline':
             for upscale_factor in upscale_factors:
                 config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                 config.upscale_factor = upscale_factor
@@ -492,7 +492,7 @@ if __name__ == '__main__':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
-    elif args.mode == 'barycentric_baseline' or args.mode == 'hrtf_selection_baseline':
+    elif args.mode == 'barycentric_baseline' or args.mode == 'hrtf_selection_baseline' or args.mode == 'sh_baseline':
         run_baseline(hpc, args.test)
     else:
         print('Please specify a valid mode')
