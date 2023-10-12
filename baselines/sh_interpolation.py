@@ -59,7 +59,7 @@ def run_sh_interpolation(config, sh_output_path, subject_file=None):
                 sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
                 sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])
 
-        interpHRTF_sh = eng.supdeq_baseline(matlab.double(sphere_coords_lr), matlab.double(sphere_coords_hr), matlab.double(config.hrir_samplerate), matlab.double(HRTF_L), matlab.double(HRTF_R))
+        interpHRTF_sh = eng.supdeq_baseline(matlab.double(sphere_coords_lr), matlab.double(sphere_coords_hr), config.hrir_samplerate, matlab.double(HRTF_L), matlab.double(HRTF_R))
 
         index = 0
         sr_hrtf = torch.tensor([[[[np.nan]*np.shape(hr_hrtf)[3]]*np.shape(hr_hrtf)[2]]*np.shape(hr_hrtf)[1]]*np.shape(hr_hrtf)[0])
