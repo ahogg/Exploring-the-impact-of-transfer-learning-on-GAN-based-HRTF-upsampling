@@ -13,7 +13,7 @@ class Config:
         # overwrite settings with arguments provided
         self.tag = tag if tag is not None else 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
         self.dataset = dataset if dataset is not None else 'ARI'
-        self.data_dir = data_dir if data_dir is not None else '/data/' + self.dataset + '/cube_sphere'
+        self.data_dir = data_dir if data_dir is not None else '/data/' + self.dataset
 
         if existing_model_tag is not None:
             self.start_with_existing_model = True

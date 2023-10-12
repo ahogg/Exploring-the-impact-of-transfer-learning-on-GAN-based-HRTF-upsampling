@@ -16,8 +16,6 @@ PI_4 = np.pi / 4
 
 def run_sh_interpolation(config, sh_output_path, subject_file=None):
 
-    print(config.valid_hrtf_merge_dir)
-
     if subject_file is None:
         valid_data_paths = glob.glob('%s/%s_*' % (config.valid_hrtf_merge_dir, config.dataset))
         valid_data_file_names = ['/' + os.path.basename(x) for x in valid_data_paths]
