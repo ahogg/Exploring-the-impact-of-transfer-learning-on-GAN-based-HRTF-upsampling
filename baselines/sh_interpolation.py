@@ -54,8 +54,8 @@ def run_sh_interpolation(config, sh_output_path, subject_file=None):
             k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
             sphere_coords_hr.append(convert_cube_to_sphere(panel, x, y))
             if hr_hrtf[i, j, k] in lr_hrtf:
-                HRTF_L.append(np.array(hr_hrtf[i, j, k][:int(len(hr_hrtf[i, j, k])/2)]))
-                HRTF_R.append(np.array(hr_hrtf[i, j, k][int(len(hr_hrtf[i, j, k])/2):]))
+                HRTF_L.append(np.array(hr_hrtf[i, j, k][:int(len(hr_hrtf[i, j, k])/2)]).tolist())
+                HRTF_R.append(np.array(hr_hrtf[i, j, k][int(len(hr_hrtf[i, j, k])/2):]).tolist())
                 sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
                 sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])
 
