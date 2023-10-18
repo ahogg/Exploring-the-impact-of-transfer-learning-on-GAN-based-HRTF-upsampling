@@ -9,10 +9,11 @@ from config import Config
 from os import listdir
 from os.path import isfile, join
 import sofar as sf
-from scipy.signal import hilbert
 
-import shutil
+from hrtfdata.full import CIPIC, ARI, Listen, BiLi, ITA, HUTUBS, SADIE2, ThreeDThreeA, CHEDAR, Widespread, SONICOM
 from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy.ma as ma
 
 PI_4 = np.pi / 4
 
@@ -96,7 +97,7 @@ def save_sofa(clean_hrtf, config, cube_coords, sphere_coords, sofa_path_output, 
 
     else:
         left_full_hrtf = clean_hrtf[:, :, :, :config.nbins_hrtf]
-        right_full_hrtf = clean_hrtf[:, :, :, config.nbins_hrtf:]
+        right_full_hrftf = clean_hrtf[:, :, :, config.nbins_hrtf:]
 
         count = 0
         for panel, x, y in cube_coords:
@@ -127,11 +128,38 @@ def spectral_distortion_inner(input_spectrum, target_spectrum):
     return torch.mean((20 * torch.log10(numerator / denominator)) ** 2)
 
 
-# path = '/home/ahogg/PycharmProjects/HRTF-GAN/fabio_results/'
+results_path = '/home/ahogg/PycharmProjects/HRTF-GAN/fabio_results/'
 path = '/home/ahogg/Documents/FabioHassan/output/80to1280/'
 # onlyfiles = [f for f in listdir(path) if isfile(join(path, f)) and 'orginal' in f]
 onlyfiles = [f for f in listdir(path) if isfile(join(path, f)) and 'original__02_orginal' in f]
 total_sd_metric = 0
+
+
+base_dir = Path('/home/ahogg/Documents/HRTF Datasets/')
+domain = 'time'
+side = 'both'
+ds = SONICOM(base_dir / 'SONICOM',  features_spec={'hrirs': {'side': side, 'domain': domain}}, target_spec={'side': {}}, group_spec={'subject': {}})
+
+for subject_idx in range(0, len(ds), 2):
+    subject_left = ds[subject_idx]
+    subject_right = ds[subject_idx+1]
+    subject_id = ds.subject_ids[subject_idx]
+
+    hrirs_left = ma.getdata(subject_left['features'])
+    hrirs_right = ma.getdata(subject_right['features'])
+
+    target_hrirs = []
+    for row_idx, row_left in enumerate(hrirs_left):
+        row_right = hrirs_right[row_idx]
+        row_pos = ds.row_angles[row_idx]
+        for column_idx, column_left in enumerate(row_left):
+            column_right = row_right[column_idx]
+            column_pos = ds.column_angles[column_idx]
+            target_hrir = np.array(list(column_left[0])+list(column_right[0])+[row_pos, column_pos])
+            target_hrirs.append(target_hrir)
+
+    with open(f'/home/ahogg/Documents/FabioHassan/AidanDataset/{subject_id}.pickle', 'wb') as handle:
+        pickle.dump(target_hrirs, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 for ori_file in onlyfiles:
     # gen_file = ori_file.replace('orginal_one_80_2', 'generated_one_1280_2')
@@ -152,8 +180,17 @@ for ori_file in onlyfiles:
     with open(projection_filename, "rb") as file:
         cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
 
-    sofa_output_gen = 'test_gen.sofa'
-    sofa_output_ori = 'test_ori.sofa'
+    sofa_output_gen = results_path + 'test_gen.sofa'
+    sofa_output_ori = results_path + 'test_ori.sofa'
+
+    # DEBUGGING - plot impulse response
+    position_index = 10
+    plt.figure()
+    plt.plot(ori_hrir[position_index])
+    plt.plot(gen_hrir[position_index])
+    plt.show()
+    ###################################
+
     save_sofa(gen_hrir, config, None, sphere, sofa_output_gen, phase=None)
     save_sofa(ori_hrir, config, None, sphere, sofa_output_ori, phase=None)
 

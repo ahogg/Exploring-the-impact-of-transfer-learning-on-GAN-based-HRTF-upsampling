@@ -68,7 +68,7 @@ def set_box_color(bp, color):
     plt.setp(bp['medians'], color=color, linewidth=0.5)
 
 
-def plot_boxplot(config, name, ylabel, full_results, legend, colours):
+def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xlabel=None, hrtf_selection_results=None):
     plt.rc('font', family='serif', serif='Times New Roman')
     plt.rc('text', usetex=True)
     plt.rc('xtick', labelsize=8)
@@ -77,36 +77,80 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
 
     fig, ax = plt.subplots()
 
-    factors = [2, 4, 8, 16]
-    ticks = [
-        r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (int(
-            (16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
-
     for idx, full_result in enumerate(full_results):
-        data = np.vstack((full_result[3], full_result[2], full_result[1], full_result[0]))
+        # Append nans to results to make them of equal length
+        maxlen = np.max([len(i) for i in full_result])
+        for result in full_result:
+            if (maxlen - len(result)) > 0:
+                result[:] = [np.NaN] * (maxlen - len(result)) + result
 
-        blp = plt.boxplot(data.T, positions=np.array(range(len(data))) * 1.0 - np.linspace(0.15*(len(full_results)/2), -0.15*(len(full_results)/2), len(full_results))[idx],
-                                                flierprops=dict(marker='x', markeredgecolor=colours[idx], markersize=4), widths=0.12)
+        data = np.vstack(full_result)
 
-        for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-            plt.setp(blp[element], color=colours[idx], linewidth=0.7)
+        for i, d in enumerate(data):
+            filtered_data = d[~np.isnan(d)]
+            if len(filtered_data) > 5:
+                blp = plt.boxplot(filtered_data, positions=[(i * 1.0) - np.linspace(0.15 * (len(full_results) / 2), -0.15 * (len(full_results) / 2), len(full_results))[idx]],
+                                  flierprops=dict(marker='x', markeredgecolor=colours[idx], markersize=4), widths=0.12)
+
+                for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+                    plt.setp(blp[element], color=colours[idx], linewidth=0.7)
 
         plt.plot([], c=colours[idx], label=legend[idx])
 
+    if hrtf_selection_results is not None:
+        ticks += ['Selection']
+        c = ['#00FFFF', '#FFC300']
+        l = ['Selection-1', 'Selection-2']
+        if legend[-1] == 'Target':
+            hrtf_selection_results = np.concatenate((hrtf_selection_results, np.array([filtered_data])))
+
+        hrtf_selection_results_len = len(hrtf_selection_results)-1
+        for idx, hrtf_selection_result in enumerate(hrtf_selection_results):
+            if idx == hrtf_selection_results_len and legend[-1] == 'Target':
+                i = len(full_results) - 1
+                blp = plt.boxplot(hrtf_selection_result,
+                                  positions=[(len(data) * 1.0) - np.linspace(0.15 * (len(full_results) / 2),
+                                                                             -0.15 * (len(full_results) / 2),
+                                                                             len(full_results))[idx + 1]-0.1],
+                                  flierprops=dict(marker='x', markeredgecolor=colours[i], markersize=4), widths=0.12)
+                for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+                    plt.setp(blp[element], color=colours[i], linewidth=0.7)
+            else:
+                blp = plt.boxplot(hrtf_selection_result, positions=[(len(data) * 1.0) - np.linspace(0.15 * (len(full_results) / 2),
+                                                                                            -0.15 * (len(full_results) / 2),
+                                                                                            len(full_results))[idx+1]-0.1],
+                                  flierprops=dict(marker='x', markeredgecolor=c[idx], markersize=4), widths=0.12)
+                for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+                    plt.setp(blp[element], color=c[idx], linewidth=0.7)
+
+                plt.plot([], c=c[idx], label=l[idx])
+
     if len(full_results) > 2:
-        [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
+        if hrtf_selection_results is not None:
+            plt.axvline(range(0, (len(ticks) - 1), 1)[-1] + 0.5, color='#a6a6a6', linewidth=1)
+            [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 2), 1)]
+        else:
+            [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
     else:
-        [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
+        if hrtf_selection_results is not None:
+            plt.axvline(range(0, (len(ticks) - 1) * 2, 2)[-1] + 1, color='#a6a6a6', linewidth=1)
+            [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 2) * 2, 2)]
+        else:
+            [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
 
     leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right",  # mode="expand",
-                        borderaxespad=0, ncol=2, handlelength=1.06)
+                        borderaxespad=0, ncol=3, handlelength=1.06)
 
     leg.get_frame().set_linewidth(0.5)
     leg.get_frame().set_edgecolor('k')
 
     ax.yaxis.grid(zorder=0, linewidth=0.4)
-    plt.xlabel(
-        'Upsample Factor\n' + r'(No. of original nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
+
+    if xlabel == None:
+        plt.xlabel(
+            'Upsample Factor\n' + r'(No. of original nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
+    else:
+        plt.xlabel(xlabel)
 
     plt.ylabel(ylabel)
     if len(full_results) > 2:
@@ -115,30 +159,137 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours):
     else:
         plt.xticks(range(0, len(ticks) * 2, 2), ticks)
 
-    # Append nans to results to make them of equal length
-    maxlen = np.max([[len(j) for j in i] for i in full_results])
-    for full_result in full_results:
-        for result in full_result:
-            if (maxlen - len(result)) > 0:
-                result[:] = [np.nan] * (maxlen - len(result)) + result
-
     ymin = np.nanmin(full_results) - 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
     ymax = np.nanmax(full_results) + 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
     ax.set_ylim((ymin, ymax))
+    if hrtf_selection_results is not None:
+        ymin_hrtf_selection = np.nanmin(hrtf_selection_results) - 0.1 * abs(np.nanmax(hrtf_selection_results) - np.nanmin(hrtf_selection_results))
+        ymax_hrtf_selection = np.nanmax(hrtf_selection_results) + 0.1 * abs(np.nanmax(hrtf_selection_results) - np.nanmin(hrtf_selection_results))
+        ax.set_ylim((np.min([ymin, ymin_hrtf_selection]), np.max([ymax, ymax_hrtf_selection])))
+
     ax.yaxis.set_label_coords(-0.12, 0.5)
 
-    w = 2.974
-    h = w / 1.5
+    # w = 2.974
+    # h = w / 1.5
+    w = 5
+    h = w / 2.5
     fig.set_size_inches(w, h)
     fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
     fig.savefig(config.data_dirs_path + '/plots/' + name, bbox_inches='tight')
 
 
-def get_results(tag, mode, file_ext=None):
+# def plot_boxplot(config, name, ylabel, full_results, legend, colours):
+#     plt.rc('font', family='serif', serif='Times New Roman')
+#     plt.rc('text', usetex=True)
+#     plt.rc('xtick', labelsize=8)
+#     plt.rc('ytick', labelsize=8)
+#     plt.rc('axes', labelsize=8)
+#
+#     fig, ax = plt.subplots()
+#
+#     factors = [2, 4, 8, 16]
+#     ticks = [
+#         r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (int(
+#             (16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
+#
+#     for idx, full_result in enumerate(full_results):
+#         data = np.vstack((full_result[3], full_result[2], full_result[1], full_result[0]))
+#
+#         blp = plt.boxplot(data.T, positions=np.array(range(len(data))) * 1.0 - np.linspace(0.15*(len(full_results)/2), -0.15*(len(full_results)/2), len(full_results))[idx],
+#                                                 flierprops=dict(marker='x', markeredgecolor=colours[idx], markersize=4), widths=0.12)
+#
+#         for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+#             plt.setp(blp[element], color=colours[idx], linewidth=0.7)
+#
+#         plt.plot([], c=colours[idx], label=legend[idx])
+#
+#     if len(full_results) > 2:
+#         [plt.axvline(x + 0.5, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1), 1)]
+#     else:
+#         [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
+#
+#     leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right",  # mode="expand",
+#                         borderaxespad=0, ncol=2, handlelength=1.06)
+#
+#     leg.get_frame().set_linewidth(0.5)
+#     leg.get_frame().set_edgecolor('k')
+#
+#     ax.yaxis.grid(zorder=0, linewidth=0.4)
+#     plt.xlabel(
+#         'Upsample Factor\n' + r'(No. of original nodes$\ {\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}}$ No. of upsampled nodes)')
+#
+#     plt.ylabel(ylabel)
+#     if len(full_results) > 2:
+#         plt.xticks(range(0, len(ticks), 1), ticks)
+#         plt.xlim(-0.5, len(ticks) - 0.5)
+#     else:
+#         plt.xticks(range(0, len(ticks) * 2, 2), ticks)
+#
+#     # Append nans to results to make them of equal length
+#     maxlen = np.max([[len(j) for j in i] for i in full_results])
+#     for full_result in full_results:
+#         for result in full_result:
+#             if (maxlen - len(result)) > 0:
+#                 result[:] = [np.nan] * (maxlen - len(result)) + result
+#
+#     ymin = np.nanmin(full_results) - 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
+#     ymax = np.nanmax(full_results) + 0.1 * abs(np.nanmax(full_results) - np.nanmin(full_results))
+#     ax.set_ylim((ymin, ymax))
+#     ax.yaxis.set_label_coords(-0.12, 0.5)
+#
+#     w = 2.974
+#     h = w / 1.5
+#     fig.set_size_inches(w, h)
+#     fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
+#     fig.savefig(config.data_dirs_path + '/plots/' + name, bbox_inches='tight')
+
+
+# def get_results(tag, mode, file_ext=None):
+#     full_results = []
+#     upscale_factors = [16, 8, 4, 2]
+#     for upscale_factor in upscale_factors:
+#         config = Config(tag + str(upscale_factor), using_hpc=hpc)
+#         if mode == 'lsd' or mode == 'baseline_lsd':
+#             if mode == 'lsd':
+#                 file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
+#                 file_path = f'{config.path}/{file_ext}'
+#             elif mode == 'baseline_lsd':
+#                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
+#             with open(file_path, 'rb') as file:
+#                 lsd_id_errors = pickle.load(file)
+#             lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
+#             print(f'Loading: {file_path}')
+#             print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(lsd_errors),  np.std(lsd_errors)))
+#             full_results.append(lsd_errors)
+#         elif mode == 'loc' or mode == 'target' or mode == 'baseline_loc':
+#             file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
+#             if mode == 'loc':
+#                 file_path = f'{config.path}/{file_ext}'
+#             elif mode == 'target':
+#                 file_path = tag + '/' + file_ext
+#             elif mode == 'baseline_loc':
+#                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
+#
+#             with open(file_path, 'rb') as file:
+#                 loc_id_errors = pickle.load(file)
+#             pol_acc1 = [loc_error[1] for loc_error in loc_id_errors]
+#             pol_rms1 = [loc_error[2] for loc_error in loc_id_errors]
+#             querr1 = [loc_error[3] for loc_error in loc_id_errors]
+#             print(f'Loading: {file_path}')
+#             print('Mean (STD) ACC Error: %0.3f (%0.3f)' % (np.mean(pol_acc1), np.std(pol_acc1)))
+#             print('Mean (STD) RMS Error: %0.3f (%0.3f)' % (np.mean(pol_rms1), np.std(pol_rms1)))
+#             print('Mean (STD) QUERR Error: %0.3f (%0.3f)' % (np.mean(querr1), np.std(querr1)))
+#             full_results.append([pol_acc1, pol_rms1, querr1])
+#
+#             if mode == 'target':
+#                 break
+#
+#     return full_results
+
+def get_results(tag, mode, upscale_factors=[2, 4, 8, 16], file_ext=None, runs_folder=None):
     full_results = []
-    upscale_factors = [16, 8, 4, 2]
     for upscale_factor in upscale_factors:
-        config = Config(tag + str(upscale_factor), using_hpc=hpc)
+        config = Config(tag + str(upscale_factor), using_hpc=hpc, runs_folder=runs_folder)
         if mode == 'lsd' or mode == 'baseline_lsd':
             if mode == 'lsd':
                 file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
@@ -147,7 +298,7 @@ def get_results(tag, mode, file_ext=None):
                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
             with open(file_path, 'rb') as file:
                 lsd_id_errors = pickle.load(file)
-            lsd_errors = [lsd_error[1] for lsd_error in lsd_id_errors]
+            lsd_errors = [lsd_error[1] if not np.isinf(lsd_error[1]) else np.nan for lsd_error in lsd_id_errors]
             print(f'Loading: {file_path}')
             print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(lsd_errors),  np.std(lsd_errors)))
             full_results.append(lsd_errors)
@@ -175,6 +326,7 @@ def get_results(tag, mode, file_ext=None):
                 break
 
     return full_results
+
 
 def run_projection(hpc, dataset_id=None):
     print(f'Running projection')
@@ -405,15 +557,21 @@ def plot_evaluation(hpc, experiment_id, mode):
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
             full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-', mode)
             full_results_dataset_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
-            full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/barycentric/valid', mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
+            full_results_dataset_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/barycentric/valid', mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
+            full_results_dataset_sh_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/sh/valid', mode=f'baseline_{mode}', file_ext=f'{mode}_errors_sh_interpolated_data_')
+
+            factors = [2, 4, 8, 16]
+            ticks = [
+                r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (
+                    int((16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
+
             if mode == 'lsd':
-                legend = ['SRGAN (No TL)', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline']
-                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
-                #######################################
+                legend = ['SRGAN (No TL)', 'TL (Synthetic)', f'TL ({other_dataset})', 'Baseline']
+                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], dataset.upper(), units='[dB]')
-                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours)
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours, ticks)
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
@@ -424,13 +582,89 @@ def plot_evaluation(hpc, experiment_id, mode):
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
                 #######################################
-                full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper(), 'target', f'{dataset.upper()}_loc_target_valid_errors.pickle')*4
+                full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper() + '/cube_sphere',
+                                                            'target',
+                                                            file_ext=f'{dataset.upper()}_loc_target_valid_errors.pickle') * 4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
-                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours)
+                                np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, ticks)
                     print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
                     create_table(legend, [np.array(full_results_dataset)[:, i, :],
                                 np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :], np.array(full_results_dataset_dataset_tl)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper(), units=units[i])
+    elif experiment_id == 4:
+        datasets = ['ARI', 'SONICOM']
+        for dataset in datasets:
+            full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
+            full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-',
+                                                                    mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
+            full_results_dataset_baseline = get_results(
+                f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/barycentric/valid',
+                mode=f'baseline_{mode}', upscale_factors=[2, 4, 8, 16], file_ext=f'{mode}_errors_barycentric_interpolated_data_')
+            full_results_dataset_sh_baseline = get_results(
+                f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/sh/valid',
+                mode=f'baseline_{mode}', file_ext=f'{mode}_errors_sh_interpolated_data_')
+            full_results_dataset_baseline_hrtf_selection = get_results(
+                f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/hrtf_selection/valid',
+                mode=f'baseline_{mode}', upscale_factors=['minimum_data', 'maximum_data'],
+                file_ext=f'{mode}_errors_hrtf_selection_')
+            factors = [2, 4, 8, 16]
+            xlabel = 'Upsample Factor\n' + r'No. of original nodes (Panel No.)'
+            if mode == 'lsd':
+                basline_ticks = [
+                    r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (
+                        int((16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
+                # remove baseline results at upscale-16
+                # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
+                legend = ['SRGAN', f'SHT Baseline', 'Barycentric Baseline']
+                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
+                create_table(legend, [full_results_dataset[::-1], full_results_dataset_sh_baseline[::-1], full_results_dataset_baseline[::-1]], dataset.upper(), units='[dB]')
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sh_baseline, full_results_dataset_baseline], legend, colours, basline_ticks, xlabel, hrtf_selection_results=np.array(full_results_dataset_baseline_hrtf_selection))
+            elif mode == 'loc':
+                types = ['ACC', 'RMS', 'QUERR']
+                labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
+                labels = [f'{dataset.upper()} \n' + label for label in labels]
+                units = [r'[$^\circ$]', r'[$^\circ$]', '[\%]']
+                legend = ['SRGAN', f'SHT Baseline', 'Barycentric Baseline', 'Target']
+                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9']
+                # remove baseline results at upscale-16
+                # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
+                #######################################
+                full_results_dataset_target_tl = get_results(config.data_dirs_path + '/data/' + dataset.upper() + '/cube_sphere',
+                                                            'target',
+                                                            file_ext=f'{dataset.upper()}_loc_target_valid_errors.pickle') * 4
+
+                for i in np.arange(np.shape(full_results_dataset)[1]):
+                    basline_ticks = [
+                        r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (
+                            int((16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
+                    plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i],
+                                 [np.array(full_results_dataset)[:, i, :], np.array(full_results_dataset_sh_baseline)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :],
+                                  np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, basline_ticks, xlabel, hrtf_selection_results=np.array(full_results_dataset_baseline_hrtf_selection)[:, i, :])
+                    print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
+                    legend = ['SRGAN', f'SHT Baseline', 'Barycentric Baseline', 'Selection-1', 'Selection-2', 'Target']
+                    create_table(legend, [np.array(full_results_dataset)[::-1, i, :],
+                                          np.array(full_results_dataset_sh_baseline)[::-1, i, :],
+                                          np.array(full_results_dataset_baseline)[::-1, i, :],
+                                          [np.array(full_results_dataset_baseline_hrtf_selection)[0, i, :]],
+                                          [np.array(full_results_dataset_baseline_hrtf_selection)[1, i, :]],
+                                          [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper(),
+                                 units=units[i])
+
+
+                # for i in np.arange(np.shape(full_results_dataset)[1]):
+                #     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i],
+                #                  [np.array(full_results_dataset)[:, i, :],
+                #                   # np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :],
+                #                   np.array(full_results_dataset_sh_baseline)[:, i, :],
+                #                   np.array(full_results_dataset_baseline)[:, i, :],
+                #                   np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, ticks)
+                #     print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
+                #     create_table(legend, [np.array(full_results_dataset)[:, i, :],
+                #                           # np.array(full_results_dataset_sonicom_synthetic_tl)[:, i, :],
+                #                           np.array(full_results_dataset_sh_baseline)[:, i, :],
+                #                           np.array(full_results_dataset_baseline)[:, i, :],
+                #                           [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper(),
+                #                  units=units[i])
     else:
         print('Experiment does not exist')
 

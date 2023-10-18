@@ -40,7 +40,10 @@ def run_sh_interpolation(config, sh_output_path, subject_file=None):
         with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
             hr_hrtf = pickle.load(f)
 
-        lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor), (1, 2, 3, 0))
+        if config.upscale_factor == config.hrtf_size/2:
+            lr_hrtf = hr_hrtf[:, 0:16:6, 0:16:6, :]
+        else:
+            lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor),(1, 2, 3, 0))
 
         HRTF_L = []
         HRTF_R = []
