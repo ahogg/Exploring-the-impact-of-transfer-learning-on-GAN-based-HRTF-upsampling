@@ -31,29 +31,6 @@ _scalar_or_tuple_2_t = Union[T, Tuple[T, T]]
 # For arguments which represent size parameters (eg, kernel size, padding)
 _size_2_t = _scalar_or_tuple_2_t[int]
 
-
-class CubeSpherePadding2DSinglePanel(Module):
-    """
-    Pads the input cubed sphere tensor according to adjacent panels. The requirements for this layer are as follows:
-    - The input data is 5-dimensional (batch, channels, 5, height, width)
-    - The last panel is the top panel
-
-    Adapted from CubeSpherePadding2D by @jweyn
-
-    Args:
-        padding (int): Width of padding on each cube sphere panel
-    """
-    __constants__ = ['padding']
-    padding: int
-
-    def __init__(self, padding: int) -> None:
-        super(CubeSpherePadding2DSinglePanel, self).__init__()
-        self.padding = padding
-
-    def forward(self, inputs: Tensor) -> Tensor:
-        return inputs
-
-
 class _ConvNdSinglePanel(Module):
     __constants__ = ['stride', 'padding', 'dilation',
                      'padding_mode', 'output_padding', 'in_channels',
@@ -299,31 +276,12 @@ class CubeSphereConv2DSinglePanel(_ConvNdSinglePanel):
 
     def _conv_forward(self, input: Tensor, equatorial_weight: Tensor, polar_weight: Tensor,
                       equatorial_bias: Optional[Tensor], polar_bias: Optional[Tensor]):
-        outputs = []
-        if self.padding_mode != 'zeros':
-            # Single panels
-            x = F.conv2d(F.pad(input, self._reversed_padding_repeated_twice, mode=self.padding_mode),
-                        equatorial_weight, equatorial_bias, self.stride,
-                        _pair(0), self.dilation, self.groups)
 
-        else:
-            # Single panels
-            # import numpy as np
-            # print(np.shape(input.detach().numpy()))
-
-            x = F.conv2d(input, equatorial_weight, equatorial_bias, self.stride,
+        # Single panels
+        output = F.conv2d(F.pad(input, self._reversed_padding_repeated_twice, mode='constant'), equatorial_weight, equatorial_bias, self.stride,
                          (1), self.dilation, self.groups)
 
-            # print(np.shape(x.detach().numpy()))
-
-            outputs.append(torch.unsqueeze(x, 2))
-
-            # print(len(outputs))
-
-            output = torch.cat(outputs, 2)
-
-            # print(np.shape(output.detach().numpy()))
-        return x
+        return output
 
     def forward(self, input: Tensor) -> Tensor:
         return self._conv_forward(input, self.equatorial_weight, self.polar_weight,

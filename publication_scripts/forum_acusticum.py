@@ -98,8 +98,8 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xla
         plt.plot([], c=colours[idx], label=legend[idx])
 
     if hrtf_selection_results is not None:
-        ticks += ['Selection']
-        c = ['#00FFFF', '#FFC300']
+        ticks += ['HRTF\n Selection']
+        c = ['#FF8D1C', '#00999E']
         l = ['Selection-1', 'Selection-2']
         if legend[-1] == 'Target':
             hrtf_selection_results = np.concatenate((hrtf_selection_results, np.array([filtered_data])))
@@ -115,6 +115,7 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xla
                                   flierprops=dict(marker='x', markeredgecolor=colours[i], markersize=4), widths=0.12)
                 for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
                     plt.setp(blp[element], color=colours[i], linewidth=0.7)
+
             else:
                 blp = plt.boxplot(hrtf_selection_result, positions=[(len(data) * 1.0) - np.linspace(0.15 * (len(full_results) / 2),
                                                                                             -0.15 * (len(full_results) / 2),
@@ -138,8 +139,8 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xla
         else:
             [plt.axvline(x + 1, color='#a6a6a6', linestyle='--', linewidth=0.5) for x in range(0, (len(ticks) - 1) * 2, 2)]
 
-    leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right",  # mode="expand",
-                        borderaxespad=0, ncol=3, handlelength=1.06)
+    leg = ax.legend(prop={'size': 7}, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower right", # mode="expand",
+                        borderaxespad=0, ncol=2, handlelength=1.06)
 
     leg.get_frame().set_linewidth(0.5)
     leg.get_frame().set_edgecolor('k')
@@ -168,11 +169,12 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xla
         ax.set_ylim((np.min([ymin, ymin_hrtf_selection]), np.max([ymax, ymax_hrtf_selection])))
 
     ax.yaxis.set_label_coords(-0.12, 0.5)
+    ax.xaxis.set_label_coords(0.4, -0.2)
 
-    # w = 2.974
-    # h = w / 1.5
-    w = 5
-    h = w / 2.5
+    w = 2.974
+    h = w / 1.5
+    # w = 5
+    # h = w / 2.5
     fig.set_size_inches(w, h)
     fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
     fig.savefig(config.data_dirs_path + '/plots/' + name, bbox_inches='tight')
@@ -607,24 +609,25 @@ def plot_evaluation(hpc, experiment_id, mode):
                 f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/hrtf_selection/valid',
                 mode=f'baseline_{mode}', upscale_factors=['minimum_data', 'maximum_data'],
                 file_ext=f'{mode}_errors_hrtf_selection_')
+            full_results_dataset_baseline_hrtf_selection = [[j for j in i if j != 0.0] for i in full_results_dataset_baseline_hrtf_selection]
             factors = [2, 4, 8, 16]
-            xlabel = 'Upsample Factor\n' + r'No. of original nodes (Panel No.)'
+            xlabel = 'Upsample Factor'
             if mode == 'lsd':
                 basline_ticks = [
                     r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (
                         int((16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
-                legend = ['SRGAN', f'SHT Baseline', 'Barycentric Baseline']
-                colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
-                create_table(legend, [full_results_dataset[::-1], full_results_dataset_sh_baseline[::-1], full_results_dataset_baseline[::-1]], dataset.upper(), units='[dB]')
-                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sh_baseline, full_results_dataset_baseline], legend, colours, basline_ticks, xlabel, hrtf_selection_results=np.array(full_results_dataset_baseline_hrtf_selection))
+                legend = ['SRGAN', f'SH Baseline', 'Barycentric Baseline', 'Selection-1', 'Selection-2']
+                colours = ['#0047a4', '#af211a', 'g', '#FFA500', '#E67E22']
+                create_table(legend, [full_results_dataset[::-1], full_results_dataset_sh_baseline[::-1], full_results_dataset_baseline[::-1], [np.array(full_results_dataset_baseline_hrtf_selection)[0, :]],
+                                          [np.array(full_results_dataset_baseline_hrtf_selection)[1, :]]], units='[dB]')
+                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'LSD error [dB]', [full_results_dataset, full_results_dataset_sh_baseline, full_results_dataset_baseline], legend, colours, basline_ticks, xlabel, hrtf_selection_results=np.array(full_results_dataset_baseline_hrtf_selection))
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
-                labels = [f'{dataset.upper()} \n' + label for label in labels]
+                # labels = [f'{dataset.upper()} \n' + label for label in labels]
                 units = [r'[$^\circ$]', r'[$^\circ$]', '[\%]']
-                legend = ['SRGAN', f'SHT Baseline', 'Barycentric Baseline', 'Target']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9']
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=(np.shape(full_results_dataset_baseline[-1])), fill_value=np.nan).tolist()
@@ -634,6 +637,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                                                             file_ext=f'{dataset.upper()}_loc_target_valid_errors.pickle') * 4
 
                 for i in np.arange(np.shape(full_results_dataset)[1]):
+                    legend = ['SRGAN', f'SH Baseline', 'Barycentric Baseline', 'Target']
                     basline_ticks = [
                         r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (
                             int((16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5)) for factor in factors]
@@ -641,13 +645,13 @@ def plot_evaluation(hpc, experiment_id, mode):
                                  [np.array(full_results_dataset)[:, i, :], np.array(full_results_dataset_sh_baseline)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :],
                                   np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, basline_ticks, xlabel, hrtf_selection_results=np.array(full_results_dataset_baseline_hrtf_selection)[:, i, :])
                     print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
-                    legend = ['SRGAN', f'SHT Baseline', 'Barycentric Baseline', 'Selection-1', 'Selection-2', 'Target']
+                    legend = ['SRGAN', f'SH Baseline', 'Barycentric Baseline', 'Selection-1', 'Selection-2', 'Target']
                     create_table(legend, [np.array(full_results_dataset)[::-1, i, :],
                                           np.array(full_results_dataset_sh_baseline)[::-1, i, :],
                                           np.array(full_results_dataset_baseline)[::-1, i, :],
                                           [np.array(full_results_dataset_baseline_hrtf_selection)[0, i, :]],
                                           [np.array(full_results_dataset_baseline_hrtf_selection)[1, i, :]],
-                                          [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper(),
+                                          [np.array(full_results_dataset_target_tl)[0, i, :]]],
                                  units=units[i])
 
 
@@ -665,6 +669,120 @@ def plot_evaluation(hpc, experiment_id, mode):
                 #                           np.array(full_results_dataset_baseline)[:, i, :],
                 #                           [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper(),
                 #                  units=units[i])
+
+    elif experiment_id == 5:
+
+        def get_trasfer_function(hrtf_file, position):
+            hrtf = []
+            with (open(hrtf_file, 'rb')) as openfile:
+                while True:
+                    try:
+                        hrtf.append(pickle.load(openfile))
+                    except EOFError:
+                        break
+            return hrtf[0][position[0]][position[1]][position[2]][0:128]
+
+
+        plt.rc('font', family='serif', serif='Times New Roman')
+        plt.rc('text', usetex=True)
+        plt.rc('xtick', labelsize=8)
+        plt.rc('ytick', labelsize=8)
+        plt.rc('axes', labelsize=8)
+
+        factors = [2, 4, 8, 16]
+        positions = [(3, 7, 7), (3, 15, 15)]
+        subject = 853
+
+        for pos_idx, position in enumerate(positions):
+
+            fig, axs = plt.subplots(4, 1, sharex=True, sharey=True)
+
+            for factor_idx, factor in enumerate(factors):
+                srgan = f'{config.data_dirs_path}{config.runs_folder}/pub-prep-upscale-ARI-{factor}/valid'
+                ground_truth = f'{config.data_dirs_path}/data/ARI/cube_sphere/hr_merge/valid'
+                barycentic = f'{config.data_dirs_path}/baseline_results/ARI/cube_sphere/barycentric/valid/barycentric_interpolated_data_{factor}'
+                sh = f'{config.data_dirs_path}/baseline_results/ARI/cube_sphere/sh/valid/sh_interpolated_data_{factor}'
+                tags = [srgan, sh, barycentic, ground_truth]
+
+                labels = ['SRGAN', 'SH Baseline', 'Barycentic Baseline', 'Ground Truth']
+                c = ['#0047a4', '#af211a', 'g', 'black']
+
+                for idx, tag in enumerate(tags):
+                    hrtf_file = f'{tag}/ARI_mag_{subject}.pickle'
+                    hrtf_tf = get_trasfer_function(hrtf_file, position)
+                    axs[factor_idx].plot(np.linspace(0, config.hrir_samplerate/2, len(hrtf_tf)),20 * np.log10(hrtf_tf) ** 2, c=c[idx], label=labels[idx], linewidth=1)
+                    # plt.plot(get_trasfer_function(hrtf_file))
+
+                title = r'$%s \,{\mathrel{\vcenter{\hbox{\rule[-.2pt]{4pt}{.4pt}}} \mkern-4mu\hbox{\usefont{U}{lasy}{m}{n}\symbol{41}}}} %s$' % (int((16 / factor) ** 2 * 5), int(config.hrtf_size ** 2 * 5))
+                axs[factor_idx].set_ylabel(f'Factor: {title} \n Manitude [dB]')
+
+                if factor_idx == 0:
+                    axs[factor_idx].set_title(f'Location - Panel: {position[0]}, Position: ({position[1]},{position[2]})', fontsize=8)
+                    leg = axs[factor_idx].legend(prop={'size': 7}, loc="upper left",
+                                                 # mode="expand",  bbox_to_anchor=(0, 1.02, 1, 0.2), borderaxespad=0,
+                                                 ncol=1, handlelength=1.06)
+
+                    leg.get_frame().set_linewidth(0.5)
+                    leg.get_frame().set_edgecolor('k')
+
+
+                if factor_idx != len(factors)-1:
+                    axs[factor_idx].tick_params( axis='x',          # changes apply to the x-axis
+                                        which='both',      # both major and minor ticks are affected
+                                        bottom=False,      # ticks along the bottom edge are off
+                                        top=False,         # ticks along the top edge are off
+                                        labelbottom=False) # labels along the bottom edge are off
+                else:
+                    axs[factor_idx].set_xlabel(f'Frequency [Hz]')
+
+                axs[factor_idx].yaxis.grid(zorder=0, linewidth=0.4)
+                axs[factor_idx].xaxis.grid(zorder=0, linewidth=0.4)
+                axs[factor_idx].set_ylim(bottom=0)
+                axs[factor_idx].set_xscale('log')
+
+            w = 2.974
+            h = w * 2
+            fig.set_size_inches(w, h)
+            fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
+            fig.savefig(f'{config.data_dirs_path}/plots/freq_dependent/freq_dependent_{position[0]}_{position[1]}_{position[2]}.png', dpi=600,
+                            bbox_inches='tight')
+
+        ##################################################
+
+        tag = f'/pub-prep-upscale-ARI-8/train_losses.pickle'
+        training_loss_file = config.data_dirs_path+config.runs_folder+tag
+        losses = []
+        with (open(training_loss_file, 'rb')) as openfile:
+            while True:
+                try:
+                    losses.append(pickle.load(openfile))
+                except EOFError:
+                    break
+
+        fig, ax1 = plt.subplots()
+
+        ax1.plot([x*100 for x in losses[0][0]], '#af211a', label='Generator loss')
+        ax1.plot([x*0.1 for x in losses[0][3]], '#0047a4', label='Discriminator loss')
+
+        ax1.set_xlabel('Epochs')
+        ax1.set_ylabel('Loss')
+
+        w = 2.974
+        h = w / 2
+        leg1 = ax1.legend(prop={'size': 7}, loc="upper right",  # mode="expand",  bbox_to_anchor=(0, 1.02, 1, 0.2), borderaxespad=0,
+                        ncol=1, handlelength=1.06)
+
+        leg1.get_frame().set_linewidth(0.5)
+        leg1.get_frame().set_edgecolor('k')
+        ax1.yaxis.grid(zorder=0, linewidth=0.4)
+        ax1.xaxis.grid(zorder=0, linewidth=0.4)
+
+        ax1.set_ylim((0, 0.6))
+        ax1.set_xlim((0, 300))
+
+        fig.set_size_inches(w, h)
+        fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
+        fig.savefig(config.data_dirs_path + '/plots/upsample_8_pub-prep-arrayjob_8_loss_curves_pub_2_axis', bbox_inches='tight')
     else:
         print('Experiment does not exist')
 
