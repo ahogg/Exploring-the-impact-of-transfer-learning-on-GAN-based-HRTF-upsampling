@@ -49,6 +49,16 @@ class Config:
             self.raw_hrtf_dir = Path('/home/ahogg/Documents/HRTF Datasets')
             self.amt_dir = '/home/ahogg/PycharmProjects/HRTF-GAN/thirdParty'
 
+        self.baseline_dir = '/baseline_results/' + self.dataset
+
+        if self.single_panel == True:
+            self.data_dir += '/single_panel'
+            self.baseline_dir += '/single_panel'
+            self.runs_folder += '-single-panel'
+        else:
+            self.data_dir += '/cube_sphere'
+            self.baseline_dir += '/cube_sphere'
+
         self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
         self.existing_model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.existing_model_tag}'
 
@@ -56,14 +66,6 @@ class Config:
         self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
 
         self.projection_dir = f'{self.data_dirs_path}/projection_coordinates'
-        self.baseline_dir = '/baseline_results/' + self.dataset
-
-        if self.single_panel == True:
-            self.data_dir += '/single_panel'
-            self.baseline_dir += '/single_panel'
-        else:
-            self.data_dir += '/cube_sphere'
-            self.baseline_dir += '/cube_sphere'
 
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'

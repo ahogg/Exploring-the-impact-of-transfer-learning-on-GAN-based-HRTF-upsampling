@@ -3,6 +3,7 @@ import pickle
 import torch
 import numpy as np
 from torch.utils.data import Dataset
+from preprocessing.convert_coordinates import convert_cube_indices_to_single_panel_indices
 
 
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/7292452634137d8f5d4478e44727ec1166a89125/dataset.py
@@ -10,12 +11,25 @@ def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor, panel=0):
     # downsample hrtf
 
     if len(hr_hrtf.size()) == 3:  # Single panel
+
+        # selected_cube_indices = []
+        # for panel in np.arange(0, 5):
+        #     for p in np.arange(0, 16, upscale_factor):
+        #         for q in np.arange(0, 16, upscale_factor):
+        #             selected_cube_indices.append([panel, p, q])
+        #
+        # single_panel_indices = convert_cube_indices_to_single_panel_indices(selected_cube_indices, hrtf_size)
+
         if upscale_factor == 80:
             lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / 16)[0][:, panel, :, None]
         elif upscale_factor == 40:
             lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / 16)[0][:, panel, :]
         else:
-            lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / upscale_factor)[0]
+            # lr_hrtf = torch.nn.functional.interpolate(hr_hrtf[None, :], scale_factor=1 / upscale_factor)[0]
+            lr_hrtf = torch.from_numpy(
+                np.moveaxis(np.array(torch.from_numpy(np.moveaxis(np.array(hr_hrtf), 0, -1))[np.ix_(
+                    np.arange(upscale_factor / 2, np.shape(hr_hrtf)[1], upscale_factor),
+                    np.arange(upscale_factor / 2, np.shape(hr_hrtf)[2], upscale_factor))]), -1, 0))
     else:
         if upscale_factor == hrtf_size*5:
             mid_pos = int(hrtf_size / 2)

@@ -421,8 +421,10 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     top_strip = np.concatenate((top_rotated_ccw_90, top, top_rotated_cw_90, top_rotated_cw_180))[:, 0:int(edge_len/2)]
 
     magnitudes_raw_flattened = np.concatenate((bottom_strip, top_strip), axis=1)
-    #######################################
 
+
+    #######################################
+    #
     # import matplotlib.pyplot as plt
     #
     # fig, ax = plt.subplots()
@@ -488,9 +490,9 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     # #######################################
     #
     # import matplotlib.pyplot as plt
+    # import matplotlib
     #
     # fig, ax = plt.subplots()
-    # import matplotlib
     # matplotlib.use('TkAgg')
     #
     # # Format data.

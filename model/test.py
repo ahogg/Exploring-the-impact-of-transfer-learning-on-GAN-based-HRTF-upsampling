@@ -38,7 +38,11 @@ def test(config, val_prefetcher):
     print('Build SRGAN model successfully: %s' % config.model_path)
 
     # Load super-resolution model weights (always uses the CPU due to HPC having long wait times)
-    model.load_state_dict(torch.load(f"{config.model_path}/Gen.pt", map_location=torch.device('cpu')))
+    try:
+        model.load_state_dict(torch.load(f"{config.model_path}/Gen.pt", map_location=torch.device('cpu')))
+    except OSError:
+        print(f"Unable to load SRGAN model weights `{os.path.abspath(config.model_path)}` successfully.")
+        return
     print(f"Load SRGAN model weights `{os.path.abspath(config.model_path)}` successfully.")
 
     param_size = 0

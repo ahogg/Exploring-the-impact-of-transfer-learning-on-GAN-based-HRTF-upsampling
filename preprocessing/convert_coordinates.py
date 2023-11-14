@@ -94,6 +94,51 @@ def convert_cube_to_sphere(panel, x, y):
     return elevation, azimuth
 
 
+def convert_single_panel_indices_to_spherical(w, h, panel_len):
+
+    if h > panel_len-1:
+        panel = 4
+        region = int(np.floor(w / panel_len))
+        if region == 0:
+            # rotated_cw_90
+            i = h - panel_len
+            j = (panel_len-1) - int(w % panel_len)
+        elif region == 1:
+            # no rotation
+            i = int(w % panel_len)
+            j = h - panel_len
+        elif region == 2:
+            # rotated_ccw_90
+            i = (panel_len - 1) - (h - panel_len)
+            j = int(w % panel_len)
+        elif region == 3:
+            # rotated_ccw_180
+            i = (panel_len-1) - (int(w % panel_len))
+            j = (panel_len-1) - (h-panel_len)
+    else:
+        panel = int(np.floor(w/panel_len))
+        i = int(w % panel_len)
+        j = h
+
+        # panel order:    |4|
+        #              |3||0||1||2|
+        if panel == 0:
+            panel = 3
+        else:
+            panel -= 1
+
+    # offset panel to be compatible with earlier functions that used 1-indexing for panels
+    panel += 1
+    # use edge length to determine spacing between points on euclidean cubed sphere
+    spacing = (np.pi / 2) / panel_len
+    # find the lowest value for each panel's x and y (same in both dimensions)
+    start = (-np.pi / 4) + (spacing / 2)
+    # get x and y values from start, spacing, and index
+    x_i = start + i * spacing
+    y_j = start + j * spacing
+    return convert_cube_to_sphere(panel, x_i, y_j)
+
+
 def convert_cube_indices_to_spherical(panel, i, j, edge_len):
     # offset panel to be compatible with earlier functions that used 1-indexing for panels
     panel += 1
@@ -105,6 +150,51 @@ def convert_cube_indices_to_spherical(panel, i, j, edge_len):
     x_i = start + i*spacing
     y_j = start + j*spacing
     return convert_cube_to_sphere(panel, x_i, y_j)
+
+
+def convert_cube_indices_to_single_panel_indices(cube_indices, panel_len):
+
+    single_panel_indices = []
+
+    for panel, p, q in cube_indices:
+        if panel == 3:
+            x = p
+            y = q
+            single_panel_indices.append([x ,y])
+        elif panel == 0:
+            x = p + panel_len
+            y = q
+            single_panel_indices.append([x, y])
+        elif panel == 1:
+            x = p + 2*panel_len
+            y = q
+            single_panel_indices.append([x, y])
+        elif panel == 2:
+            x = p + 3*panel_len
+            y = q
+            single_panel_indices.append([x, y])
+        elif panel == 4:
+            if p+panel_len < panel_len+panel_len/2:
+                x = panel_len-1-q
+                y = p+panel_len
+                single_panel_indices.append([x, y])
+
+            if q+panel_len < panel_len + panel_len/2:
+                x = p+panel_len
+                y = q+panel_len
+                single_panel_indices.append([x, y])
+
+            if (panel_len-1-p)+panel_len < panel_len+panel_len/2:
+                x = q+2*panel_len
+                y = (panel_len-1-p)+panel_len
+                single_panel_indices.append([x, y])
+
+            if (panel_len-1-q)+3*panel_len < panel_len+panel_len/2:
+                x = (panel_len-1-p)+panel_len
+                y = (panel_len-1-q)+3*panel_len
+                single_panel_indices.append([x, y])
+
+    return single_panel_indices
 
 
 def convert_sphere_to_cartesian(coordinates):
