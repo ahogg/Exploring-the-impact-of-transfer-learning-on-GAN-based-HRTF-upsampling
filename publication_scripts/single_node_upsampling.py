@@ -238,7 +238,7 @@ def plot_lsd_plot(config, full_lsd_plot_results):
     plt.rc('ytick', labelsize=8)
     plt.rc('axes', labelsize=8)
 
-    subject_id = 0
+    subject_id = 2
     for upsampling_idx in [0, 1, 2, 3]:
 
         fig, ax = plt.subplots(1, 1, sharey=False)
@@ -645,7 +645,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
                 #######################################
-                # plot_lsd_plot(config, full_lsd_plot_results_dataset)
+                plot_lsd_plot(config, full_lsd_plot_results_dataset)
                 create_table(legend, [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], dataset.upper(), units='[dB]')
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours, ticks)
             elif mode == 'loc':
