@@ -127,7 +127,7 @@ class GeneratorSinglePanel(nn.Module):
         upsampling = []
 
         if self.num_upsampling_blocks == 4:
-            upsampling.append(torch.nn.Upsample(scale_factor=(2, 3)))
+            upsampling.append(torch.nn.Upsample(scale_factor=(2, 1.5)))
             self.num_upsampling_blocks -= 1
         elif self.num_upsampling_blocks == 5:
             upsampling.append(torch.nn.Upsample(scale_factor=(4, 3)))
