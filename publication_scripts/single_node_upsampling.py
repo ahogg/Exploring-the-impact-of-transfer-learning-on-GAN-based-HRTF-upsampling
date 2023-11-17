@@ -238,7 +238,7 @@ def plot_lsd_plot(config, full_lsd_plot_results):
     plt.rc('ytick', labelsize=8)
     plt.rc('axes', labelsize=8)
 
-    subject_id = 2
+    subject_id = 4
     for upsampling_idx in [0, 1, 2, 3]:
 
         fig, ax = plt.subplots(1, 1, sharey=False)

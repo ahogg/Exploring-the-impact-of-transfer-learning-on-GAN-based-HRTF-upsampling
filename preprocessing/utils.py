@@ -396,6 +396,7 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     # create empty list of lists of lists and initialize counter
     magnitudes_raw = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]
     magnitudes_raw_cube = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]
+    magnitudes_zero_cube = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]
     count = 0
 
     for panel, x, y in cube:
@@ -408,6 +409,7 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
         # add to list of lists of lists and increment counter
         magnitudes_raw[i][j][k] = magnitudes[count]
         magnitudes_raw_cube[i][j][k] = {'magnitude': magnitudes[count], 'cube': (panel, x, y)}
+        magnitudes_zero_cube[i][j][k] = {'magnitude': np.array([0 for mag in magnitudes[count]]), 'cube': (panel, x, y)}
         count += 1
 
 
@@ -418,7 +420,8 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     top_rotated_cw_180 = list(zip(*top_rotated_cw_90[::-1]))
     top_rotated_ccw_90 = list(zip(*top))[::-1]
 
-    top_strip = np.concatenate((top_rotated_ccw_90, top, top_rotated_cw_90, top_rotated_cw_180))[:, 0:int(edge_len/2)]
+    # top_strip = np.concatenate((top_rotated_ccw_90, top, top_rotated_cw_90, top_rotated_cw_180))[:, 0:int(edge_len/2)]
+    top_strip = np.concatenate((magnitudes_zero_cube[4], top, magnitudes_zero_cube[4], top_rotated_cw_180))[:, 0:int(edge_len / 2)]
 
     magnitudes_raw_flattened = np.concatenate((bottom_strip, top_strip), axis=1)
 
