@@ -409,7 +409,7 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
         # add to list of lists of lists and increment counter
         magnitudes_raw[i][j][k] = magnitudes[count]
         magnitudes_raw_cube[i][j][k] = {'magnitude': magnitudes[count], 'cube': (panel, x, y)}
-        magnitudes_zero_cube[i][j][k] = {'magnitude': np.array([0 for mag in magnitudes[count]]), 'cube': (panel, x, y)}
+        magnitudes_zero_cube[i][j][k] = {'magnitude': np.array([1e-6 for mag in magnitudes[count]]), 'cube': (panel, x, y)}
         count += 1
 
 
