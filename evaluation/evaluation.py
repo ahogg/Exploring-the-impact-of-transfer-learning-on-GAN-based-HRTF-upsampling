@@ -73,8 +73,6 @@ def replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=False):
                     if spectral_distortion_metric:
                         errors.append(calc_lsd(sr_hrtf[w, h], hr_hrtf[w, h]))
 
-        # generated = torch.permute(sr_hrtf[:, None], (1, 3, 0, 2))
-        # target = torch.permute(hr_hrtf[:, None], (1, 3, 0, 2))
         generated =torch.permute(torch.from_numpy(sr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
         target = torch.permute(torch.from_numpy(hr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
     else:
@@ -128,7 +126,6 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
         lsd_errors = []
         for file_name in sr_data_file_names:
             target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=True)
-            # error = spectral_distortion_metric(generated, target)
             error = sum(errors) / len(xy)
             subject_id = ''.join(re.findall(r'\d+', file_name))
             lsd_errors.append({'subject_id': subject_id, 'total_error': error, 'errors': errors, 'coordinates': xy})
