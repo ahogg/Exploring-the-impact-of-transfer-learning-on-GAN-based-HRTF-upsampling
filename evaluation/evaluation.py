@@ -2,7 +2,7 @@ from model.util import spectral_distortion_metric
 from model.dataset import downsample_hrtf
 from preprocessing.utils import convert_to_sofa
 
-from preprocessing.convert_coordinates import convert_single_panel_indices_to_spherical, convert_cube_indices_to_spherical
+from preprocessing.convert_coordinates import convert_single_panel_indices_to_cube_indices, convert_cube_indices_to_spherical, convert_cube_to_sphere
 
 import shutil
 from pathlib import Path
@@ -48,18 +48,35 @@ def replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=False):
     errors = []
 
     if len(lr.size()) == 3:  # single panel
-            for w in range(config.hrtf_size*4):
-                for h in range(int(config.hrtf_size*1.5)):
-                    if hr_hrtf[w, h] in lr:
-                        sr_hrtf[w, h] = hr_hrtf[w, h]
-                        xy.append({'x': w, 'y': h, 'original': True})
-                    else:
-                        xy.append({'x': w, 'y': h, 'original': False})
-                        if spectral_distortion_metric:
-                            errors.append(calc_lsd(sr_hrtf[w, h], hr_hrtf[w, h]))
+        sr_hrtf_cube = np.empty((5, config.hrtf_size, config.hrtf_size, config.nbins_hrtf*2))
+        hr_hrtf_cube = np.empty((5, config.hrtf_size, config.hrtf_size, config.nbins_hrtf*2))
+        for w in range(config.hrtf_size * 4):
+            if (w < config.hrtf_size) or (2 * config.hrtf_size <= w < 3 * config.hrtf_size):
+                height = config.hrtf_size
+            else:
+                height = int(config.hrtf_size * 1.5)
+            for h in range(height):
+                panel, i, j = convert_single_panel_indices_to_cube_indices(w, h, config.hrtf_size)
+                xy_spherical = convert_cube_indices_to_spherical(panel, i, j, config.hrtf_size)
+                x_spherical = np.degrees(xy_spherical[1])
+                y_spherical = np.degrees(xy_spherical[0])
 
-            generated = torch.permute(sr_hrtf[:, None], (1, 3, 0, 2))
-            target = torch.permute(hr_hrtf[:, None], (1, 3, 0, 2))
+                if hr_hrtf[w, h] in lr:
+                    sr_hrtf[w, h] = hr_hrtf[w, h]
+                    sr_hrtf_cube[panel, i, j] = hr_hrtf[w, h]
+                    hr_hrtf_cube[panel, i, j] = hr_hrtf[w, h]
+                    xy.append({'x': x_spherical, 'y': y_spherical, 'original': True})
+                else:
+                    sr_hrtf_cube[panel, i, j] = sr_hrtf[w, h]
+                    hr_hrtf_cube[panel, i, j] = hr_hrtf[w, h]
+                    xy.append({'x': x_spherical, 'y': y_spherical, 'original': False})
+                    if spectral_distortion_metric:
+                        errors.append(calc_lsd(sr_hrtf[w, h], hr_hrtf[w, h]))
+
+        # generated = torch.permute(sr_hrtf[:, None], (1, 3, 0, 2))
+        # target = torch.permute(hr_hrtf[:, None], (1, 3, 0, 2))
+        generated =torch.permute(torch.from_numpy(sr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
+        target = torch.permute(torch.from_numpy(hr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
     else:
         for p in range(5):
             for w in range(config.hrtf_size):
@@ -143,7 +160,7 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
         Path(nodes_replaced_path).mkdir(parents=True, exist_ok=True)
 
         for file_name in sr_data_file_names:
-            target, generated = replace_nodes(config, sr_dir, file_name)
+            target, generated, _, _ = replace_nodes(config, sr_dir, file_name)
 
             with open(nodes_replaced_path + file_name, "wb") as file:
                 pickle.dump(torch.permute(generated[0], (1, 2, 3, 0)), file)
@@ -170,6 +187,7 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
     loc_errors = []
     for file in hrtf_file_names:
         target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
+        target_sofa_file = target_sofa_file.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
         if hrtf_selection == 'minimum' or hrtf_selection == 'maximum':
             generated_sofa_file = f'{nodes_replaced_path}/sofa_min_phase/{hrtf_selection}.sofa'
         else:

@@ -238,7 +238,9 @@ def plot_lsd_plot(config, full_lsd_plot_results):
     plt.rc('ytick', labelsize=8)
     plt.rc('axes', labelsize=8)
 
-    subject_id = 4
+    subject_id = 0
+
+    max_node_lsd = max(filter(None.__ne__, np.array(full_lsd_plot_results)[:,:,:,-1].flatten()))
     for upsampling_idx in [0, 1, 2, 3]:
 
         fig, ax = plt.subplots(1, 1, sharey=False)
@@ -248,9 +250,10 @@ def plot_lsd_plot(config, full_lsd_plot_results):
         plt.scatter([coordinate_original[0] for coordinate_original in coordinates_original], [coordinate_original[1] for coordinate_original in coordinates_original], s=5, facecolors='none', edgecolors='k', linewidth=0.5)
         plt.scatter([coordinate[0] for coordinate in coordinates], [coordinate[1] for coordinate in coordinates], c=[coordinate[2] for coordinate in coordinates], cmap=parula, s=5)
 
-        cbar = plt.colorbar()
-        cbar.set_label('Average SD error', rotation=270, labelpad=14)
+        cbar = plt.colorbar(pad=0.01)
+        cbar.set_label('Average SD error [dB]', rotation=270, labelpad=14)
         #     plt.title("SD per node -- HR vs SR "+"avg: "+str(round(sum(diff_left)/1280,5)))
+        plt.clim(0, max_node_lsd)
         plt.xlabel(r"Azimuth [$^\circ$]")
         plt.ylabel(r"Elevation [$^\circ$]")
         #     plt.text(0.5, 0.5, 'Average SD error', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
@@ -628,7 +631,8 @@ def plot_evaluation(hpc, experiment_id, mode):
                                 np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]], legend, colours)
 
     elif experiment_id == 2:
-        datasets = ['ARI', 'SONICOM']
+        # datasets = ['ARI', 'SONICOM']
+        datasets = ['ARI']
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             full_results_dataset, full_lsd_plot_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)

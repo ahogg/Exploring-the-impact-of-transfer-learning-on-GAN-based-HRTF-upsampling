@@ -94,7 +94,7 @@ def convert_cube_to_sphere(panel, x, y):
     return elevation, azimuth
 
 
-def convert_single_panel_indices_to_spherical(w, h, panel_len):
+def convert_single_panel_indices_to_cube_indices(w, h, panel_len):
 
     if h > panel_len-1:
         panel = 4
@@ -128,15 +128,15 @@ def convert_single_panel_indices_to_spherical(w, h, panel_len):
             panel -= 1
 
     # offset panel to be compatible with earlier functions that used 1-indexing for panels
-    panel += 1
+    # panel += 1
     # use edge length to determine spacing between points on euclidean cubed sphere
-    spacing = (np.pi / 2) / panel_len
-    # find the lowest value for each panel's x and y (same in both dimensions)
-    start = (-np.pi / 4) + (spacing / 2)
-    # get x and y values from start, spacing, and index
-    x_i = start + i * spacing
-    y_j = start + j * spacing
-    return convert_cube_to_sphere(panel, x_i, y_j)
+    # spacing = (np.pi / 2) / panel_len
+    # # find the lowest value for each panel's x and y (same in both dimensions)
+    # start = (-np.pi / 4) + (spacing / 2)
+    # # get x and y values from start, spacing, and index
+    # x_i = start + i * spacing
+    # y_j = start + j * spacing
+    return panel, i, j
 
 
 def convert_cube_indices_to_spherical(panel, i, j, edge_len):
