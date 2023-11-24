@@ -9,7 +9,7 @@ from pathlib import Path
 from model.dataset import downsample_hrtf
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft
-from preprocessing.convert_coordinates import convert_cube_to_sphere
+from preprocessing.convert_coordinates import convert_cube_to_sphere, convert_cube_indices_to_single_panel_indices
 from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
 
 PI_4 = np.pi / 4
@@ -47,14 +47,21 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
             i = panel - 1
             j = round(config.hrtf_size * (x - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
             k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
-            if hr_hrtf[i, j, k] in lr_hrtf:
-                sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
-                sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])
+            if len(hr_hrtf.size()) == 3:  # single panel
+                single_panel_indices = convert_cube_indices_to_single_panel_indices([(i, k, j)], config.hrtf_size)
+                if hr_hrtf[int(single_panel_indices[0][0]), int(single_panel_indices[0][1])] in lr_hrtf:
+                    sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
+                    sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])
+            else:
+                if hr_hrtf[i, j, k] in lr_hrtf:
+                    sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
+                    sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])
 
         euclidean_sphere_triangles = []
         euclidean_sphere_coeffs = []
-        for sphere_coord in sphere_coords:
+        for sphere_coord_idx, sphere_coord in enumerate(sphere_coords):
             # based on cube coordinates, get indices for magnitudes list of lists
+            print(f'Calculating Barycentric coefficient {sphere_coord_idx} of {len(sphere_coords)}')
             triangle_vertices = get_triangle_vertices(elevation=sphere_coord[0], azimuth=sphere_coord[1],
                                                       sphere_coords=sphere_coords_lr)
             coeffs = calc_barycentric_coordinates(elevation=sphere_coord[0], azimuth=sphere_coord[1],
@@ -78,7 +85,13 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
                                               euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
                                               edge_len=config.hrtf_size)
 
-        barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=3))
+        print(np.shape(barycentric_hr_right))
+        print(np.shape(barycentric_hr_left))
+        if len(hr_hrtf.size()) == 3:  # single panel
+            barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=2))
+            print(np.shape(barycentric_hr_merged))
+        else:
+            barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=3))
 
         with open(barycentric_output_path + file_name, "wb") as file:
             pickle.dump(barycentric_hr_merged, file)

@@ -305,10 +305,10 @@ def get_feature_for_point_tensor(elevation, azimuth, all_coords, subject_feature
     """For a given point (elevation, azimuth), get the associated feature value"""
     all_coords_row = all_coords.query(f'elevation == {elevation} & azimuth == {azimuth}')
     if len(subject_features.size()) == 3:  # single panel
-        single_panel_indices = convert_cube_indices_to_single_panel_indices([(int(all_coords_row.panel-1), int(all_coords_row.elevation_index), int(all_coords_row.azimuth_index))], config.hrtf_size/config.upscale_factor)
+        single_panel_indices = convert_cube_indices_to_single_panel_indices([(int(all_coords_row.panel.values[0]-1), int(all_coords_row.elevation_index.values[0]), int(all_coords_row.azimuth_index.values[0]))], config.hrtf_size/config.upscale_factor)
         return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(single_panel_indices[0][0]), int(single_panel_indices[0][1])]))))
     else:
-        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(all_coords_row.panel-1)][int(all_coords_row.elevation_index)][int(all_coords_row.azimuth_index)]))))
+        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(all_coords_row.panel.values[0]-1)][int(all_coords_row.elevation_index.values[0])][int(all_coords_row.azimuth_index.values[0])]))))
 
 
 def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_coords, subject_features, config=None):
