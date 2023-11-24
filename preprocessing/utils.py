@@ -14,7 +14,7 @@ import re
 
 
 from preprocessing.barycentric_calcs import calc_barycentric_coordinates, get_triangle_vertices
-from preprocessing.convert_coordinates import convert_cube_to_sphere
+from preprocessing.convert_coordinates import convert_cube_to_sphere, convert_cube_indices_to_single_panel_indices
 from preprocessing.KalmanFilter import KalmanFilter
 
 PI_4 = np.pi / 4
@@ -301,13 +301,17 @@ def get_feature_for_point(elevation, azimuth, all_coords, subject_features):
     return subject_features[azimuth_index][elevation_index]
 
 
-def get_feature_for_point_tensor(elevation, azimuth, all_coords, subject_features):
+def get_feature_for_point_tensor(elevation, azimuth, all_coords, subject_features, config=None):
     """For a given point (elevation, azimuth), get the associated feature value"""
     all_coords_row = all_coords.query(f'elevation == {elevation} & azimuth == {azimuth}')
-    return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(all_coords_row.panel-1)][int(all_coords_row.elevation_index)][int(all_coords_row.azimuth_index)]))))
+    if len(subject_features.size()) == 3:  # single panel
+        single_panel_indices = convert_cube_indices_to_single_panel_indices([(int(all_coords_row.panel-1), int(all_coords_row.elevation_index), int(all_coords_row.azimuth_index))], config.hrtf_size/config.upscale_factor)
+        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(single_panel_indices[0][0]), int(single_panel_indices[0][1])]))))
+    else:
+        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(all_coords_row.panel-1)][int(all_coords_row.elevation_index)][int(all_coords_row.azimuth_index)]))))
 
 
-def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_coords, subject_features):
+def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_coords, subject_features, config=None):
     """Calculate the interpolated feature for a given point based on vertices specified by triangle_vertices, features
     specified by subject_features, and barycentric coefficients specified by coeffs"""
     # get features for each of the three closest points, add to a list in order of closest to farthest
@@ -318,7 +322,7 @@ def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_c
             features_no_ITD = remove_itd(features_p, int(len(features_p)*0.04), len(features_p))
             features.append(features_no_ITD)
         else:
-            features_p = get_feature_for_point_tensor(p[0], p[1], all_coords, subject_features)
+            features_p = get_feature_for_point_tensor(p[0], p[1], all_coords, subject_features, config)
             features.append(features_p)
 
     # based on equation 6 in "3D Tune-In Toolkit: An open-source library for real-time binaural spatialisation"
@@ -330,7 +334,7 @@ def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_c
     return interpolated_feature
 
 
-def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sphere_triangles, euclidean_sphere_coeffs):
+def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sphere_triangles, euclidean_sphere_coeffs, config=None):
     """Essentially a wrapper function for calc_interpolated_features above, calculated interpolated features for all
     points on the euclidean sphere rather than a single point"""
     selected_feature_interpolated = []
@@ -344,7 +348,8 @@ def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sph
                                                    triangle_vertices=euclidean_sphere_triangles[i],
                                                    coeffs=euclidean_sphere_coeffs[i],
                                                    all_coords=cs.get_all_coords(),
-                                                   subject_features=features)
+                                                   subject_features=features,
+                                                   config=config)
 
             selected_feature_interpolated.append(features_p)
         else:
@@ -385,7 +390,7 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
 
     # interpolated_hrirs is a list of interpolated HRIRs corresponding to the points specified in load_sphere and
     # load_cube, all three lists share the same ordering
-    interpolated_hrirs = calc_all_interpolated_features(cs, features, sphere, sphere_triangles, sphere_coeffs)
+    interpolated_hrirs = calc_all_interpolated_features(cs, features, sphere, sphere_triangles, sphere_coeffs, config)
 
     # Resample data so that training and validation sets are created at the same fs ('config.hrir_samplerate').
     # number_of_samples = round(np.shape(interpolated_hrirs)[-1] * float(config.hrir_samplerate) / fs_original)

@@ -14,7 +14,6 @@ from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycent
 
 PI_4 = np.pi / 4
 
-
 def run_barycentric_interpolation(config, barycentric_output_path, subject_file=None):
 
     if subject_file is None:
@@ -35,7 +34,11 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
         with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
             hr_hrtf = pickle.load(f)
 
-        lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor), (1, 2, 3, 0))
+
+        if len(hr_hrtf.size()) == 3:  # single panel
+            lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (2, 0, 1)), config.hrtf_size, config.upscale_factor), (1, 2, 0))
+        else:
+            lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor), (1, 2, 3, 0))
 
         sphere_coords_lr = []
         sphere_coords_lr_index = []
@@ -61,8 +64,12 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
 
         cs = CubedSphere(sphere_coords=sphere_coords_lr, indices=sphere_coords_lr_index)
 
-        lr_hrtf_left = lr_hrtf[:, :, :, :config.nbins_hrtf]
-        lr_hrtf_right = lr_hrtf[:, :, :, config.nbins_hrtf:]
+        if len(hr_hrtf.size()) == 3:  # single panel
+            lr_hrtf_left = lr_hrtf[:, :, :config.nbins_hrtf]
+            lr_hrtf_right = lr_hrtf[:, :, config.nbins_hrtf:]
+        else:
+            lr_hrtf_left = lr_hrtf[:, :, :, :config.nbins_hrtf]
+            lr_hrtf_right = lr_hrtf[:, :, :, config.nbins_hrtf:]
 
         barycentric_hr_left = interpolate_fft(config, cs, lr_hrtf_left, sphere_coords, euclidean_sphere_triangles,
                                          euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
