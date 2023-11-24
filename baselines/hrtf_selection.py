@@ -31,8 +31,14 @@ def run_hrtf_selection(config, hrtf_selection_output_path, subject_file=None):
 
         # add to dict for right ears
         subj_id = int(re.findall(r'\d+', file_name)[0])
-        hrtf_dict_left[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[0:config.nbins_hrtf]])), (0, 1, 4, 3, 2))
-        hrtf_dict_right[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[config.nbins_hrtf:]])), (0, 1, 4, 3, 2))
+
+        if len(hr_hrtf.size()) == 3:  # single panel
+            hrtf_dict_left[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[0:config.nbins_hrtf]])), (0, 1, 3, 2))
+            hrtf_dict_right[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[config.nbins_hrtf:]])), (0, 1, 3, 2))
+        else:
+            hrtf_dict_left[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[0:config.nbins_hrtf]])), (0, 1, 4, 3, 2))
+            hrtf_dict_right[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[config.nbins_hrtf:]])), (0, 1, 4, 3, 2))
+
         subj_ids.append(subj_id)
 
     # for each subject, compare their HRTF sets to all other subjects' HRTF sets via SD metric

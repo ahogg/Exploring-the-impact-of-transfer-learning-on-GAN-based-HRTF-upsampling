@@ -112,12 +112,16 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
             with open(f'{sr_dir}/{hrtf_selection}.pickle', "rb") as f:
                 sr_hrtf = pickle.load(f)
 
-            generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
-            target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
+            if len(hr_hrtf.size()) == 3:  # single panel
+                generated = torch.permute(sr_hrtf[:, None], (1, 3, 0, 2))
+                target = torch.permute(hr_hrtf[:, None], (1, 3, 0, 2))
+            else:
+                generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
+                target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
 
             error = spectral_distortion_metric(generated, target)
             subject_id = ''.join(re.findall(r'\d+', file_name))
-            lsd_errors.append([subject_id,  float(error.detach())])
+            lsd_errors.append({'subject_id': subject_id, 'total_error': float(error.detach())})
             print('LSD Error of subject %s: %0.4f' % (subject_id, float(error.detach())))
     else:
         sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
@@ -146,7 +150,8 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
 
     if hrtf_selection == 'minimum' or hrtf_selection == 'maximum':
         nodes_replaced_path = sr_dir
-        hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(config.valid_hrtf_merge_dir + '/sofa_min_phase')]
+        target_sofa_path = config.valid_hrtf_merge_dir.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
+        hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(target_sofa_path + '/sofa_min_phase')]
     else:
         sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
         sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
@@ -186,6 +191,7 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
         target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
         target_sofa_file = target_sofa_file.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
         if hrtf_selection == 'minimum' or hrtf_selection == 'maximum':
+            nodes_replaced_path = nodes_replaced_path.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
             generated_sofa_file = f'{nodes_replaced_path}/sofa_min_phase/{hrtf_selection}.sofa'
         else:
             generated_sofa_file = nodes_replaced_path+'/sofa_min_phase/' + file
