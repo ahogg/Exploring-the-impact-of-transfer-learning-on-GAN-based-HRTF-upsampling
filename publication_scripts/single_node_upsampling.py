@@ -761,7 +761,7 @@ def plot_evaluation(hpc, experiment_id, mode):
 def run_baseline(hpc, test_id=None):
     print(f'Running training')
     config_files = []
-    upscale_factors = [16]
+    upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM']
     for dataset in datasets:
         if args.mode == 'barycentric_baseline':
