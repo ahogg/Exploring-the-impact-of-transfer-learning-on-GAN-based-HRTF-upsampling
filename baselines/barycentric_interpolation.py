@@ -85,11 +85,8 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
                                               euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
                                               edge_len=config.hrtf_size)
 
-        print(np.shape(barycentric_hr_right))
-        print(np.shape(barycentric_hr_left))
         if len(hr_hrtf.size()) == 3:  # single panel
             barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=2))
-            print(np.shape(barycentric_hr_merged))
         else:
             barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=3))
 
