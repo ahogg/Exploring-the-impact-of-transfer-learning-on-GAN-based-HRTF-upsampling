@@ -119,9 +119,9 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
                 generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
                 target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
 
-            error = spectral_distortion_metric(generated, target)
+            error, errors, xy = spectral_distortion_metric(generated, target, full_errors=True)
             subject_id = ''.join(re.findall(r'\d+', file_name))
-            lsd_errors.append({'subject_id': subject_id, 'total_error': float(error.detach())})
+            lsd_errors.append({'subject_id': subject_id, 'total_error': float(error), 'errors': [float(error) for error in errors], 'coordinates': xy})
             print('LSD Error of subject %s: %0.4f' % (subject_id, float(error.detach())))
     else:
         sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))

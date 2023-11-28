@@ -14,7 +14,7 @@ import re
 
 
 from preprocessing.barycentric_calcs import calc_barycentric_coordinates, get_triangle_vertices
-from preprocessing.convert_coordinates import convert_cube_to_sphere, convert_cube_indices_to_single_panel_indices
+from preprocessing.convert_coordinates import convert_cube_to_sphere
 from preprocessing.KalmanFilter import KalmanFilter
 
 PI_4 = np.pi / 4
@@ -305,8 +305,7 @@ def get_feature_for_point_tensor(elevation, azimuth, all_coords, subject_feature
     """For a given point (elevation, azimuth), get the associated feature value"""
     all_coords_row = all_coords.query(f'elevation == {elevation} & azimuth == {azimuth}')
     if len(subject_features.size()) == 3:  # single panel
-        single_panel_indices = convert_cube_indices_to_single_panel_indices([(int(all_coords_row.panel.values[0]-1), int(all_coords_row.elevation_index.values[0]), int(all_coords_row.azimuth_index.values[0]))], config.hrtf_size/config.upscale_factor)
-        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(single_panel_indices[0][0]), int(single_panel_indices[0][1])]))))
+        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[(int(all_coords_row.azimuth_index.values[0]), int(all_coords_row.elevation_index.values[0]))]))))
     else:
         return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(all_coords_row.panel.values[0]-1)][int(all_coords_row.elevation_index.values[0])][int(all_coords_row.azimuth_index.values[0])]))))
 
@@ -340,10 +339,11 @@ def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sph
     selected_feature_interpolated = []
     for i, p in enumerate(euclidean_sphere):
         if p[0] is not None:
-            if 'panel_index' in cs.all_coords.columns:
-                time_domain_flag = False
-            else:
-                time_domain_flag = True
+            # if 'panel_index' in cs.all_coords.columns:
+            #     time_domain_flag = False
+            # else:
+            #     time_domain_flag = True
+            time_domain_flag = False
             features_p = calc_interpolated_feature(time_domain_flag=time_domain_flag,
                                                    triangle_vertices=euclidean_sphere_triangles[i],
                                                    coeffs=euclidean_sphere_coeffs[i],

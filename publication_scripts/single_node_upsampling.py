@@ -297,7 +297,10 @@ def get_results(tag, mode, upscale_factors=[16, 8, 4, 2], file_ext=None, runs_fo
                     if position['original']:
                         lsd_plot_result.append((position['x'], position['y'], None))
                     else:
-                        lsd_plot_result.append((position['x'], position['y'], errors[sub_idx][error_idx]))
+                        if 'x' in position and 'y' in position:
+                            lsd_plot_result.append((position['x'], position['y'], errors[sub_idx][error_idx]))
+                        else:
+                            lsd_plot_result.append((position['p'], position['h'], position['w'], errors[sub_idx][error_idx]))
                         error_idx += 1
                 lsd_plot_results.append(lsd_plot_result)
 
@@ -632,7 +635,7 @@ def plot_evaluation(hpc, experiment_id, mode):
 
     elif experiment_id == 2:
         # datasets = ['ARI', 'SONICOM']
-        datasets = ['ARI']
+        datasets = ['SONICOM']
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             factors = [2, 4, 8, 16]
@@ -643,16 +646,19 @@ def plot_evaluation(hpc, experiment_id, mode):
                 full_results_dataset, full_lsd_plot_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode)
                 # full_results_dataset_sonicom_synthetic_tl, full_lsd_plot_results_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-', mode)
                 # full_results_dataset_dataset_tl, full_lsd_plot_results_dataset_tl = get_results(f'pub-prep-upscale-{dataset}-{other_dataset}-tl-', mode)
-                full_results_dataset_baseline, full_lsd_plot_results_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/barycentric/valid',mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
-
-                legend = ['SRGAN', 'Baseline']
+                full_results_dataset_baseline, full_lsd_plot_results_baseline = get_results(f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/single_panel/barycentric/valid',mode=f'baseline_{mode}', file_ext=f'{mode}_errors_barycentric_interpolated_data_')
+                full_results_dataset_baseline_hrtf_selection, _ = get_results(
+                    f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/single_panel/hrtf_selection/valid',
+                    mode=f'baseline_{mode}', upscale_factors=['minimum_data', 'maximum_data'],
+                    file_ext=f'{mode}_errors_hrtf_selection_')
+                legend = ['SRGAN', 'Barycentric', 'HRTF Selection-1', 'HRTF Selection-2']
                 colours = ['#0047a4', '#af211a', 'g', '#6C0BA9', '#E67E22']
                 # remove baseline results at upscale-16
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
                 #######################################
                 plot_lsd_plot(config, full_lsd_plot_results_dataset)
-                create_table(legend, [full_results_dataset, full_results_dataset_baseline], dataset.upper(), units='[dB]')
-                plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_sonicom_synthetic_tl, full_results_dataset_dataset_tl, full_results_dataset_baseline], legend, colours, ticks)
+                create_table(legend, [full_results_dataset, full_results_dataset_baseline, [full_results_dataset_baseline_hrtf_selection[0]], [full_results_dataset_baseline_hrtf_selection[1]]], dataset.upper(), units='[dB]')
+                # plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'{dataset.upper()} \n LSD error [dB]', [full_results_dataset, full_results_dataset_baseline], legend, colours, ticks, hrtf_selection_results=full_results_dataset_baseline_hrtf_selection)
             elif mode == 'loc':
                 types = ['ACC', 'RMS', 'QUERR']
                 labels = [r'Polar ACC error [$^\circ$]', r'Polar RMS error [$^\circ$]', 'Quadrant error [\%]']
@@ -671,7 +677,7 @@ def plot_evaluation(hpc, experiment_id, mode):
                 full_results_dataset_target_tl = get_results(f'{config.data_dirs_path}/data/{dataset.upper()}/cube_sphere', 'target', file_ext=f'{dataset.upper()}_loc_target_valid_errors.pickle')[::2][0]*4
                 for i in np.arange(np.shape(full_results_dataset)[1]):
                     plot_boxplot(config, f'{types[i]}_boxplot_ex_{experiment_id}_{dataset}', labels[i], [np.array(full_results_dataset)[:, i, :],
-                                                                                                         np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, ticks)
+                                                                                                         np.array(full_results_dataset_baseline)[:, i, :], np.array(full_results_dataset_target_tl)[:, i, :]], legend, colours, ticks, hrtf_selection_results=full_results_dataset_baseline_hrtf_selection)
                     print(f'Generate table containing {types[i]} errors for the {dataset.upper()} dataset: \n')
                     create_table(legend, [np.array(full_results_dataset)[:, i, :], np.array(full_results_dataset_baseline)[:, i, :], [np.array(full_results_dataset_target_tl)[0, i, :]]], dataset.upper(), units=units[i])
     elif experiment_id == 4:

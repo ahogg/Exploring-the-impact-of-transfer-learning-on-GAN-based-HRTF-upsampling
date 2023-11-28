@@ -64,10 +64,16 @@ class CubedSphere(object):
 
             # create pandas dataframe containing all coordinate data (spherical and cubed sphere)
             # this can be useful for debugging
-            self.all_coords = pd.concat(
-                [pd.DataFrame(self.indices, columns=["panel_index", "elevation_index", "azimuth_index"]),
-                 pd.DataFrame(self.sphere_coords, columns=["elevation", "azimuth"]),
-                 pd.DataFrame(self.cube_coords, columns=["panel", "x", "y"])], axis="columns")
+            if len(indices[0]) == 2:
+                self.all_coords = pd.concat(
+                    [pd.DataFrame(self.indices, columns=["elevation_index", "azimuth_index"]),
+                     pd.DataFrame(self.sphere_coords, columns=["elevation", "azimuth"]),
+                     pd.DataFrame(self.cube_coords, columns=["panel", "x", "y"])], axis="columns")
+            else:
+                self.all_coords = pd.concat(
+                    [pd.DataFrame(self.indices, columns=["panel_index", "elevation_index", "azimuth_index"]),
+                     pd.DataFrame(self.sphere_coords, columns=["elevation", "azimuth"]),
+                     pd.DataFrame(self.cube_coords, columns=["panel", "x", "y"])], axis="columns")
 
     def get_sphere_coords(self):
         return self.sphere_coords

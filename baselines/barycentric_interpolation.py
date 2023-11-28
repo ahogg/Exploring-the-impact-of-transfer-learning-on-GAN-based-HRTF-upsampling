@@ -9,7 +9,7 @@ from pathlib import Path
 from model.dataset import downsample_hrtf
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft
-from preprocessing.convert_coordinates import convert_cube_to_sphere, convert_cube_indices_to_single_panel_indices
+from preprocessing.convert_coordinates import convert_cube_to_sphere, convert_single_panel_indices_to_cube_indices, convert_cube_indices_to_spherical
 from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
 
 PI_4 = np.pi / 4
@@ -34,25 +34,28 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
         with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
             hr_hrtf = pickle.load(f)
 
-
-        if len(hr_hrtf.size()) == 3:  # single panel
-            lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (2, 0, 1)), config.hrtf_size, config.upscale_factor), (1, 2, 0))
-        else:
-            lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor), (1, 2, 3, 0))
-
         sphere_coords_lr = []
         sphere_coords_lr_index = []
-        for panel, x, y in cube_coords:
-            # based on cube coordinates, get indices for magnitudes list of lists
-            i = panel - 1
-            j = round(config.hrtf_size * (x - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
-            k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
-            if len(hr_hrtf.size()) == 3:  # single panel
-                single_panel_indices = convert_cube_indices_to_single_panel_indices([(i, k, j)], config.hrtf_size)
-                if hr_hrtf[int(single_panel_indices[0][0]), int(single_panel_indices[0][1])] in lr_hrtf:
-                    sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
-                    sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])
-            else:
+        if len(hr_hrtf.size()) == 3:  # single panel
+            lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (2, 0, 1)), config.hrtf_size, config.upscale_factor), (1, 2, 0))
+            for x in np.arange(hr_hrtf.size()[0]):
+                if (x < config.hrtf_size) or (2 * config.hrtf_size <= x < 3 * config.hrtf_size):
+                    height = config.hrtf_size
+                else:
+                    height = int(config.hrtf_size * 1.5)
+                for y in np.arange(height):
+                    if len(hr_hrtf.size()) == 3:  # single panel
+                        if hr_hrtf[x, y] in lr_hrtf:
+                            cube_indices = convert_single_panel_indices_to_cube_indices(x, y, config.hrtf_size)
+                            sphere_coords_lr.append(convert_cube_indices_to_spherical(cube_indices[0], cube_indices[1], cube_indices[2], config.hrtf_size))
+                            sphere_coords_lr_index.append([y/config.upscale_factor, x/config.upscale_factor])
+        else:
+            lr_hrtf = torch.permute(downsample_hrtf(torch.permute(hr_hrtf, (3, 0, 1, 2)), config.hrtf_size, config.upscale_factor), (1, 2, 3, 0))
+            for panel, x, y in cube_coords:
+                # based on cube coordinates, get indices for magnitudes list of lists
+                i = panel - 1
+                j = round(config.hrtf_size * (x - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
+                k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
                 if hr_hrtf[i, j, k] in lr_hrtf:
                     sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
                     sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])

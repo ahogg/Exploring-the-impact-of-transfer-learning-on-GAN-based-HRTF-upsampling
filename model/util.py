@@ -84,7 +84,7 @@ def spectral_distortion_inner(input_spectrum, target_spectrum):
     return torch.mean((20 * torch.log10(numerator / denominator)) ** 2)
 
 
-def spectral_distortion_metric(generated, target, reduction='mean'):
+def spectral_distortion_metric(generated, target, reduction='mean', full_errors=False):
     """Computes the mean spectral distortion metric for a 5 dimensional tensor (N x C x P x W x H)
     Where N is the batch size, C is the number of frequency bins, P is the number of panels (usually 5),
     H is height, and W is width.
@@ -102,6 +102,8 @@ def spectral_distortion_metric(generated, target, reduction='mean'):
     total_positions = num_panels * height * width
 
     total_sd_metric = 0
+    xy = []
+    errors = []
     for b in range(batch_size):
         total_all_positions = 0
         for i in range(num_panels):
@@ -109,7 +111,10 @@ def spectral_distortion_metric(generated, target, reduction='mean'):
                 for k in range(width):
                     average_over_frequencies = spectral_distortion_inner(generated[b, :, i, j, k],
                                                                          target[b, :, i, j, k])
-                    total_all_positions += torch.sqrt(average_over_frequencies)
+                    error = torch.sqrt(average_over_frequencies)
+                    total_all_positions += error
+                    xy.append({'p': i, 'h': j, 'w': k, 'original': False})
+                    errors.append(error)
         sd_metric = total_all_positions / total_positions
         total_sd_metric += sd_metric
 
@@ -120,7 +125,10 @@ def spectral_distortion_metric(generated, target, reduction='mean'):
     else:
         raise RuntimeError("Please specify a valid method for reduction (either 'mean' or 'sum').")
 
-    return output_loss
+    if full_errors:
+        return output_loss, errors, xy
+    else:
+        return output_loss
 
 
 def spectral_distortion_metric_for_plot(generated, target):
