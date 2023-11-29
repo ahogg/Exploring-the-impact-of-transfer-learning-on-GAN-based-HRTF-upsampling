@@ -8,7 +8,7 @@ class Config:
     Set using HPC to true in order to use appropriate paths for HPC
     """
 
-    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None, runs_folder=None):
+    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None, runs_folder=None, temporary_runs_path=None):
 
         # overwrite settings with arguments provided
         self.tag = tag if tag is not None else 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
@@ -59,11 +59,18 @@ class Config:
             self.data_dir += '/cube_sphere'
             self.baseline_dir += '/cube_sphere'
 
-        self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
-        self.existing_model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.existing_model_tag}'
+        if temporary_runs_path is None:
+            self.path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
+            self.existing_model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.existing_model_tag}'
 
-        self.valid_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}/valid'
-        self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
+            self.valid_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}/valid'
+            self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
+        else:
+            self.path = f'{temporary_runs_path}{self.runs_folder}/{self.tag}'
+            self.existing_model_path = f'{temporary_runs_path}{self.runs_folder}/{self.existing_model_tag}'
+
+            self.valid_path = f'{temporary_runs_path}{self.runs_folder}/{self.tag}/valid'
+            self.model_path = f'{temporary_runs_path}{self.runs_folder}/{self.tag}'
 
         self.projection_dir = f'{self.data_dirs_path}/projection_coordinates'
 

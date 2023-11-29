@@ -455,14 +455,14 @@ def run_train(hpc, type, test_id=None, tuning=None):
                     for search_index, hyperparameters in enumerate(grid_search):
                         label = tag['tag'] + f'-search-{search_index}'
                         print(label)
-
+                        temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN'
                         if type == 'base':
-                            config = Config(label, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
+                            config = Config(label, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder, temporary_runs_path=temporary_runs_path)
                         elif type == 'base-tl':
-                            config = Config(label, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, runs_folder=runs_folder)
+                            config = Config(label, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, runs_folder=runs_folder, temporary_runs_path=temporary_runs_path)
                         elif type == 'tl':
                             existing_model_label = tag['existing_model_tag'] + f'-search-{search_index}'
-                            config = Config(label, using_hpc=hpc, dataset=dataset, existing_model_tag=existing_model_label, data_dir='/data/' + dataset, runs_folder=runs_folder)
+                            config = Config(label, using_hpc=hpc, dataset=dataset, existing_model_tag=existing_model_label, data_dir='/data/' + dataset, runs_folder=runs_folder, temporary_runs_path=temporary_runs_path)
 
                         config.upscale_factor = upscale_factor
                         config.content_weight = hyperparameters[0]
