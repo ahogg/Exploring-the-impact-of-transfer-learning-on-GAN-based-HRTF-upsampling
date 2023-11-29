@@ -454,7 +454,6 @@ def run_train(hpc, type, test_id=None, tuning=None):
                     grid_search = list(itertools.product(content_weight_grid_search, adversarial_weight_grid_search))
                     for search_index, hyperparameters in enumerate(grid_search):
                         label = tag['tag'] + f'-search-{search_index}'
-                        print(label)
                         temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN'
                         if type == 'base':
                             config = Config(label, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder, temporary_runs_path=temporary_runs_path)
@@ -517,7 +516,7 @@ def run_train(hpc, type, test_id=None, tuning=None):
 
     print(f'Running a total of {len(config_files)} config files')
     for config in config_files:
-        main(config, args.mode)
+        main(config, 'train')
 
 
 def run_evaluation(hpc, experiment_id, type, test_id=None):
