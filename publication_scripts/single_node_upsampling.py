@@ -4,6 +4,7 @@ mpl.use('pdf')
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
+import itertools
 import sys
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -386,12 +387,13 @@ def run_preprocess(hpc, type, dataset_id=None):
     for config in config_files:
         main(config, 'preprocess')
 
-def run_train(hpc, type, test_id=None):
+def run_train(hpc, type, test_id=None, tuning=None):
     print(f'Running training')
     config_files = []
-    upscale_factors = [2, 4, 8, 16, 40]
-    # upscale_factors = [2, 4, 8, 16]
-    double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
+    # upscale_factors = [2, 4, 8, 16, 40]
+    upscale_factors = [2, 4, 8, 16]
+    double_panels = []
+    # double_panels = [[0, 2], [1, 3], [0, 1], [2, 3]]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':
         datasets.remove('SONICOMSynthetic')
@@ -445,38 +447,60 @@ def run_train(hpc, type, test_id=None):
                 else:
                     runs_folder ='/runs-hpc'
 
-                if type == 'base':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
-                elif type == 'base-tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, runs_folder=runs_folder)
-                elif type == 'tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, runs_folder=runs_folder)
-                config.upscale_factor = upscale_factor
-                config.lr_gen = 0.0002
-                config.lr_dis = 0.0000015
-                if upscale_factor == 2:
-                    config.content_weight = 0.1
-                    config.adversarial_weight = 0.001
-                elif upscale_factor == 4:
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.1
-                elif upscale_factor == 8:
-                    config.content_weight = 0.001
-                    config.adversarial_weight = 0.001
-                elif upscale_factor == 16:
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.01
-                elif upscale_factor == 40:
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.01
-                    config.panel = [int(config.tag[-3]), int(config.tag[-1])]
-                elif upscale_factor == 80:
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.01
-                    config.panel = int(config.tag[-1])
 
-                config_files.append(config)
+                if tuning == True:
+                    content_weight_grid_search = [0.1, 0.01, 0.001]
+                    adversarial_weight_grid_search = [0.1, 0.01, 0.001]
+                    grid_search = list(itertools.product(content_weight_grid_search, adversarial_weight_grid_search))
+                    for search_index, hyperparameters in enumerate(grid_search):
+                        label = tag['tag'] + f'-search-{search_index}'
+                        print(label)
 
+                        if type == 'base':
+                            config = Config(label, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
+                        elif type == 'base-tl':
+                            config = Config(label, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, runs_folder=runs_folder)
+                        elif type == 'tl':
+                            existing_model_label = tag['existing_model_tag'] + f'-search-{search_index}'
+                            config = Config(label, using_hpc=hpc, dataset=dataset, existing_model_tag=existing_model_label, data_dir='/data/' + dataset, runs_folder=runs_folder)
+
+                        config.upscale_factor = upscale_factor
+                        config.content_weight = hyperparameters[0]
+                        config.adversarial_weight = hyperparameters[1]
+                        config_files.append(config)
+                else:
+                    if type == 'base':
+                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, runs_folder=runs_folder)
+                    elif type == 'base-tl':
+                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, runs_folder=runs_folder)
+                    elif type == 'tl':
+                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, runs_folder=runs_folder)
+                    config.upscale_factor = upscale_factor
+                    config.lr_gen = 0.0002
+                    config.lr_dis = 0.0000015
+
+                    if upscale_factor == 2:
+                        config.content_weight = 0.1
+                        config.adversarial_weight = 0.001
+                    elif upscale_factor == 4:
+                        config.content_weight = 0.01
+                        config.adversarial_weight = 0.1
+                    elif upscale_factor == 8:
+                        config.content_weight = 0.001
+                        config.adversarial_weight = 0.001
+                    elif upscale_factor == 16:
+                        config.content_weight = 0.01
+                        config.adversarial_weight = 0.01
+                    elif upscale_factor == 40:
+                        config.content_weight = 0.01
+                        config.adversarial_weight = 0.01
+                        config.panel = [int(config.tag[-3]), int(config.tag[-1])]
+                    elif upscale_factor == 80:
+                        config.content_weight = 0.01
+                        config.adversarial_weight = 0.01
+                        config.panel = int(config.tag[-1])
+
+                    config_files.append(config)
 
     print(f'{len(config_files)} config files created successfully.')
     if test_id is not None:
@@ -635,7 +659,7 @@ def plot_evaluation(hpc, experiment_id, mode):
 
     elif experiment_id == 2:
         # datasets = ['ARI', 'SONICOM']
-        datasets = ['SONICOM']
+        datasets = ['ARI']
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             factors = [2, 4, 8, 16]
@@ -817,6 +841,8 @@ if __name__ == '__main__':
         run_preprocess(hpc, args.type, args.test)
     elif args.mode == 'train':
         run_train(hpc, args.type, args.test)
+    elif args.mode == 'tuning':
+        run_train(hpc, args.type, args.test, tuning=True)
     elif args.mode == 'evaluation':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
