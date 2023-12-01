@@ -519,7 +519,7 @@ def run_train(hpc, type, test_id=None, tuning=None):
         main(config, 'train')
 
 
-def get_tuning_results(hpc, type, test_id=None, tuning=None):
+def get_tuning_results(hpc, test_id=None):
     if hpc:
         temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN' + test_id
     else:
@@ -868,7 +868,7 @@ if __name__ == '__main__':
     elif args.mode == 'tuning':
         run_train(hpc, args.type, args.test, tuning=True)
     elif args.mode == 'tuning_results':
-        get_tuning_results(hpc, args.type, args.test, tuning=True)
+        get_tuning_results(hpc, args.test)
     elif args.mode == 'evaluation':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
