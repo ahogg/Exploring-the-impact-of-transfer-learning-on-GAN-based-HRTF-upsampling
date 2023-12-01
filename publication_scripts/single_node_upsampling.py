@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 import itertools
-import sys
+import sys, os
 from matplotlib.colors import LinearSegmentedColormap
 
 sys.path.append('/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-adversarial-network-using-a-gnomonic-equiangular-projection/')
@@ -519,6 +519,31 @@ def run_train(hpc, type, test_id=None, tuning=None):
         main(config, 'train')
 
 
+def get_tuning_results(hpc, type, test_id=None, tuning=None):
+    if hpc:
+        temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN' + test_id
+    else:
+        temporary_runs_path = '/home/ahogg/PycharmProjects/HRTF-GAN/tuning_results/' + test_id
+    print('Get Tuning Results')
+    run_paths = [temporary_runs_path+'/'+name for name in os.listdir(temporary_runs_path) if os.path.isfile(f'{temporary_runs_path}/{name}/train_losses.pickle')]
+
+    for run_path in run_paths:
+        print(run_path)
+
+        content_weight_grid_search = [0.1, 0.01, 0.001]
+        adversarial_weight_grid_search = [0.1, 0.01, 0.001]
+        grid_search = list(itertools.product(content_weight_grid_search, adversarial_weight_grid_search))
+
+        with (open(f'{run_path}/train_losses.pickle', "rb")) as run_file:
+            while True:
+                try:
+                    (train_losses_G, train_losses_G_adversarial, train_losses_G_content,
+                     train_losses_D, train_losses_D_hr, train_losses_D_sr, train_SD_metric) = pickle.load(run_file)
+                    print(train_SD_metric[-1])
+                except EOFError:
+                    break
+    return
+
 def run_evaluation(hpc, experiment_id, type, test_id=None):
     print(f'Running {type} experiment {experiment_id}')
     config_files = []
@@ -657,8 +682,8 @@ def plot_evaluation(hpc, experiment_id, mode):
                                 np.array(full_results_loc_dataset_sonicom_synthetic_tl)[:, i, :]], legend, colours)
 
     elif experiment_id == 2:
-        # datasets = ['ARI', 'SONICOM']
-        datasets = ['ARI']
+        datasets = ['ARI', 'SONICOM']
+        # datasets = ['ARI']
         for dataset in datasets:
             other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
             factors = [2, 4, 8, 16]
@@ -842,6 +867,8 @@ if __name__ == '__main__':
         run_train(hpc, args.type, args.test)
     elif args.mode == 'tuning':
         run_train(hpc, args.type, args.test, tuning=True)
+    elif args.mode == 'tuning_results':
+        get_tuning_results(hpc, args.type, args.test, tuning=True)
     elif args.mode == 'evaluation':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
