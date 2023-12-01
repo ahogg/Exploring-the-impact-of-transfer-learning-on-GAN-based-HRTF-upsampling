@@ -521,7 +521,7 @@ def run_train(hpc, type, test_id=None, tuning=None):
 
 def get_tuning_results(hpc, test_id=None):
     if hpc:
-        temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN' + test_id
+        temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN/' + test_id
     else:
         temporary_runs_path = '/home/ahogg/PycharmProjects/HRTF-GAN/tuning_results/' + test_id
     print('Get Tuning Results')
