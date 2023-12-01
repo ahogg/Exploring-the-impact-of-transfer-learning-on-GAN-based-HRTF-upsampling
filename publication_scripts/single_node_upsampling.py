@@ -525,11 +525,10 @@ def get_tuning_results(hpc, test_id=None):
         temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN/' + test_id
     else:
         temporary_runs_path = '/home/ahogg/PycharmProjects/HRTF-GAN/tuning_results/' + test_id
-    print('Get Tuning Results')
+
     run_paths = sorted([temporary_runs_path+'/'+name for name in os.listdir(temporary_runs_path) if os.path.isfile(f'{temporary_runs_path}/{name}/train_losses.pickle')])
 
-    t = PrettyTable(['Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
-
+    results = []
     for run_path in run_paths:
 
         content_weight_grid_search = [0.1, 0.01, 0.001]
@@ -549,10 +548,28 @@ def get_tuning_results(hpc, test_id=None):
                     content_weight = grid_search[search_idx][0]
                     adversarial_weight = grid_search[search_idx][1]
 
-                    t.add_row([dataset, upscale_factor, content_weight, adversarial_weight, loss])
+                    results.append([dataset, upscale_factor, content_weight, adversarial_weight, loss])
                 except EOFError:
                     break
-    print(t)
+
+    datasets = ['ARI', 'SONICOM']
+    upscale_factors = [2, 4, 8, 16]
+    for dataset in datasets:
+        table = PrettyTable(['Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
+        best_table = PrettyTable(['Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
+        for upscale_factor in upscale_factors:
+            best_result = [np.inf]
+            for result in results:
+                if result[0] == dataset and result[1] == upscale_factor:
+                    table.add_row(result)
+                    if result[-1] < best_result[-1]:
+                        best_result = result
+            if best_result[-1] != np.inf:
+                best_table.add_row(best_result)
+        print(f'Get all tuning results for {dataset}:')
+        print(table)
+        print(f'Get best tuning results for {dataset}:')
+        print(best_table)
     return
 
 def run_evaluation(hpc, experiment_id, type, test_id=None):
