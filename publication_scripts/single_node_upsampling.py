@@ -7,6 +7,7 @@ import numpy as np
 import itertools
 import sys, os
 from matplotlib.colors import LinearSegmentedColormap
+from prettytable import PrettyTable
 
 sys.path.append('/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-adversarial-network-using-a-gnomonic-equiangular-projection/')
 
@@ -527,8 +528,9 @@ def get_tuning_results(hpc, test_id=None):
     print('Get Tuning Results')
     run_paths = sorted([temporary_runs_path+'/'+name for name in os.listdir(temporary_runs_path) if os.path.isfile(f'{temporary_runs_path}/{name}/train_losses.pickle')])
 
+    t = PrettyTable(['Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
+
     for run_path in run_paths:
-        print(run_path)
 
         content_weight_grid_search = [0.1, 0.01, 0.001]
         adversarial_weight_grid_search = [0.1, 0.01, 0.001]
@@ -539,9 +541,18 @@ def get_tuning_results(hpc, test_id=None):
                 try:
                     (train_losses_G, train_losses_G_adversarial, train_losses_G_content,
                      train_losses_D, train_losses_D_hr, train_losses_D_sr, train_SD_metric) = pickle.load(run_file)
-                    print(train_SD_metric[-1])
+                    loss = train_SD_metric[-1]
+                    search_name = os.path.basename(run_path)
+                    dataset = search_name.split('-')[-4]
+                    upscale_factor = int(search_name.split('-')[-3])
+                    search_idx = int(search_name.split('-')[-1])
+                    content_weight = grid_search[search_idx][0]
+                    adversarial_weight = grid_search[search_idx][1]
+
+                    t.add_row([dataset, upscale_factor, content_weight, adversarial_weight, loss])
                 except EOFError:
                     break
+    print(t)
     return
 
 def run_evaluation(hpc, experiment_id, type, test_id=None):
