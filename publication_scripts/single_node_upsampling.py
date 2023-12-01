@@ -548,19 +548,19 @@ def get_tuning_results(hpc, test_id=None):
                     content_weight = grid_search[search_idx][0]
                     adversarial_weight = grid_search[search_idx][1]
 
-                    results.append([dataset, upscale_factor, content_weight, adversarial_weight, loss])
+                    results.append([search_name, dataset, upscale_factor, content_weight, adversarial_weight, loss])
                 except EOFError:
                     break
 
     datasets = ['ARI', 'SONICOM']
     upscale_factors = [2, 4, 8, 16]
     for dataset in datasets:
-        table = PrettyTable(['Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
-        best_table = PrettyTable(['Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
+        table = PrettyTable(['File', 'Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
+        best_table = PrettyTable(['File', 'Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
         for upscale_factor in upscale_factors:
             best_result = [np.inf]
             for result in results:
-                if result[0] == dataset and result[1] == upscale_factor:
+                if result[1] == dataset and result[2] == upscale_factor:
                     table.add_row(result)
                     if result[-1] < best_result[-1]:
                         best_result = result
