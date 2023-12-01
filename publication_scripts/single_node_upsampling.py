@@ -525,7 +525,7 @@ def get_tuning_results(hpc, test_id=None):
     else:
         temporary_runs_path = '/home/ahogg/PycharmProjects/HRTF-GAN/tuning_results/' + test_id
     print('Get Tuning Results')
-    run_paths = [temporary_runs_path+'/'+name for name in os.listdir(temporary_runs_path) if os.path.isfile(f'{temporary_runs_path}/{name}/train_losses.pickle')]
+    run_paths = sorted([temporary_runs_path+'/'+name for name in os.listdir(temporary_runs_path) if os.path.isfile(f'{temporary_runs_path}/{name}/train_losses.pickle')])
 
     for run_path in run_paths:
         print(run_path)
