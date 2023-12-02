@@ -452,7 +452,9 @@ def run_train(hpc, type, test_id=None, tuning=None):
                 if tuning == True:
                     content_weight_grid_search = [0.1, 0.01, 0.001]
                     adversarial_weight_grid_search = [0.1, 0.01, 0.001]
-                    grid_search = list(itertools.product(content_weight_grid_search, adversarial_weight_grid_search))
+                    lr_gen_grid_search = [0.0002, 0.0004, 0.0006, 0.0008]
+                    lr_dis_grid_search = [0.0000015]
+                    grid_search = list(itertools.product(content_weight_grid_search, adversarial_weight_grid_search, lr_gen_grid_search, lr_dis_grid_search))
                     for search_index, hyperparameters in enumerate(grid_search):
                         label = tag['tag'] + f'-search-{search_index}'
                         temporary_runs_path = '/rds/general/ephemeral/project/sonicom/ephemeral/tuning_GAN'
@@ -467,6 +469,8 @@ def run_train(hpc, type, test_id=None, tuning=None):
                         config.upscale_factor = upscale_factor
                         config.content_weight = hyperparameters[0]
                         config.adversarial_weight = hyperparameters[1]
+                        config.lr_gen = hyperparameters[2]
+                        config.lr_dis = hyperparameters[3]
                         config_files.append(config)
                 else:
                     if type == 'base':
