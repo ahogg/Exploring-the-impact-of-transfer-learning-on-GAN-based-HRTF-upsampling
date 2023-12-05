@@ -537,30 +537,34 @@ def get_tuning_results(hpc, test_id=None):
 
         content_weight_grid_search = [0.1, 0.01, 0.001]
         adversarial_weight_grid_search = [0.1, 0.01, 0.001]
-        grid_search = list(itertools.product(content_weight_grid_search, adversarial_weight_grid_search))
+        lr_gen_grid_search = [0.0002, 0.0004, 0.0006, 0.0008]
+        lr_dis_grid_search = [0.0000015]
+        grid_search = list(itertools.product(content_weight_grid_search, adversarial_weight_grid_search, lr_gen_grid_search,lr_dis_grid_search))
 
         with (open(f'{run_path}/train_losses.pickle', "rb")) as run_file:
             while True:
                 try:
                     (train_losses_G, train_losses_G_adversarial, train_losses_G_content,
                      train_losses_D, train_losses_D_hr, train_losses_D_sr, train_SD_metric) = pickle.load(run_file)
-                    loss = train_SD_metric[-1]
+                    loss = np.mean(train_SD_metric[-20:-1])
                     search_name = os.path.basename(run_path)
                     dataset = search_name.split('-')[-4]
                     upscale_factor = int(search_name.split('-')[-3])
                     search_idx = int(search_name.split('-')[-1])
                     content_weight = grid_search[search_idx][0]
                     adversarial_weight = grid_search[search_idx][1]
+                    lr_gen = grid_search[search_idx][2]
+                    lr_dis = grid_search[search_idx][3]
 
-                    results.append([search_name, dataset, upscale_factor, content_weight, adversarial_weight, loss])
+                    results.append([search_name, dataset, upscale_factor, content_weight, adversarial_weight, lr_gen, lr_dis, loss])
                 except EOFError:
                     break
 
     datasets = ['ARI', 'SONICOM']
     upscale_factors = [2, 4, 8, 16]
     for dataset in datasets:
-        table = PrettyTable(['File', 'Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
-        best_table = PrettyTable(['File', 'Dataset', 'Factor', 'Content', 'Adversarial', 'Loss'])
+        table = PrettyTable(['File', 'Dataset', 'Factor', 'Content', 'Adversarial', 'LR Generator', 'LR Discriminator', 'Loss'])
+        best_table = PrettyTable(['File', 'Dataset', 'Factor', 'Content', 'Adversarial', 'LR Generator', 'LR Discriminator', 'Loss'])
         for upscale_factor in upscale_factors:
             best_result = [np.inf]
             for result in results:
