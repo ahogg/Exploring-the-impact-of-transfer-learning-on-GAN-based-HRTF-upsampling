@@ -21,14 +21,10 @@ import numpy as np
 
 import matlab.engine
 
+from model.util import spectral_distortion_inner
+
 def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, barycentric_postprocessing=True):
     # Overwrite the generated points that exist in the original data
-
-    def calc_lsd(hr, sr):
-        sr[np.abs(sr) < 0.001] = 0.001
-        hr[np.abs(hr) < 0.001] = 0.001
-        error_lsd = np.sqrt(np.mean(np.array((20*np.log10(hr/sr))**2)))
-        return error_lsd
 
     with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
         hr_hrtf = pickle.load(f)
@@ -59,7 +55,7 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
         errors = []
         for i in np.arange(len(sr_hrtf)):
             if calc_spectral_distortion:
-                errors.append(calc_lsd(sr_hrtf[i], orig_hrtf[i]))
+                errors.append(spectral_distortion_inner(sr_hrtf[i], orig_hrtf[i]))
 
         xy_postprocessing = []
         for sphere_coord_idx, sphere_coord in enumerate(sphere_original):
@@ -93,7 +89,7 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
                     hr_hrtf_cube[panel, i, j] = hr_hrtf[w, h]
                     xy.append({'x': x_spherical, 'y': y_spherical, 'original': False})
                     if calc_spectral_distortion:
-                        errors.append(calc_lsd(sr_hrtf[w, h], hr_hrtf[w, h]))
+                        errors.append(spectral_distortion_inner(sr_hrtf[w, h], hr_hrtf[w, h]))
 
         generated =torch.permute(torch.from_numpy(sr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
         target = torch.permute(torch.from_numpy(hr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
@@ -114,7 +110,7 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
                     else:
                         xy.append({'x': x_spherical, 'y': y_spherical, 'original': False})
                         if calc_spectral_distortion:
-                            errors.append(calc_lsd(sr_hrtf[p, w, h], hr_hrtf[p, w, h]))
+                            errors.append(spectral_distortion_inner(sr_hrtf[p, w, h], hr_hrtf[p, w, h]))
 
         if barycentric_postprocessing:
 
@@ -155,7 +151,7 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
             errors_postprocessing = []
             for i in np.arange(len(barycentric_sr_merged)):
                 if calc_spectral_distortion:
-                    errors_postprocessing.append(calc_lsd(barycentric_sr_merged[i], orig_hrtf[i]))
+                    errors_postprocessing.append(spectral_distortion_inner(barycentric_sr_merged[i], orig_hrtf[i]))
 
         generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
         target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))

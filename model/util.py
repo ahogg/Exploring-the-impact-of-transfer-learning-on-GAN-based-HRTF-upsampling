@@ -83,7 +83,7 @@ def spectral_distortion_inner(input_spectrum, target_spectrum):
     denominator = input_spectrum
     numerator[np.abs(numerator) < 0.001] = 0.001
     denominator[np.abs(denominator) < 0.001] = 0.001
-    return torch.mean((20 * torch.log10(numerator / denominator)) ** 2)
+    return np.sqrt(torch.mean((20 * torch.log10(numerator / denominator)) ** 2))
 
 
 def spectral_distortion_metric(generated, target, reduction='mean', full_errors=False):
@@ -111,9 +111,8 @@ def spectral_distortion_metric(generated, target, reduction='mean', full_errors=
         for i in range(num_panels):
             for j in range(height):
                 for k in range(width):
-                    average_over_frequencies = spectral_distortion_inner(generated[b, :, i, j, k],
+                    error = spectral_distortion_inner(generated[b, :, i, j, k],
                                                                          target[b, :, i, j, k])
-                    error = torch.sqrt(average_over_frequencies)
                     total_all_positions += error
                     xy.append({'p': i, 'h': j, 'w': k, 'original': False})
                     errors.append(error)

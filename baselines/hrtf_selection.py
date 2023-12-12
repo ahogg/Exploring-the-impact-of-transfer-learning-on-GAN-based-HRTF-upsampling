@@ -7,7 +7,7 @@ import numpy as np
 import shutil
 from pathlib import Path
 
-from model.util import spectral_distortion_metric
+from model.util import spectral_distortion_inner
 
 def run_hrtf_selection(config, hrtf_selection_output_path, subject_file=None):
 
@@ -26,13 +26,21 @@ def run_hrtf_selection(config, hrtf_selection_output_path, subject_file=None):
     hrtf_dict_right = {}
     subj_ids = []
     for file_name in valid_data_file_names:
-        with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
-            hr_hrtf = pickle.load(f)
+
+        if config.barycentric_postprocessing:
+            with open(config.valid_original_hrtf_merge_dir + file_name, "rb") as f:
+                hr_hrtf = pickle.load(f)
+        else:
+            with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
+                hr_hrtf = pickle.load(f)
 
         # add to dict for right ears
         subj_id = int(re.findall(r'\d+', file_name)[0])
 
-        if len(hr_hrtf.size()) == 3:  # single panel
+        if len(hr_hrtf.size()) == 2: # barycentric_postprocessing
+            hrtf_dict_left[subj_id] = hr_hrtf[:, :config.nbins_hrtf]
+            hrtf_dict_right[subj_id] = hr_hrtf[:, config.nbins_hrtf:]
+        elif len(hr_hrtf.size()) == 3:  # single panel
             hrtf_dict_left[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[0:config.nbins_hrtf]])), (0, 1, 3, 2))
             hrtf_dict_right[subj_id] = torch.permute(torch.tensor(np.array([np.array(hr_hrtf).T[config.nbins_hrtf:]])), (0, 1, 3, 2))
         else:
@@ -51,9 +59,9 @@ def run_hrtf_selection(config, hrtf_selection_output_path, subject_file=None):
         for subject_id in subj_ids:
             if subject_id != subject_id_ref:
                 # SD metric for right ear
-                sd_right = spectral_distortion_metric(hrtf_dict_right[subject_id_ref], hrtf_dict_right[subject_id])
+                sd_right = spectral_distortion_inner(hrtf_dict_right[subject_id_ref], hrtf_dict_right[subject_id])
                 # SD metric for left ear
-                sd_left = spectral_distortion_metric(hrtf_dict_left[subject_id_ref], hrtf_dict_left[subject_id])
+                sd_left = spectral_distortion_inner(hrtf_dict_left[subject_id_ref], hrtf_dict_left[subject_id])
                 # average for left & right
                 sd_avg = (sd_right + sd_left) / 2.
                 # add to running total
