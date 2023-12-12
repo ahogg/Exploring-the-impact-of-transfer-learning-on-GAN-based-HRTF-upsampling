@@ -62,20 +62,36 @@ def run_sh_interpolation(config, sh_output_path, subject_file=None):
                 sphere_coords_lr.append(convert_cube_to_sphere(panel, x, y))
                 sphere_coords_lr_index.append([int(i), int(j / config.upscale_factor), int(k / config.upscale_factor)])
 
-        interpHRTF_sh = eng.supdeq_baseline(matlab.double(sphere_coords_lr), matlab.double(sphere_coords_hr), config.hrir_samplerate, matlab.double(HRTF_L), matlab.double(HRTF_R))
+        if config.barycentric_postprocessing:
+            original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
+            with open(original_coordinates_filename, "rb") as f:
+                sphere_original = pickle.load(f)
+            sphere_coords = sphere_original
+            sphere_coords_hr = sphere_original
 
-        index = 0
-        sr_hrtf = torch.tensor([[[[np.nan]*np.shape(hr_hrtf)[3]]*np.shape(hr_hrtf)[2]]*np.shape(hr_hrtf)[1]]*np.shape(hr_hrtf)[0])
-        for panel, x, y in cube_coords:
-            # based on cube coordinates, get indices for magnitudes list of lists
-            i = panel - 1
-            j = round(config.hrtf_size * (x - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
-            k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
-            sr_hrtf[i, j, k] = torch.tensor(np.concatenate((np.abs(interpHRTF_sh['HRTF_L'])[index], np.abs(interpHRTF_sh['HRTF_R'])[index])))
-            index += 1
+            interpHRTF_sh = eng.supdeq_baseline(matlab.double(sphere_coords_lr), matlab.double(sphere_coords_hr),
+                                                config.hrir_samplerate, matlab.double(HRTF_L), matlab.double(HRTF_R))
 
-        with open(sh_output_path + file_name, "wb") as file:
-            pickle.dump(sr_hrtf, file)
+            sh_hr_merged = torch.tensor(np.concatenate((interpHRTF_sh['HRTF_L'], interpHRTF_sh['HRTF_R']), axis=1))
+
+            with open(sh_output_path + file_name, "wb") as file:
+                pickle.dump(sh_hr_merged, file)
+
+        else:
+            interpHRTF_sh = eng.supdeq_baseline(matlab.double(sphere_coords_lr), matlab.double(sphere_coords_hr), config.hrir_samplerate, matlab.double(HRTF_L), matlab.double(HRTF_R))
+
+            index = 0
+            sr_hrtf = torch.tensor([[[[np.nan]*np.shape(hr_hrtf)[3]]*np.shape(hr_hrtf)[2]]*np.shape(hr_hrtf)[1]]*np.shape(hr_hrtf)[0])
+            for panel, x, y in cube_coords:
+                # based on cube coordinates, get indices for magnitudes list of lists
+                i = panel - 1
+                j = round(config.hrtf_size * (x - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
+                k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
+                sr_hrtf[i, j, k] = torch.tensor(np.concatenate((np.abs(interpHRTF_sh['HRTF_L'])[index], np.abs(interpHRTF_sh['HRTF_R'])[index])))
+                index += 1
+
+            with open(sh_output_path + file_name, "wb") as file:
+                pickle.dump(sr_hrtf, file)
 
         print('Created SH baseline %s' % file_name.replace('/', ''))
 

@@ -139,7 +139,7 @@ def main(config, mode):
         run_localisation_evaluation(config, config.valid_path)
 
     elif mode == 'barycentric_baseline':
-
+        print('Barycentric Baseline')
         print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
 
         barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
@@ -159,6 +159,9 @@ def main(config, mode):
         run_localisation_evaluation(config, barycentric_output_path, file_ext, baseline=True)
 
     elif mode == 'sh_baseline':
+        print('SH Baseline')
+        print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
+
         sh_data_folder = f'/sh_interpolated_data_{config.upscale_factor}'
         sh_output_path = config.sh_hrtf_dir + sh_data_folder
         cube, sphere = run_sh_interpolation(config, sh_output_path)
@@ -173,7 +176,7 @@ def main(config, mode):
         run_lsd_evaluation(config, sh_output_path, file_ext)
 
         file_ext = f'loc_errors_sh_interpolated_data_{config.upscale_factor}.pickle'
-        run_localisation_evaluation(config, sh_output_path, file_ext)
+        run_localisation_evaluation(config, sh_output_path, file_ext, baseline=True)
 
     elif mode == 'hrtf_selection_baseline':
 
