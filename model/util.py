@@ -1,7 +1,7 @@
 import torch
-import os
 import shutil
 from pathlib import Path
+import numpy as np
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
@@ -81,6 +81,8 @@ def progress(i, batches, n, num_epochs, timed):
 def spectral_distortion_inner(input_spectrum, target_spectrum):
     numerator = target_spectrum
     denominator = input_spectrum
+    numerator[np.abs(numerator) < 0.001] = 0.001
+    denominator[np.abs(denominator) < 0.001] = 0.001
     return torch.mean((20 * torch.log10(numerator / denominator)) ** 2)
 
 

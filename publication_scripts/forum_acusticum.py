@@ -300,7 +300,7 @@ def get_results(tag, mode, upscale_factors=[2, 4, 8, 16], file_ext=None, runs_fo
                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
             with open(file_path, 'rb') as file:
                 lsd_id_errors = pickle.load(file)
-            lsd_errors = [lsd_error[1] if not np.isinf(lsd_error[1]) else np.nan for lsd_error in lsd_id_errors]
+            lsd_errors = [lsd_error['total_error'] if not np.isinf(lsd_error['total_error']) else np.nan for lsd_error in lsd_id_errors]
             print(f'Loading: {file_path}')
             print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(lsd_errors),  np.std(lsd_errors)))
             full_results.append(lsd_errors)
@@ -452,11 +452,10 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     config_files = []
     if experiment_id == 1:
         upscale_factors = [2, 4, 8, 16]
-        datasets = ['ARI', 'SONICOM']
+        datasets = ['ARI']
         for dataset in datasets:
             for upscale_factor in upscale_factors:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
                 for tag in tags:
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                     config.upscale_factor = upscale_factor
@@ -597,8 +596,8 @@ def plot_evaluation(hpc, experiment_id, mode):
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
-            full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-',
-                                                                    mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
+            # full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-',
+            #                                                         mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
             full_results_dataset_baseline = get_results(
                 f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/barycentric/valid',
                 mode=f'baseline_{mode}', upscale_factors=[2, 4, 8, 16], file_ext=f'{mode}_errors_barycentric_interpolated_data_')

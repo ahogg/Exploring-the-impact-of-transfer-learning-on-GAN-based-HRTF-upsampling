@@ -33,6 +33,7 @@ class Config:
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
         self.single_panel = False
+        self.barycentric_postprocessing = True
 
         # Data dirs
         if using_hpc:
@@ -59,6 +60,7 @@ class Config:
         self.model_path = f'{self.data_dirs_path}{self.runs_folder}/{self.tag}'
 
         self.projection_dir = f'{self.data_dirs_path}/projection_coordinates'
+        self.postprocessing_dir = f'{self.data_dirs_path}/postprocessing_coordinates'
         self.baseline_dir = '/baseline_results/' + self.dataset
 
         if self.single_panel == True:

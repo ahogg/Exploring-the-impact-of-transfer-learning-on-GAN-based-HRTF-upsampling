@@ -3,6 +3,11 @@ from model.dataset import downsample_hrtf
 from preprocessing.utils import convert_to_sofa
 
 from preprocessing.convert_coordinates import convert_single_panel_indices_to_cube_indices, convert_cube_indices_to_spherical, convert_cube_to_sphere
+from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
+from preprocessing.cubed_sphere import CubedSphere
+from preprocessing.utils import interpolate_fft
+
+import matplotlib.pyplot as plt
 
 import shutil
 from pathlib import Path
@@ -16,21 +21,13 @@ import numpy as np
 
 import matlab.engine
 
-def replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=False):
+def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, barycentric_postprocessing=True):
     # Overwrite the generated points that exist in the original data
 
     def calc_lsd(hr, sr):
-        sum_on_band = 0.0
-        for j in range(10, 128):
-            sum_on_band += (20.0 * np.log10(abs(hr[j]) / abs(sr[j]))) ** 2
-        sum_on_band /= 118
-        sum_on_band_1 = 0.0
-        for j in range(138, 256):
-            sum_on_band_1 += (20.0 * np.log10(abs(hr[j]) / abs(sr[j]))) ** 2
-        sum_on_band_1 /= 118
-        sum_on_band = np.sqrt(sum_on_band.numpy())
-        sum_on_band_1 = np.sqrt(sum_on_band_1.numpy())
-        error_lsd = (sum_on_band + sum_on_band_1) / 2.0
+        sr[np.abs(sr) < 0.001] = 0.001
+        hr[np.abs(hr) < 0.001] = 0.001
+        error_lsd = np.sqrt(np.mean(np.array((20*np.log10(hr/sr))**2)))
         return error_lsd
 
     with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
@@ -38,6 +35,17 @@ def replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=False):
 
     with open(sr_dir + file_name, "rb") as f:
         sr_hrtf = pickle.load(f)
+
+    with open(config.valid_original_hrtf_merge_dir + file_name, "rb") as f:
+        orig_hrtf = pickle.load(f)
+
+    original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
+    with open(original_coordinates_filename, "rb") as f:
+        sphere_original = pickle.load(f)
+
+    projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
+    with open(projection_filename, "rb") as f:
+        (cube_coords, sphere_coords, euclidean_sphere_triangles, euclidean_sphere_coeffs) = pickle.load(f)
 
     lr_hrtf = torch.moveaxis(
         downsample_hrtf(torch.moveaxis(hr_hrtf, -1, 0), config.hrtf_size, config.upscale_factor, config.panel),
@@ -47,7 +55,21 @@ def replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=False):
     xy = []
     errors = []
 
-    if len(lr.size()) == 3:  # single panel
+    if len(np.shape(sr_hrtf)) == 2:
+        errors = []
+        for i in np.arange(len(sr_hrtf)):
+            if calc_spectral_distortion:
+                errors.append(calc_lsd(sr_hrtf[i], orig_hrtf[i]))
+
+        xy_postprocessing = []
+        for sphere_coord_idx, sphere_coord in enumerate(sphere_original):
+            xy_postprocessing.append({'x': np.degrees(sphere_coord[1]), 'y': np.degrees(sphere_coord[0]), 'original': False})
+
+        generated = sr_hrtf
+        target = orig_hrtf
+        return target, generated, errors, xy_postprocessing
+
+    elif len(lr.size()) == 3:  # single panel
         sr_hrtf_cube = np.empty((5, config.hrtf_size, config.hrtf_size, config.nbins_hrtf*2))
         hr_hrtf_cube = np.empty((5, config.hrtf_size, config.hrtf_size, config.nbins_hrtf*2))
         for w in range(config.hrtf_size * 4):
@@ -70,16 +92,20 @@ def replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=False):
                     sr_hrtf_cube[panel, i, j] = sr_hrtf[w, h]
                     hr_hrtf_cube[panel, i, j] = hr_hrtf[w, h]
                     xy.append({'x': x_spherical, 'y': y_spherical, 'original': False})
-                    if spectral_distortion_metric:
+                    if calc_spectral_distortion:
                         errors.append(calc_lsd(sr_hrtf[w, h], hr_hrtf[w, h]))
 
         generated =torch.permute(torch.from_numpy(sr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
         target = torch.permute(torch.from_numpy(hr_hrtf_cube)[:, None], (1, 4, 0, 2, 3))
     else:
+        sphere_coords_lr = []
+        sphere_coords_lr_index = []
         for p in range(5):
             for w in range(config.hrtf_size):
                 for h in range(config.hrtf_size):
                     xy_spherical = convert_cube_indices_to_spherical(p, w, h, config.hrtf_size)
+                    sphere_coords_lr.append((xy_spherical[0], xy_spherical[1]))
+                    sphere_coords_lr_index.append([p, w, h])
                     x_spherical = np.degrees(xy_spherical[1])
                     y_spherical = np.degrees(xy_spherical[0])
                     if hr_hrtf[p, w, h] in lr:
@@ -87,13 +113,61 @@ def replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=False):
                         xy.append({'x': x_spherical, 'y': y_spherical, 'original': True})
                     else:
                         xy.append({'x': x_spherical, 'y': y_spherical, 'original': False})
-                        if spectral_distortion_metric:
+                        if calc_spectral_distortion:
                             errors.append(calc_lsd(sr_hrtf[p, w, h], hr_hrtf[p, w, h]))
+
+        if barycentric_postprocessing:
+
+            cs = CubedSphere(sphere_coords=sphere_coords_lr, indices=sphere_coords_lr_index)
+
+            postprocessing_projection_filename = f'{config.postprocessing_dir}/{config.dataset}_postprocessing_projection_{config.hrtf_size}'
+            if os.path.exists(postprocessing_projection_filename):
+                 with open(postprocessing_projection_filename, "rb") as f:
+                    (euclidean_sphere_triangles, euclidean_sphere_coeffs, xy_postprocessing) = pickle.load(f)
+            else:
+                euclidean_sphere_triangles = []
+                euclidean_sphere_coeffs = []
+                xy_postprocessing = []
+                for sphere_coord_idx, sphere_coord in enumerate(sphere_original):
+                    xy_postprocessing.append({'x': np.degrees(sphere_coord[1]), 'y': np.degrees(sphere_coord[0]), 'original': False})
+                    # based on cube coordinates, get indices for magnitudes list of lists
+                    # print(f'Calculating Barycentric coefficient {sphere_coord_idx} of {len(sphere_original)}')
+                    triangle_vertices = get_triangle_vertices(elevation=sphere_coord[0], azimuth=sphere_coord[1],
+                                                              sphere_coords=sphere_coords_lr)
+                    coeffs = calc_barycentric_coordinates(elevation=sphere_coord[0], azimuth=sphere_coord[1],
+                                                          closest_points=triangle_vertices)
+                    euclidean_sphere_triangles.append(triangle_vertices)
+                    euclidean_sphere_coeffs.append(coeffs)
+
+                with open(postprocessing_projection_filename, "wb") as f:
+                    pickle.dump((euclidean_sphere_triangles, euclidean_sphere_coeffs, xy_postprocessing), f)
+
+            sr_hrtf_left = sr_hrtf[:, :, :, :config.nbins_hrtf]
+            sr_hrtf_right = sr_hrtf[:, :, :, config.nbins_hrtf:]
+
+            barycentric_sr_left = interpolate_fft(config, cs, sr_hrtf_left, sphere_original, euclidean_sphere_triangles,
+                                                  euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size, cs_output=False)
+            barycentric_sr_right = interpolate_fft(config, cs, sr_hrtf_right, sphere_original, euclidean_sphere_triangles,
+                                                   euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size, cs_output=False)
+
+            barycentric_sr_merged = torch.tensor(np.concatenate((barycentric_sr_left, barycentric_sr_right), axis=1))
+
+            errors_postprocessing = []
+            for i in np.arange(len(barycentric_sr_merged)):
+                if calc_spectral_distortion:
+                    errors_postprocessing.append(calc_lsd(barycentric_sr_merged[i], orig_hrtf[i]))
 
         generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
         target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
 
-    return target, generated, errors, xy
+        generated_postprocessing = barycentric_sr_merged
+        target_postprocessing = orig_hrtf
+
+    if barycentric_postprocessing:
+        return target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing
+    else:
+        return target, generated, errors, xy
+
 
 def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
 
@@ -129,7 +203,7 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
 
         lsd_errors = []
         for file_name in sr_data_file_names:
-            target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, spectral_distortion_metric=True)
+            target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=config.barycentric_postprocessing)
             error = sum(errors) / len(xy)
             subject_id = ''.join(re.findall(r'\d+', file_name))
             lsd_errors.append({'subject_id': subject_id, 'total_error': error, 'errors': errors, 'coordinates': xy})
@@ -144,11 +218,11 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
     print('Mean LSD Error: %0.3f' % np.mean([error['total_error'] for error in lsd_errors]))
 
 
-def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
+def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, baseline=False):
 
     file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
 
-    if hrtf_selection == 'minimum' or hrtf_selection == 'maximum':
+    if baseline:
         nodes_replaced_path = sr_dir
         target_sofa_path = config.valid_hrtf_merge_dir.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
         hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(target_sofa_path + '/sofa_min_phase')]
@@ -190,9 +264,12 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
     for file in hrtf_file_names:
         target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
         target_sofa_file = target_sofa_file.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
-        if hrtf_selection == 'minimum' or hrtf_selection == 'maximum':
+        if baseline:
             nodes_replaced_path = nodes_replaced_path.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
-            generated_sofa_file = f'{nodes_replaced_path}/sofa_min_phase/{hrtf_selection}.sofa'
+            if hrtf_selection == 'minimum' or hrtf_selection == 'maximum':
+                generated_sofa_file = f'{nodes_replaced_path}/sofa_min_phase/{hrtf_selection}.sofa'
+            else:
+                generated_sofa_file = f'{nodes_replaced_path}/sofa_min_phase/{file}'
         else:
             generated_sofa_file = nodes_replaced_path+'/sofa_min_phase/' + file
 

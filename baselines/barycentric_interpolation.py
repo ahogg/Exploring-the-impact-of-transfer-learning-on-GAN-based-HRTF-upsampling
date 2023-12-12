@@ -62,9 +62,16 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
 
         euclidean_sphere_triangles = []
         euclidean_sphere_coeffs = []
+
+        if config.barycentric_postprocessing:
+            original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
+            with open(original_coordinates_filename, "rb") as f:
+                sphere_original = pickle.load(f)
+            sphere_coords = sphere_original
+
         for sphere_coord_idx, sphere_coord in enumerate(sphere_coords):
             # based on cube coordinates, get indices for magnitudes list of lists
-            print(f'Calculating Barycentric coefficient {sphere_coord_idx} of {len(sphere_coords)}')
+            # print(f'Calculating Barycentric coefficient {sphere_coord_idx} of {len(sphere_coords)}')
             triangle_vertices = get_triangle_vertices(elevation=sphere_coord[0], azimuth=sphere_coord[1],
                                                       sphere_coords=sphere_coords_lr)
             coeffs = calc_barycentric_coordinates(elevation=sphere_coord[0], azimuth=sphere_coord[1],
@@ -81,17 +88,26 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
             lr_hrtf_left = lr_hrtf[:, :, :, :config.nbins_hrtf]
             lr_hrtf_right = lr_hrtf[:, :, :, config.nbins_hrtf:]
 
-        barycentric_hr_left = interpolate_fft(config, cs, lr_hrtf_left, sphere_coords, euclidean_sphere_triangles,
-                                         euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
-                                         edge_len=config.hrtf_size)
-        barycentric_hr_right = interpolate_fft(config, cs, lr_hrtf_right, sphere_coords, euclidean_sphere_triangles,
-                                              euclidean_sphere_coeffs, cube_coords, fs_original=config.hrir_samplerate,
-                                              edge_len=config.hrtf_size)
+        if config.barycentric_postprocessing:
+            barycentric_hr_left = interpolate_fft(config, cs, lr_hrtf_left, sphere_coords, euclidean_sphere_triangles,
+                                                  euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size,
+                                                  cs_output=False)
+            barycentric_hr_right = interpolate_fft(config, cs, lr_hrtf_right, sphere_coords, euclidean_sphere_triangles,
+                                                   euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size,
+                                                   cs_output=False)
+        else:
+            barycentric_hr_left = interpolate_fft(config, cs, lr_hrtf_left, sphere_coords, euclidean_sphere_triangles,
+                                             euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size)
+            barycentric_hr_right = interpolate_fft(config, cs, lr_hrtf_right, sphere_coords, euclidean_sphere_triangles,
+                                                  euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size)
 
         if len(hr_hrtf.size()) == 3:  # single panel
             barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=2))
         else:
-            barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=3))
+            if config.barycentric_postprocessing:
+                barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=1))
+            else:
+                barycentric_hr_merged = torch.tensor(np.concatenate((barycentric_hr_left, barycentric_hr_right), axis=3))
 
         with open(barycentric_output_path + file_name, "wb") as file:
             pickle.dump(barycentric_hr_merged, file)

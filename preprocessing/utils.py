@@ -180,23 +180,36 @@ def save_sofa(clean_hrtf, config, cube_coords, sphere_coords, sofa_path_output, 
             delays.append(delay)
 
     else:
-        left_full_hrtf = clean_hrtf[:, :, :, :config.nbins_hrtf]
-        right_full_hrtf = clean_hrtf[:, :, :, config.nbins_hrtf:]
+        if len(np.shape(clean_hrtf)) == 2:
+            left_full_hrtf = clean_hrtf[:, :config.nbins_hrtf]
+            right_full_hrtf = clean_hrtf[:, config.nbins_hrtf:]
 
-        count = 0
-        for panel, x, y in cube_coords:
-            # based on cube coordinates, get indices for magnitudes list of lists
-            i = panel - 1
-            j = round(config.hrtf_size * (x - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
-            k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
+            for count in np.arange(len(clean_hrtf)):
+                left_hrtf = np.array(left_full_hrtf[count])
+                right_hrtf = np.array(right_full_hrtf[count])
+                source_position, full_hrir, delay = gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count)
+                full_hrirs.append(full_hrir)
+                source_positions.append(source_position)
+                delays.append(delay)
 
-            left_hrtf = np.array(left_full_hrtf[i, j, k])
-            right_hrtf = np.array(right_full_hrtf[i, j, k])
-            source_position, full_hrir, delay = gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count)
-            full_hrirs.append(full_hrir)
-            source_positions.append(source_position)
-            delays.append(delay)
-            count += 1
+        else:
+            left_full_hrtf = clean_hrtf[:, :, :, :config.nbins_hrtf]
+            right_full_hrtf = clean_hrtf[:, :, :, config.nbins_hrtf:]
+
+            count = 0
+            for panel, x, y in cube_coords:
+                # based on cube coordinates, get indices for magnitudes list of lists
+                i = panel - 1
+                j = round(config.hrtf_size * (x - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
+                k = round(config.hrtf_size * (y - (PI_4 / config.hrtf_size) + PI_4) / (np.pi / 2))
+
+                left_hrtf = np.array(left_full_hrtf[i, j, k])
+                right_hrtf = np.array(right_full_hrtf[i, j, k])
+                source_position, full_hrir, delay = gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count)
+                full_hrirs.append(full_hrir)
+                source_positions.append(source_position)
+                delays.append(delay)
+                count += 1
 
     sofa = sf.Sofa("SimpleFreeFieldHRIR")
     sofa.Data_IR = full_hrirs
@@ -373,7 +386,7 @@ def calc_hrtf(config, hrirs):
     return magnitudes, phases
 
 
-def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs, cube, fs_original, edge_len):
+def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs, cube, edge_len, cs_output=True):
     """Combine all data processing steps into one function
 
     :param cs: Cubed sphere object associated with dataset
@@ -391,10 +404,6 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     # interpolated_hrirs is a list of interpolated HRIRs corresponding to the points specified in load_sphere and
     # load_cube, all three lists share the same ordering
     interpolated_hrirs = calc_all_interpolated_features(cs, features, sphere, sphere_triangles, sphere_coeffs, config)
-
-    # Resample data so that training and validation sets are created at the same fs ('config.hrir_samplerate').
-    # number_of_samples = round(np.shape(interpolated_hrirs)[-1] * float(config.hrir_samplerate) / fs_original)
-    # interpolated_hrirs_resampled = sps.resample(np.array(interpolated_hrirs).T, number_of_samples).T
 
     magnitudes, phases = calc_hrtf(config, interpolated_hrirs)
 
@@ -570,7 +579,10 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     if config.single_panel:
         feature = [[y['magnitude'] for y in x] for x in magnitudes_raw_flattened]
     else:
-        feature = magnitudes_raw
+        if cs_output:
+            feature = magnitudes_raw
+        else:
+            feature = magnitudes
 
     # convert list of numpy arrays into a single array, such that converting into tensor is faster
     return torch.tensor(np.array(feature))

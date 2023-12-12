@@ -42,6 +42,11 @@ def main(config, mode):
         cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
         generate_euclidean_cube(config, cs.get_sphere_coords(), edge_len=config.hrtf_size)
 
+        hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, 0)
+        filename = f'{config.projection_dir}/{config.dataset}_original'
+        with open(filename, "wb") as file:
+            pickle.dump(sphere_original, file)
+
     elif mode == 'preprocess':
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
         # val sets and saves processed data
@@ -134,6 +139,9 @@ def main(config, mode):
         run_localisation_evaluation(config, config.valid_path)
 
     elif mode == 'barycentric_baseline':
+
+        print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
+
         barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
         barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
         cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
@@ -148,7 +156,7 @@ def main(config, mode):
         run_lsd_evaluation(config, barycentric_output_path, file_ext)
 
         file_ext = f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle'
-        run_localisation_evaluation(config, barycentric_output_path, file_ext)
+        run_localisation_evaluation(config, barycentric_output_path, file_ext, baseline=True)
 
     elif mode == 'sh_baseline':
         sh_data_folder = f'/sh_interpolated_data_{config.upscale_factor}'

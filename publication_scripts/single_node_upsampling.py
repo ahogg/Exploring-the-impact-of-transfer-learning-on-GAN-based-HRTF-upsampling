@@ -588,8 +588,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
             for upscale_factor in upscale_factors:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
                 for tag in tags:
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                     config.upscale_factor = upscale_factor
