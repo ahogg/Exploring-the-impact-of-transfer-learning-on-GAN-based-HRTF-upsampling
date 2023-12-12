@@ -407,6 +407,9 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
 
     magnitudes, phases = calc_hrtf(config, interpolated_hrirs)
 
+    if not cs_output:
+        return torch.tensor(np.array(magnitudes))
+
     # create empty list of lists of lists and initialize counter
     magnitudes_raw = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]
     magnitudes_raw_cube = [[[[] for _ in range(edge_len)] for _ in range(edge_len)] for _ in range(5)]
@@ -579,10 +582,7 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
     if config.single_panel:
         feature = [[y['magnitude'] for y in x] for x in magnitudes_raw_flattened]
     else:
-        if cs_output:
-            feature = magnitudes_raw
-        else:
-            feature = magnitudes
+        feature = magnitudes_raw
 
     # convert list of numpy arrays into a single array, such that converting into tensor is faster
     return torch.tensor(np.array(feature))
