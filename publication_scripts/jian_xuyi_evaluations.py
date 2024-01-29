@@ -130,16 +130,15 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             print("Loaded all datasets successfully.")
 
             file_ext = 'loc_errors.pickle'
+            file_path = f'{config.data_dirs_path}/xuyi_jian_results/{config.dataset}_{config.upscale_factor}'
 
-            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir('/home/ahogg/PycharmProjects/HRTF-GAN/xuyi_jian_results/SONICOM_216')]
+            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path)]
 
             eng = matlab.engine.start_matlab()
             s = eng.genpath(config.amt_dir)
             eng.addpath(s, nargout=0)
             s = eng.genpath(config.data_dirs_path)
             eng.addpath(s, nargout=0)
-
-            file_path = f'{config.data_dirs_path}/xuyi_jian_results/{config.dataset}_{config.upscale_factor}'
 
             if not os.path.exists(file_path):
                 raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
