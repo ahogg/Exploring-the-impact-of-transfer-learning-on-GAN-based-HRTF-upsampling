@@ -4,6 +4,9 @@ mpl.use('pdf')
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
+from prettytable import PrettyTable
+
 
 from publication_scripts.config_forum_acusticum import Config
 from model.test import test
@@ -13,6 +16,73 @@ from main import main
 
 plt.rcParams['legend.fancybox'] = False
 
+
+cm_data_vb = [[0,    0,         0],
+    [0.0275,         0,    0.0667],
+    [0.0549,         0,    0.1294],
+    [0.0824,         0,    0.1961],
+    [0.1137,         0,    0.2627],
+    [0.1412,         0,    0.3294],
+    [0.1686,         0,    0.3922],
+    [0.1961,         0,    0.4588],
+    [0.2235,         0,    0.5255],
+    [0.2510,         0,    0.5882],
+    [0.2824,         0,    0.6549],
+    [0.3137,    0.0118,    0.6431],
+    [0.3490,    0.0275,    0.6118],
+    [0.3804,    0.0431,    0.5843],
+    [0.4157,    0.0588,    0.5569],
+    [0.4471,    0.0745,    0.5255],
+    [0.4824,    0.0902,    0.4980],
+    [0.5137,    0.1059,    0.4667],
+    [0.5490,    0.1216,    0.4392],
+    [0.5843,    0.1373,    0.4118],
+    [0.6157,    0.1529,    0.3804],
+    [0.6510,    0.1686,    0.3529],
+    [0.6824,    0.1843,    0.3216],
+    [0.7176,    0.2000,    0.2941],
+    [0.7529,    0.2157,    0.2667],
+    [0.7843,    0.2314,    0.2353],
+    [0.8196,    0.2471,    0.2078],
+    [0.8510,    0.2627,    0.1765],
+    [0.8863,    0.2784,    0.1490],
+    [0.9176,    0.2941,    0.1216],
+    [0.9529,    0.3098,    0.0902],
+    [0.9882,    0.3255,    0.0627],
+    [1.0000,    0.3451,    0.0471],
+    [1.0000,    0.3725,    0.0471],
+    [1.0000,    0.4000,    0.0431],
+    [1.0000,    0.4275,    0.0431],
+    [1.0000,    0.4549,    0.0392],
+    [1.0000,    0.4824,    0.0392],
+    [1.0000,    0.5098,    0.0353],
+    [1.0000,    0.5373,    0.0353],
+    [1.0000,    0.5647,    0.0314],
+    [1.0000,    0.5922,    0.0314],
+    [1.0000,    0.6196,    0.0275],
+    [1.0000,    0.6471,    0.0275],
+    [1.0000,    0.6745,    0.0235],
+    [1.0000,    0.7020,    0.0235],
+    [1.0000,    0.7294,    0.0196],
+    [1.0000,    0.7569,    0.0157],
+    [1.0000,    0.7843,    0.0157],
+    [1.0000,    0.8118,    0.0118],
+    [1.0000,    0.8392,    0.0118],
+    [1.0000,    0.8667,    0.0078],
+    [1.0000,    0.8941,    0.0078],
+    [1.0000,    0.9216,    0.0039],
+    [1.0000,    0.9490,    0.0039],
+    [1.0000,    0.9765,         0],
+    [1.0000,    0.9882,    0.0863],
+    [1.0000,    0.9882,    0.2157],
+    [1.0000,    0.9922,    0.3451],
+    [1.0000,    0.9922,    0.4784],
+    [1.0000,    0.9961,    0.6078],
+    [1.0000,    0.9961,    0.7373],
+    [1.0000,    1.0000,    0.8706],
+    [1.0000,    1.0000,    1.0000]]
+
+parula = LinearSegmentedColormap.from_list('parula', cm_data_vb[::-1])
 
 def get_means(full_results):
     upsample_means = []
@@ -288,8 +358,45 @@ def plot_boxplot(config, name, ylabel, full_results, legend, colours, ticks, xla
 #
 #     return full_results
 
-def get_results(tag, mode, upscale_factors=[2, 4, 8, 16], file_ext=None, runs_folder=None):
+def plot_lsd_plot(config, full_lsd_plot_results):
+    plt.rc('font', family='serif', serif='Times New Roman')
+    plt.rc('text', usetex=True)
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
+    plt.rc('axes', labelsize=8)
+
+    subject_id = 0
+
+    max_node_lsd = max(filter(None.__ne__, np.array(full_lsd_plot_results)[:,:,:,-1].flatten()))
+    for upsampling_idx in [0, 1, 2, 3]:
+
+        fig, ax = plt.subplots(1, 1, sharey=False)
+
+        coordinates = [coordinate for coordinate in full_lsd_plot_results[upsampling_idx][subject_id] if coordinate[2] is not None]
+        coordinates_original = [coordinate for coordinate in full_lsd_plot_results[upsampling_idx][subject_id] if coordinate[2] is None]
+        plt.scatter([coordinate_original[0] for coordinate_original in coordinates_original], [coordinate_original[1] for coordinate_original in coordinates_original], s=5, facecolors='none', edgecolors='k', linewidth=0.5)
+        plt.scatter([coordinate[0] for coordinate in coordinates], [coordinate[1] for coordinate in coordinates], c=[coordinate[2] for coordinate in coordinates], cmap=parula, s=5)
+
+        cbar = plt.colorbar(pad=0.01)
+        cbar.set_label('Average SD error [dB]', rotation=270, labelpad=14)
+        #     plt.title("SD per node -- HR vs SR "+"avg: "+str(round(sum(diff_left)/1280,5)))
+        # plt.clim(0, max_node_lsd)
+        plt.clim(0, 17.5)
+        plt.xlabel(r"Azimuth [$^\circ$]")
+        plt.ylabel(r"Elevation [$^\circ$]")
+        #     plt.text(0.5, 0.5, 'Average SD error', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+
+        width = 2.874
+        height = width / 1.4
+        fig.set_size_inches(width*1.4, height*1.4)
+        fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
+        fig.savefig(f'{config.data_dirs_path}/plots/SD_node_{upsampling_idx}.png', dpi=300)
+    return
+
+
+def get_results(tag, mode, upscale_factors=[16, 8, 4, 2], file_ext=None, runs_folder=None):
     full_results = []
+    full_plot_results = []
     for upscale_factor in upscale_factors:
         config = Config(tag + str(upscale_factor), using_hpc=hpc, runs_folder=runs_folder)
         if mode == 'lsd' or mode == 'baseline_lsd':
@@ -298,12 +405,37 @@ def get_results(tag, mode, upscale_factors=[2, 4, 8, 16], file_ext=None, runs_fo
                 file_path = f'{config.path}/{file_ext}'
             elif mode == 'baseline_lsd':
                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
-            with open(file_path, 'rb') as file:
-                lsd_id_errors = pickle.load(file)
-            lsd_errors = [lsd_error['total_error'] if not np.isinf(lsd_error['total_error']) else np.nan for lsd_error in lsd_id_errors]
+
+            try:
+                with open(file_path, 'rb') as file:
+                    lsd_id_errors = pickle.load(file)
+            except OSError:
+                print(f"Unable to load {file_path} successfully.")
+                return None, None
+
+            total_lsd_errors = [lsd_error['total_error'] if not np.isinf(lsd_error['total_error']) else np.nan for lsd_error in lsd_id_errors]
+
+            errors = [lsd_error['errors'] if not np.isinf(lsd_error['errors']).any() else np.nan for lsd_error in lsd_id_errors]
+            coordinates = [[lsd_errors for lsd_errors in subject_lsd_errors['coordinates']] for subject_lsd_errors in lsd_id_errors]
+            lsd_plot_results = []
+            for sub_idx, subject in enumerate(coordinates):
+                error_idx = 0
+                lsd_plot_result = []
+                for pos_idx, position in enumerate(subject):
+                    if position['original']:
+                        lsd_plot_result.append((position['x'], position['y'], None))
+                    else:
+                        if 'x' in position and 'y' in position:
+                            lsd_plot_result.append((position['x'], position['y'], errors[sub_idx][error_idx]))
+                        else:
+                            lsd_plot_result.append((position['p'], position['h'], position['w'], errors[sub_idx][error_idx]))
+                        error_idx += 1
+                lsd_plot_results.append(lsd_plot_result)
+
             print(f'Loading: {file_path}')
-            print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(lsd_errors),  np.std(lsd_errors)))
-            full_results.append(lsd_errors)
+            print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(total_lsd_errors),  np.std(total_lsd_errors)))
+            full_results.append(total_lsd_errors)
+            full_plot_results.append(lsd_plot_results)
         elif mode == 'loc' or mode == 'target' or mode == 'baseline_loc':
             file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
             if mode == 'loc':
@@ -327,7 +459,48 @@ def get_results(tag, mode, upscale_factors=[2, 4, 8, 16], file_ext=None, runs_fo
             if mode == 'target':
                 break
 
-    return full_results
+    return full_results, full_plot_results
+
+# def get_results(tag, mode, upscale_factors=[2, 4, 8, 16], file_ext=None, runs_folder=None):
+#     full_results = []
+#     for upscale_factor in upscale_factors:
+#         config = Config(tag + str(upscale_factor), using_hpc=hpc, runs_folder=runs_folder)
+#         if mode == 'lsd' or mode == 'baseline_lsd':
+#             if mode == 'lsd':
+#                 file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
+#                 file_path = f'{config.path}/{file_ext}'
+#             elif mode == 'baseline_lsd':
+#                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
+#             with open(file_path, 'rb') as file:
+#                 lsd_id_errors = pickle.load(file)
+#             lsd_errors = [lsd_error['total_error'] if not np.isinf(lsd_error['total_error']) else np.nan for lsd_error in lsd_id_errors]
+#             print(f'Loading: {file_path}')
+#             print('Mean (STD) LSD: %0.3f (%0.3f)' % (np.mean(lsd_errors),  np.std(lsd_errors)))
+#             full_results.append(lsd_errors)
+#         elif mode == 'loc' or mode == 'target' or mode == 'baseline_loc':
+#             file_ext = 'loc_errors.pickle' if file_ext is None else file_ext
+#             if mode == 'loc':
+#                 file_path = f'{config.path}/{file_ext}'
+#             elif mode == 'target':
+#                 file_path = tag + '/' + file_ext
+#             elif mode == 'baseline_loc':
+#                 file_path = f'{tag}/{file_ext}{upscale_factor}.pickle'
+#
+#             with open(file_path, 'rb') as file:
+#                 loc_id_errors = pickle.load(file)
+#             pol_acc1 = [loc_error[1] for loc_error in loc_id_errors]
+#             pol_rms1 = [loc_error[2] for loc_error in loc_id_errors]
+#             querr1 = [loc_error[3] for loc_error in loc_id_errors]
+#             print(f'Loading: {file_path}')
+#             print('Mean (STD) ACC Error: %0.3f (%0.3f)' % (np.mean(pol_acc1), np.std(pol_acc1)))
+#             print('Mean (STD) RMS Error: %0.3f (%0.3f)' % (np.mean(pol_rms1), np.std(pol_rms1)))
+#             print('Mean (STD) QUERR Error: %0.3f (%0.3f)' % (np.mean(querr1), np.std(querr1)))
+#             full_results.append([pol_acc1, pol_rms1, querr1])
+#
+#             if mode == 'target':
+#                 break
+#
+#     return full_results
 
 
 def run_projection(hpc, dataset_id=None):
@@ -595,16 +768,16 @@ def plot_evaluation(hpc, experiment_id, mode):
     elif experiment_id == 4:
         datasets = ['ARI', 'SONICOM']
         for dataset in datasets:
-            full_results_dataset = get_results(f'pub-prep-upscale-{dataset}-', mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
+            full_results_dataset, _ = get_results(f'pub-prep-upscale-{dataset}-', mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
             # full_results_dataset_sonicom_synthetic_tl = get_results(f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-',
             #                                                         mode, upscale_factors=[2, 4, 8, 16], runs_folder='/runs-hpc')
-            full_results_dataset_baseline = get_results(
+            full_results_dataset_baseline, full_lsd_plot_results_baseline = get_results(
                 f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/barycentric/valid',
                 mode=f'baseline_{mode}', upscale_factors=[2, 4, 8, 16], file_ext=f'{mode}_errors_barycentric_interpolated_data_')
-            full_results_dataset_sh_baseline = get_results(
+            full_results_dataset_sh_baseline, full_lsd_plot_results_sh_baseline  = get_results(
                 f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/sh/valid',
                 mode=f'baseline_{mode}', file_ext=f'{mode}_errors_sh_interpolated_data_')
-            full_results_dataset_baseline_hrtf_selection = get_results(
+            full_results_dataset_baseline_hrtf_selection, _ = get_results(
                 f'{config.data_dirs_path}/baseline_results/{dataset.upper()}/cube_sphere/hrtf_selection/valid',
                 mode=f'baseline_{mode}', upscale_factors=['minimum_data', 'maximum_data'],
                 file_ext=f'{mode}_errors_hrtf_selection_')
@@ -619,7 +792,8 @@ def plot_evaluation(hpc, experiment_id, mode):
                 # full_results_dataset_baseline[0] = np.full(shape=len(full_results_dataset_baseline[-1]), fill_value=np.nan).tolist()
                 legend = ['SRGAN', f'SH Baseline', 'Barycentric Baseline', 'Selection-1', 'Selection-2']
                 colours = ['#0047a4', '#af211a', 'g', '#FFA500', '#E67E22']
-                create_table(legend, [full_results_dataset[::-1], full_results_dataset_sh_baseline[::-1], full_results_dataset_baseline[::-1], [np.array(full_results_dataset_baseline_hrtf_selection)[0, :]],
+                plot_lsd_plot(config, full_lsd_plot_results_sh_baseline)
+                create_table(legend, [full_results_dataset[::-1], full_results_dataset_sh_baseline, full_results_dataset_baseline[::-1], [np.array(full_results_dataset_baseline_hrtf_selection)[0, :]],
                                           [np.array(full_results_dataset_baseline_hrtf_selection)[1, :]]], units='[dB]')
                 plot_boxplot(config, f'LSD_boxplot_ex_{experiment_id}_{dataset}', f'LSD error [dB]', [full_results_dataset, full_results_dataset_sh_baseline, full_results_dataset_baseline], legend, colours, basline_ticks, xlabel, hrtf_selection_results=np.array(full_results_dataset_baseline_hrtf_selection))
             elif mode == 'loc':

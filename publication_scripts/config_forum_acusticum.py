@@ -33,7 +33,7 @@ class Config:
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
         self.single_panel = False
-        self.barycentric_postprocessing = True
+        self.barycentric_postprocessing = False
 
         # Data dirs
         if using_hpc:

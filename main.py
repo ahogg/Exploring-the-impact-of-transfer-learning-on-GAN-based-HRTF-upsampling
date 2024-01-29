@@ -194,13 +194,13 @@ def main(config, mode):
 
         file_ext = f'lsd_errors_hrtf_selection_minimum_data.pickle'
         run_lsd_evaluation(config, config.hrtf_selection_dir, file_ext, hrtf_selection='minimum')
-        file_ext = f'loc_errors_hrtf_selection_minimum_data.pickle'
-        run_localisation_evaluation(config, config.hrtf_selection_dir, file_ext, baseline=True, hrtf_selection='minimum')
+        # file_ext = f'loc_errors_hrtf_selection_minimum_data.pickle'
+        # run_localisation_evaluation(config, config.hrtf_selection_dir, file_ext, baseline=True, hrtf_selection='minimum')
 
         file_ext = f'lsd_errors_hrtf_selection_maximum_data.pickle'
         run_lsd_evaluation(config, config.hrtf_selection_dir, file_ext, hrtf_selection='maximum')
-        file_ext = f'loc_errors_hrtf_selection_maximum_data.pickle'
-        run_localisation_evaluation(config, config.hrtf_selection_dir, file_ext, baseline=True, hrtf_selection='maximum')
+        # file_ext = f'loc_errors_hrtf_selection_maximum_data.pickle'
+        # run_localisation_evaluation(config, config.hrtf_selection_dir, file_ext, baseline=True, hrtf_selection='maximum')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

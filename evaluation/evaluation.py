@@ -156,10 +156,10 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
         generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
         target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
 
+    if barycentric_postprocessing:
         generated_postprocessing = barycentric_sr_merged
         target_postprocessing = orig_hrtf
 
-    if barycentric_postprocessing:
         return target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing
     else:
         return target, generated, errors, xy

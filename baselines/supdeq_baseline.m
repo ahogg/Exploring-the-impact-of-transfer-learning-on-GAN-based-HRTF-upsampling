@@ -22,7 +22,7 @@
 %               TU Berlin
 %               Audio Communication Group
 
-function interpHRTF_mca = supdeq_baseline(samplingGrid,samplingGridInterp,fs,HRTF_L,HRTF_R)
+function interpHRTF_sh = supdeq_baseline(samplingGrid,samplingGridInterp,fs,HRTF_L,HRTF_R)
 % (1) - Define sparse and dense grid
 
 
@@ -31,8 +31,17 @@ function interpHRTF_mca = supdeq_baseline(samplingGrid,samplingGridInterp,fs,HRT
 %Azimuth, Colatitude, Weight
 % Nd = 44;
 % sgD = supdeq_lebedev([],Nd);
-samplingGridInterp(:,1) = mod(samplingGridInterp(:,1),360);
-samplingGridInterp(:,2) = 90-samplingGridInterp(:,2);
+
+% Spatial sampling grid (Q x 2 or Q x 3 matrix),
+% defining the interpolation points, where the first
+% column holds the azimuth, the second the elevation
+% (both in degree), and optionally the third the
+%  sampling weights.
+
+% (0=front, 90=left, 180=back, 270=right)
+% (0=North Pole, 90=front, 180=South Pole)
+samplingGridInterp(:,1) = samplingGridInterp(:,1);
+samplingGridInterp(:,2) = samplingGridInterp(:,2);
 sgD = samplingGridInterp;
 
 %% (2) - Get sparse HRTF set
@@ -53,8 +62,8 @@ sparseHRTF.sourceDistance = 3;
 sparseHRTF.FFToversize = 4;
 sparseHRTF.Nmax = 4;
 
-samplingGrid(:,1) = mod(samplingGrid(:,1),360);
-samplingGrid(:,2) = 90-samplingGrid(:,2);
+samplingGrid(:,1) = samplingGrid(:,1);
+samplingGrid(:,2) = samplingGrid(:,2);
 sparseHRTF.samplingGrid = samplingGrid;
 
 NFFT = 2^nextpow2(size(HRTF_L,2));
@@ -80,7 +89,7 @@ headRadius = 0.0875; %Also default value in function
 
 %Interpolation / upsampling with SH interpolation but without any
 %pre/post-processing ('none'), called SH here
-%interpHRTF_sh = supdeq_interpHRTF(sparseHRTF,sgD,'None','SH',nan,headRadius);
+interpHRTF_sh = supdeq_interpHRTF(sparseHRTF,sgD,'None','SH',nan,headRadius);
 
 %Interpolation / upsampling with SUpDEq time alignment and SH
 %interpolation, called 'conventional'
@@ -96,7 +105,8 @@ headRadius = 0.0875; %Also default value in function
 % frequency fA
 % (b) Soft-limiting knee set to 0dB (no knee)
 % (c) Magnitude-correction filters are designed as minimum phase filters
-interpHRTF_mca = supdeq_interpHRTF(sparseHRTF,sgD,'SUpDEq','SH',inf,headRadius);
+
+% interpHRTF_mca = supdeq_interpHRTF(sparseHRTF,sgD,'SUpDEq','SH',inf,headRadius);
 
 %The resulting datasets can be saved as SOFA files using the function
 %supdeq_writeSOFAobj

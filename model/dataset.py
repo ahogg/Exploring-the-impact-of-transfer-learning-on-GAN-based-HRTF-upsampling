@@ -42,6 +42,10 @@ def downsample_hrtf(hr_hrtf, hrtf_size, upscale_factor, panel=0):
             lr_hrtf = hr_hrtf[:, :, mid_pos, mid_pos, None, None]
         else:
             lr_hrtf = torch.nn.functional.interpolate(hr_hrtf, scale_factor=1 / upscale_factor)
+            # lr_hrtf = torch.from_numpy(
+            #     np.moveaxis(np.array(torch.from_numpy(np.moveaxis(np.array(hr_hrtf), 0, -1))[np.ix_(
+            #         np.arange((upscale_factor / 2) - 1, np.shape(hr_hrtf)[1], upscale_factor),
+            #         np.arange((upscale_factor / 2) - 1, np.shape(hr_hrtf)[2], upscale_factor))]), -1, 0))
 
     return lr_hrtf
 
