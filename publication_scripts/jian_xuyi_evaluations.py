@@ -165,6 +165,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_errors]))
             with open(f'{file_path}/{file_ext}', "wb") as file:
                 pickle.dump(loc_errors, file)
+            eng.quit()
 
         else:
             print(f'Type ({type}) does not exist')
