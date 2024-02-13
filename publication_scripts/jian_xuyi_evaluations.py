@@ -132,7 +132,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             file_ext = 'loc_errors.pickle'
             file_path = f'{config.data_dirs_path}/xuyi_jian_results/{config.dataset}_{config.upscale_factor}'
 
-            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path)]
+            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
 
             if not os.path.exists(file_path):
                 raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
