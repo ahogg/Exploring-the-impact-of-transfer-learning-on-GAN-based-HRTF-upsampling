@@ -95,7 +95,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     print(f'Running {type} experiment {experiment_id}')
     config_files = []
     if experiment_id == 1:
-        upscale_factors = [216]
+        upscale_factors = [32, 72, 108, 216, 288]
         datasets = ['SONICOM']
         for dataset in datasets:
             for upscale_factor in upscale_factors:
