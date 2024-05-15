@@ -7,9 +7,9 @@ from model.single_panel.custom_conv_single_panel import CubeSphereConv2DSinglePa
 
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/main/model.py
 
-class Discriminator(nn.Module):
+class DiscriminatorSinglePanel(nn.Module):
     def __init__(self, nbins: int):
-        super(Discriminator, self).__init__()
+        super(DiscriminatorSinglePanel, self).__init__()
         self.nbins = nbins
         self.features = nn.Sequential(
 

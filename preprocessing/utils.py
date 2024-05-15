@@ -30,6 +30,10 @@ def clear_create_directories(config):
     shutil.rmtree(Path(config.valid_original_hrtf_dir), ignore_errors=True)
     Path(config.train_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
     Path(config.valid_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(Path(config.train_lap_dir), ignore_errors=True)
+    shutil.rmtree(Path(config.valid_lap_dir), ignore_errors=True)
+    Path(config.train_lap_dir).mkdir(parents=True, exist_ok=True)
+    Path(config.valid_lap_dir).mkdir(parents=True, exist_ok=True)
 
 
 def merge_left_right_hrtfs(input_dir, output_dir):
@@ -84,6 +88,8 @@ def merge_files(config):
     merge_left_right_hrtfs(config.valid_hrtf_dir, config.valid_hrtf_merge_dir)
     merge_left_right_hrtfs(config.train_original_hrtf_dir, config.train_original_hrtf_merge_dir)
     merge_left_right_hrtfs(config.valid_original_hrtf_dir, config.valid_original_hrtf_merge_dir)
+    merge_left_right_hrtfs(config.train_lap_dir, config.train_lap_merge_dir)
+    merge_left_right_hrtfs(config.valid_lap_dir, config.valid_lap_merge_dir)
 
 
 def get_hrtf_from_ds(config, ds, index):
@@ -260,7 +266,7 @@ def gen_sofa_preprocess(config, cube, sphere, sphere_original):
     convert_to_sofa(config.valid_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
 
 
-def generate_euclidean_cube(config, measured_coords, edge_len=16):
+def generate_euclidean_cube(config, measured_coords, edge_len=16, filename=None, output_measured_coords=False):
     """Calculate barycentric coordinates for projection based on a specified cube sphere edge length and a set of
     measured coordinates, finally save them to the file"""
     cube_coords, sphere_coords = [], []
@@ -284,9 +290,17 @@ def generate_euclidean_cube(config, measured_coords, edge_len=16):
 
     # save euclidean_cube, euclidean_sphere, euclidean_sphere_triangles, euclidean_sphere_coeffs
     Path(config.projection_dir).mkdir(parents=True, exist_ok=True)
-    filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
-    with open(filename, "wb") as file:
-        pickle.dump((cube_coords, sphere_coords, euclidean_sphere_triangles, euclidean_sphere_coeffs), file)
+    if filename == None:
+        filepath = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
+    else:
+        filepath = f'{config.projection_dir}/{config.dataset}_projection_{filename}'
+
+    if output_measured_coords:
+        with open(filepath, "wb") as file:
+            pickle.dump((cube_coords, sphere_coords, euclidean_sphere_triangles, euclidean_sphere_coeffs, measured_coords), file)
+    else:
+        with open(filepath, "wb") as file:
+            pickle.dump((cube_coords, sphere_coords, euclidean_sphere_triangles, euclidean_sphere_coeffs), file)
 
 
 def save_euclidean_cube(edge_len=16):
@@ -317,10 +331,15 @@ def get_feature_for_point(elevation, azimuth, all_coords, subject_features):
 def get_feature_for_point_tensor(elevation, azimuth, all_coords, subject_features, config=None):
     """For a given point (elevation, azimuth), get the associated feature value"""
     all_coords_row = all_coords.query(f'elevation == {elevation} & azimuth == {azimuth}')
-    if len(subject_features.size()) == 3:  # single panel
+    if len(np.shape(subject_features)) == 2:
+        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[(
+        int(all_coords_row.index.values[0]))]))))
+    elif len(np.shape(subject_features)) == 3:  # single panel
         return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[(int(all_coords_row.azimuth_index.values[0]), int(all_coords_row.elevation_index.values[0]))]))))
     else:
-        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(subject_features[int(all_coords_row.panel.values[0]-1)][int(all_coords_row.elevation_index.values[0])][int(all_coords_row.azimuth_index.values[0])]))))
+        return scipy.fft.irfft(np.concatenate((np.array([0.0]), np.array(
+            subject_features[int(all_coords_row.panel.values[0] - 1)][int(all_coords_row.elevation_index.values[0])][
+                int(all_coords_row.azimuth_index.values[0])]))))
 
 
 def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_coords, subject_features, config=None):

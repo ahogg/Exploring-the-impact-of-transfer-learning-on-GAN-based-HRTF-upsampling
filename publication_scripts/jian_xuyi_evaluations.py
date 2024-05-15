@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from prettytable import PrettyTable
 
-
+from spatialaudiometrics import lap_challenge as lap
 from publication_scripts.config_forum_acusticum import Config
 from model.test import test
 from model.util import load_dataset
@@ -144,6 +144,8 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                                                             'cube_sphere')  # For single panel use cube sphere
 
                 generated_sofa_file = file_path + '/' + file
+
+                # metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
                 eng = matlab.engine.start_matlab()
                 s = eng.genpath(config.amt_dir)

@@ -58,7 +58,7 @@ class TrainValidHRTFDataset(Dataset):
         transform (callable): A function/transform that takes in an HRTF and returns a transformed version.
     """
 
-    def __init__(self, hrtf_dir: str, hrtf_size: int, upscale_factor: int, panel: int, transform=None, run_validation=True) -> None:
+    def __init__(self, config, hrtf_dir: str, hrtf_size: int, upscale_factor: int, panel: int, transform=None, run_validation=True) -> None:
         super(TrainValidHRTFDataset, self).__init__()
         # Get all hrtf file names in folder
         self.hrtf_file_names = [os.path.join(hrtf_dir, hrtf_file_name) for hrtf_file_name in os.listdir(hrtf_dir)
@@ -97,6 +97,8 @@ class TrainValidHRTFDataset(Dataset):
 
             self.hrtf_file_names = valid_hrtf_file_names
 
+        self.config = config
+
         # Specify the high-resolution hrtf size, with equal length and width
         self.hrtf_size = hrtf_size
         # How many times the high-resolution hrtf is the low-resolution hrtf
@@ -122,7 +124,21 @@ class TrainValidHRTFDataset(Dataset):
             hr_hrtf = torch.moveaxis(hrtf, -1, 0)
 
         # downsample hrtf
-        lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)
+        if self.config.lap is False:
+            lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)
+        else:
+            with open(self.hrtf_file_names[batch_index].replace('hr', self.config.lap), "rb") as file:
+                hrtf = pickle.load(file)
+
+            # hrtf processing operations
+            if self.transform is not None:
+                # If using a transform, treat panels as batch dim such that dims are (panels, channels, X, Y)
+                lr_hrtf = torch.permute(hrtf, (0, 3, 1, 2))
+                # Then, transform hr_hrtf to normalize and swap panel/channel dims to get channels first
+                lr_hrtf = torch.permute(self.transform(lr_hrtf), (1, 0, 2, 3))
+            else:
+                # If no transform, go directly to (channels, ..., X, Y)
+                lr_hrtf = torch.moveaxis(hrtf, -1, 0)
 
         return {"lr": lr_hrtf, "hr": hr_hrtf, "filename": self.hrtf_file_names[batch_index]}
 

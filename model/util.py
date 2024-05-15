@@ -31,11 +31,11 @@ def load_dataset(config, mean=None, std=None) -> [CUDAPrefetcher, CUDAPrefetcher
 
     # Load train, test and valid datasets
     if config.merge_flag:
-        train_datasets = TrainValidHRTFDataset(config.train_hrtf_merge_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
-        valid_datasets = TrainValidHRTFDataset(config.valid_hrtf_merge_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
+        train_datasets = TrainValidHRTFDataset(config, config.train_hrtf_merge_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
+        valid_datasets = TrainValidHRTFDataset(config, config.valid_hrtf_merge_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
     else:
-        train_datasets = TrainValidHRTFDataset(config.train_hrtf_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
-        valid_datasets = TrainValidHRTFDataset(config.valid_hrtf_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
+        train_datasets = TrainValidHRTFDataset(config, config.train_hrtf_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
+        valid_datasets = TrainValidHRTFDataset(config, config.valid_hrtf_dir, config.hrtf_size, config.upscale_factor, config.panel, transform)
 
     # Generator all dataloader
     train_dataloader = DataLoader(train_datasets,
@@ -79,11 +79,11 @@ def progress(i, batches, n, num_epochs, timed):
 
 
 def spectral_distortion_inner(input_spectrum, target_spectrum):
-    numerator = target_spectrum
-    denominator = input_spectrum
+    numerator = target_spectrum.detach().numpy()
+    denominator = input_spectrum.detach().numpy()
     numerator[np.abs(numerator) < 0.001] = 0.001
     denominator[np.abs(denominator) < 0.001] = 0.001
-    return np.sqrt(torch.mean((20 * torch.log10(numerator / denominator)) ** 2))
+    return np.sqrt(np.mean((20 * np.log10(numerator / denominator)) ** 2))
 
 
 def spectral_distortion_metric(generated, target, reduction='mean', full_errors=False):

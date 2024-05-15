@@ -33,7 +33,9 @@ class Config:
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
         self.single_panel = False
-        self.barycentric_postprocessing = False
+        self.barycentric_postprocessing = True
+        self.lap = 'lap_100'
+        # self.lap = False
 
         # Data dirs
         if using_hpc:
@@ -69,6 +71,12 @@ class Config:
         else:
             self.data_dir += '/cube_sphere'
             self.baseline_dir += '/cube_sphere'
+
+        if self.lap:
+            self.train_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/train'
+            self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/valid'
+            self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/train'
+            self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/valid'
 
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'

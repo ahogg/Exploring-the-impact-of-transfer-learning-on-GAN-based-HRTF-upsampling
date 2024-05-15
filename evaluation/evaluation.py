@@ -165,9 +165,10 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
         return target, generated, errors, xy
 
 
-def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
+def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_ext_postprocessing=None):
 
     file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
+    file_ext_postprocessing = 'lsd_errors_postprocessing.pickle' if file_ext_postprocessing is None else file_ext_postprocessing
 
     if hrtf_selection == 'minimum' or hrtf_selection == 'maximum':
         lsd_errors = []
@@ -194,24 +195,72 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None):
             lsd_errors.append({'subject_id': subject_id, 'total_error': float(error), 'errors': [float(error) for error in errors], 'coordinates': xy})
             print('LSD Error of subject %s: %0.4f' % (subject_id, float(error.detach())))
     else:
+        # Clear/Create directories
+        nodes_replaced_path = sr_dir + '/nodes_replaced'
+        shutil.rmtree(Path(nodes_replaced_path), ignore_errors=True)
+        Path(nodes_replaced_path).mkdir(parents=True, exist_ok=True)
+
+        if config.barycentric_postprocessing:
+            original_coordinates_path = sr_dir + '/original_coordinates'
+            Path(original_coordinates_path).mkdir(parents=True, exist_ok=True)
+
         sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
         sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
 
         lsd_errors = []
         for file_name in sr_data_file_names:
-            target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=config.barycentric_postprocessing)
+            target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=False)
             error = sum(errors) / len(xy)
             subject_id = ''.join(re.findall(r'\d+', file_name))
             lsd_errors.append({'subject_id': subject_id, 'total_error': error, 'errors': errors, 'coordinates': xy})
             print('LSD Error of subject %s: %0.4f' % (subject_id, error))
 
-    try:
-        with open(f'{config.path}/{file_ext}', "wb") as file:
-            pickle.dump(lsd_errors, file)
-    except OSError:
-        print(f"Unable to load {config.path}/{file_ext} successfully.")
-        return
-    print('Mean LSD Error: %0.3f' % np.mean([error['total_error'] for error in lsd_errors]))
+            with open(nodes_replaced_path + file_name, "wb") as file:
+                pickle.dump(torch.permute(generated[0], (1, 2, 3, 0)), file)
+
+        print('Mean LSD Error: %0.3f' % np.mean([error['total_error'] for error in lsd_errors]))
+
+        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
+        with open(projection_filename, "rb") as file:
+            cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
+
+        convert_to_sofa(nodes_replaced_path, config, cube, sphere)
+
+        print('Created valid sofa files')
+
+        try:
+            with open(f'{config.path}/{file_ext}', "wb") as file:
+                pickle.dump(lsd_errors, file)
+        except OSError:
+            print(f"Unable to load {config.path}/{file_ext} successfully.")
+            return
+
+        if config.barycentric_postprocessing:
+            lsd_errors_postprocessing = []
+            for file_name in sr_data_file_names:
+                target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True,
+                                                              barycentric_postprocessing=True)
+                error_postprocessing = sum(errors_postprocessing) / len(xy_postprocessing)
+                subject_id = ''.join(re.findall(r'\d+', file_name))
+                lsd_errors_postprocessing.append({'subject_id': subject_id, 'total_error': error_postprocessing, 'errors': errors_postprocessing, 'coordinates': xy_postprocessing})
+                print('LSD Error (with barycentric postprocessing) of subject %s: %0.4f' % (subject_id, error_postprocessing))
+
+                with open(original_coordinates_path + file_name, "wb") as file:
+                    pickle.dump(generated_postprocessing, file)
+            print('Mean LSD Error (with barycentric postprocessing): %0.3f' % np.mean([error_postprocessing['total_error'] for error_postprocessing in lsd_errors_postprocessing]))
+
+            sphere_original_filename = f'{config.projection_dir}/{config.dataset}_original'
+            with open(sphere_original_filename, "rb") as file:
+                sphere_original = pickle.load(file)
+
+            convert_to_sofa(original_coordinates_path, config, cube=None, sphere=sphere_original)
+
+            try:
+                with open(f'{config.path}/{file_ext_postprocessing}', "wb") as file:
+                    pickle.dump(lsd_errors_postprocessing, file)
+            except OSError:
+                print(f"Unable to load {config.path}/{file_ext_postprocessing} successfully.")
+                return
 
 
 def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, baseline=False):
@@ -227,21 +276,40 @@ def run_localisation_evaluation(config, sr_dir, file_ext=None, hrtf_selection=No
         sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
 
         # Clear/Create directories
-        nodes_replaced_path = sr_dir + '/nodes_replaced'
+        if config.barycentric_postprocessing:
+            nodes_replaced_path = sr_dir + '/original_coordinates'
+        else:
+            nodes_replaced_path = sr_dir + '/nodes_replaced'
         shutil.rmtree(Path(nodes_replaced_path), ignore_errors=True)
         Path(nodes_replaced_path).mkdir(parents=True, exist_ok=True)
 
         for file_name in sr_data_file_names:
-            target, generated, _, _ = replace_nodes(config, sr_dir, file_name)
+            # target, generated, _, _ = replace_nodes(config, sr_dir, file_name)
+            target, generated, _, _ = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True,
+                                                          barycentric_postprocessing=config.barycentric_postprocessing)
 
             with open(nodes_replaced_path + file_name, "wb") as file:
-                pickle.dump(torch.permute(generated[0], (1, 2, 3, 0)), file)
+                if config.barycentric_postprocessing:
+                    pickle.dump(generated, file)
+                else:
+                    pickle.dump(torch.permute(generated[0], (1, 2, 3, 0)), file)
 
-        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
-        with open(projection_filename, "rb") as file:
-            cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
+            print(f'Created valid pickle file for {file_name}')
 
-        convert_to_sofa(nodes_replaced_path, config, cube, sphere)
+
+        if config.barycentric_postprocessing:
+            sphere_original_filename = f'{config.projection_dir}/{config.dataset}_original'
+            with open(sphere_original_filename, "rb") as file:
+                sphere_original = pickle.load(file)
+
+            convert_to_sofa(nodes_replaced_path, config, cube=None, sphere=sphere_original)
+        else:
+            projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
+            with open(projection_filename, "rb") as file:
+                cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
+
+            convert_to_sofa(nodes_replaced_path, config, cube, sphere)
+
         print('Created valid sofa files')
 
         hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(nodes_replaced_path + '/sofa_min_phase')]

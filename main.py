@@ -5,6 +5,10 @@ import torch
 import numpy as np
 import importlib
 
+from operator import itemgetter
+from preprocessing.convert_coordinates import convert_sphere_to_cube
+import sofar as sf
+
 from config import Config
 from model.train import train
 from model.test import test
@@ -37,15 +41,22 @@ def main(config, mode):
     if mode == 'generate_projection':
         # Must be run in this mode once per dataset, finds barycentric coordinates for each point in the cubed sphere
         # No need to load the entire dataset in this case
-        ds = load_function(data_dir, features_spec={'hrirs': {'samplerate': config.hrir_samplerate, 'side': 'left', 'domain': 'time'}}, subject_ids='first')
-        # need to use protected member to get this data, no getters
-        cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
-        generate_euclidean_cube(config, cs.get_sphere_coords(), edge_len=config.hrtf_size)
 
-        hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, 0)
-        filename = f'{config.projection_dir}/{config.dataset}_original'
-        with open(filename, "wb") as file:
-            pickle.dump(sphere_original, file)
+        if config.lap == False:
+            ds = load_function(data_dir, features_spec={'hrirs': {'samplerate': config.hrir_samplerate, 'side': 'left', 'domain': 'time'}}, subject_ids='first')
+            # need to use protected member to get this data, no getters
+            cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
+            generate_euclidean_cube(config, cs.get_sphere_coords(), edge_len=config.hrtf_size)
+
+            hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, 0)
+            filename = f'{config.projection_dir}/{config.dataset}_original'
+            with open(filename, "wb") as file:
+                pickle.dump(sphere_original, file)
+
+        elif config.lap == 'lap_100':
+            sofa = sf.read_sofa('lap_data/LAPtask2_100_1.sofa')
+            generate_euclidean_cube(config, [tuple([np.radians(x[1]), np.radians(x[0]-180)]) for x in sofa.SourcePosition], edge_len=8,
+                                    filename=config.lap+'_8', output_measured_coords=True)
 
     elif mode == 'preprocess':
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
@@ -82,17 +93,46 @@ def main(config, mode):
 
             features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
             clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
-                                             cube, fs_original=ds.hrir_samplerate, edge_len=config.hrtf_size)
+                                             cube, edge_len=config.hrtf_size)
             hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i)
+
+            ####################LAP########################
+            ###############################################
+
+            projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.lap}_8'
+            with open(projection_filename, "rb") as file:
+                cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
+
+            sphere_original_full = []
+            for index, coordinates in enumerate(sphere_original):
+                position = {'coordinates': coordinates, 'IR': hrtf_original[index]}
+                sphere_original_full.append(position)
+
+            sphere_original_selected = []
+            for measured_coord_lap in measured_coords_lap:
+                try:
+                    index = [tuple([x['coordinates'][0], x['coordinates'][1]]) for x in sphere_original_full].index(measured_coord_lap)
+                except ValueError as e:
+                    print(e)
+                else:
+                    sphere_original_selected.append(sphere_original_full[index])
+
+            cs_lap = CubedSphere(sphere_coords=[tuple(x['coordinates']) for x in sphere_original_selected], indices=[[x] for x in np.arange(100)])
+            hrtf_100 = interpolate_fft(config, cs_lap, [x['IR'] for x in sphere_original_selected], sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=8)
+
+            ###############################################
+
 
             # save cleaned hrtfdata
             if ds.subject_ids[i] in train_sample:
                 projected_dir = config.train_hrtf_dir
+                projected_dir_lap = config.train_lap_dir
                 projected_dir_original = config.train_original_hrtf_dir
                 train_hrtfs[j] = clean_hrtf
                 j += 1
             else:
                 projected_dir = config.valid_hrtf_dir
+                projected_dir_lap = config.valid_lap_dir
                 projected_dir_original = config.valid_original_hrtf_dir
 
             subject_id = str(ds.subject_ids[i])
@@ -106,11 +146,21 @@ def main(config, mode):
             with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
                 pickle.dump(phase_original, file)
 
+            if config.lap is not False:
+                with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(hrtf_100, file)
+
+
         if config.merge_flag:
             merge_files(config)
 
         if config.gen_sofa_flag:
             gen_sofa_preprocess(config, cube, sphere, sphere_original)
+
+        if config.lap is not False:
+            config.hrtf_size = 8
+            convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
+            convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
 
         # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
         mean = torch.mean(train_hrtfs, [0, 1, 2, 3])
