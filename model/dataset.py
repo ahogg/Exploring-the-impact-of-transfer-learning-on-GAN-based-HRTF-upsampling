@@ -128,17 +128,17 @@ class TrainValidHRTFDataset(Dataset):
             lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)
         else:
             with open(self.hrtf_file_names[batch_index].replace('hr', self.config.lap), "rb") as file:
-                hrtf = pickle.load(file)
+                lr_hrtf = pickle.load(file)
 
             # hrtf processing operations
             if self.transform is not None:
                 # If using a transform, treat panels as batch dim such that dims are (panels, channels, X, Y)
-                lr_hrtf = torch.permute(hrtf, (0, 3, 1, 2))
+                lr_hrtf = torch.permute(lr_hrtf, (0, 3, 1, 2))
                 # Then, transform hr_hrtf to normalize and swap panel/channel dims to get channels first
                 lr_hrtf = torch.permute(self.transform(lr_hrtf), (1, 0, 2, 3))
             else:
                 # If no transform, go directly to (channels, ..., X, Y)
-                lr_hrtf = torch.moveaxis(hrtf, -1, 0)
+                lr_hrtf = torch.moveaxis(lr_hrtf, -1, 0)
 
         return {"lr": lr_hrtf, "hr": hr_hrtf, "filename": self.hrtf_file_names[batch_index]}
 

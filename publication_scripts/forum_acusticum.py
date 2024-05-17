@@ -503,14 +503,16 @@ def get_results(tag, mode, upscale_factors=[16, 8, 4, 2], file_ext=None, runs_fo
 #     return full_results
 
 
-def run_projection(hpc, dataset_id=None):
+def run_projection(hpc, dataset_id=None, lap_flag=None):
     print(f'Running projection')
     config_files = []
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
+    lap = 'lap_100' if lap_flag else False
     for dataset in datasets:
-        config = Config(tag=None, using_hpc=hpc, dataset=dataset)
+        config = Config(tag=None, using_hpc=hpc, dataset=dataset, lap=lap)
         config.hrtf_size = 16
         config_files.append(config)
+
 
     print(f'{len(config_files)} config files created successfully.')
     if dataset_id is not None:
@@ -527,16 +529,17 @@ def run_projection(hpc, dataset_id=None):
     for config in config_files:
         main(config, 'generate_projection')
 
-def run_preprocess(hpc, type, dataset_id=None):
+def run_preprocess(hpc, type, dataset_id=None, lap_flag=None):
     print(f'Running projection')
     config_files = []
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
+    lap = 'lap_100' if lap_flag else False
     for dataset in datasets:
         if type == 'base':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap=lap)
             config.train_samples_ratio = 0.8
         elif type == 'tl':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset)
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap=lap)
             config.train_samples_ratio = 1.0
         config.hrtf_size = 16
         config_files.append(config)
@@ -556,49 +559,60 @@ def run_preprocess(hpc, type, dataset_id=None):
     for config in config_files:
         main(config, 'preprocess')
 
-def run_train(hpc, type, test_id=None):
+def run_train(hpc, type, test_id=None, lap_flag=None):
     print(f'Running training')
     config_files = []
     tags = []
-    upscale_factors = [2, 4, 8, 16]
+    lap = 'lap_100' if lap_flag else False
+    if lap == 'lap_100':
+        upscale_factors = [2]
+    else:
+        upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     if type == 'tl' or type == 'base':
         datasets.remove('SONICOMSynthetic')
     for dataset in datasets:
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
         for upscale_factor in upscale_factors:
-            if type == 'base':
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
-            elif type == 'base-tl':
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
-            elif type == 'tl':
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
+            if lap:
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{lap.upper()}'.replace('_','-')}]
             else:
-                print("Type not valid. Please use 'base' or 'tl'")
+                if type == 'base':
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
+                elif type == 'base-tl':
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
+                elif type == 'tl':
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
+                else:
+                    print("Type not valid. Please use 'base' or 'tl'")
 
             for tag in tags:
                 if type == 'base':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap=lap)
                 elif type == 'base-tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap=lap)
                 elif type == 'tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, lap=lap)
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
                 config.lr_dis = 0.0000015
-                if upscale_factor == 2:
-                    config.content_weight = 0.1
-                    config.adversarial_weight = 0.001
-                elif upscale_factor == 4:
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.1
-                elif upscale_factor == 8:
+                if lap == 'lap_100':
                     config.content_weight = 0.001
                     config.adversarial_weight = 0.001
-                elif upscale_factor == 16:
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.01
+                else:
+                    if upscale_factor == 2:
+                        config.content_weight = 0.1
+                        config.adversarial_weight = 0.001
+                    elif upscale_factor == 4:
+                        config.content_weight = 0.01
+                        config.adversarial_weight = 0.1
+                    elif upscale_factor == 8:
+                        config.content_weight = 0.001
+                        config.adversarial_weight = 0.001
+                    elif upscale_factor == 16:
+                        config.content_weight = 0.01
+                        config.adversarial_weight = 0.01
 
                 config_files.append(config)
 
@@ -652,6 +666,19 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
             tag = None
             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
             config_files.append(config)
+    elif experiment_id == 4:
+        upscale_factors = [2]
+        datasets = ['SONICOM']
+        for dataset in datasets:
+            other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
+            for upscale_factor in upscale_factors:
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
+                        {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
+                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
+                for tag in tags:
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                    config.upscale_factor = upscale_factor
+                    config_files.append(config)
     # elif experiment_id == 4:
     #     upscale_factors = [2, 4, 8, 16]
     #     datasets = ['ARI', 'SONICOM']
@@ -998,6 +1025,7 @@ if __name__ == '__main__':
     parser.add_argument("--exp")
     parser.add_argument("--type")
     parser.add_argument("--test")
+    parser.add_argument("-lap", action='store_true')
     args = parser.parse_args()
 
     if args.hpc == "True":
@@ -1008,11 +1036,11 @@ if __name__ == '__main__':
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
     if args.mode == 'projection':
-        run_projection(hpc, args.test)
+        run_projection(hpc, args.test, args.lap)
     elif args.mode == 'preprocess':
-        run_preprocess(hpc, args.type, args.test)
+        run_preprocess(hpc, args.type, args.test,  args.lap)
     elif args.mode == 'train':
-        run_train(hpc, args.type, args.test)
+        run_train(hpc, args.type, args.test, args.lap)
     elif args.mode == 'evaluation':
         run_evaluation(hpc, int(args.exp), args.type, args.test)
     elif args.mode == 'plot':
