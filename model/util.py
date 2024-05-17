@@ -79,8 +79,8 @@ def progress(i, batches, n, num_epochs, timed):
 
 
 def spectral_distortion_inner(input_spectrum, target_spectrum):
-    numerator = target_spectrum.detach().numpy()
-    denominator = input_spectrum.detach().numpy()
+    numerator = target_spectrum.detach().cpu().numpy()
+    denominator = input_spectrum.detach().cpu().numpy()
     numerator[np.abs(numerator) < 0.001] = 0.001
     denominator[np.abs(denominator) < 0.001] = 0.001
     return np.sqrt(np.mean((20 * np.log10(numerator / denominator)) ** 2))
