@@ -54,7 +54,7 @@ def main(config, mode):
                 pickle.dump(sphere_original, file)
 
         elif config.lap == 'lap_100':
-            sofa = sf.read_sofa('lap_data/LAPtask2_100_1.sofa')
+            sofa = sf.read_sofa(config.data_dirs_path + '/lap_data/LAPtask2_100_1.sofa')
             generate_euclidean_cube(config, [tuple([np.radians(x[1]), np.radians(x[0]-180)]) for x in sofa.SourcePosition], edge_len=8,
                                     filename=config.lap+'_8', output_measured_coords=True)
 
