@@ -118,7 +118,7 @@ def main(config, mode):
                     sphere_original_selected.append(sphere_original_full[index])
 
             cs_lap = CubedSphere(sphere_coords=[tuple(x['coordinates']) for x in sphere_original_selected], indices=[[x] for x in np.arange(100)])
-            hrtf_100 = interpolate_fft(config, cs_lap, [x['IR'] for x in sphere_original_selected], sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=8)
+            hrtf_100 = interpolate_fft(config, cs_lap, np.array([np.array(x['IR']) for x in sphere_original_selected]), sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=8)
 
             ###############################################
 

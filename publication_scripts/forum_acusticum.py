@@ -530,7 +530,7 @@ def run_projection(hpc, dataset_id=None, lap_flag=None):
         main(config, 'generate_projection')
 
 def run_preprocess(hpc, type, dataset_id=None, lap_flag=None):
-    print(f'Running projection')
+    print(f'Running preprocess')
     config_files = []
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     lap = 'lap_100' if lap_flag else False
