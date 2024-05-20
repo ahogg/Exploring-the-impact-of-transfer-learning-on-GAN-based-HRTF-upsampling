@@ -48,7 +48,7 @@ def main(config, mode):
             cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
             generate_euclidean_cube(config, cs.get_sphere_coords(), edge_len=config.hrtf_size)
 
-            hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, 0)
+            _, sphere_original = get_hrtf_from_ds(config, ds, 0, domain='time')
             filename = f'{config.projection_dir}/{config.dataset}_original'
             with open(filename, "wb") as file:
                 pickle.dump(sphere_original, file)
@@ -94,7 +94,8 @@ def main(config, mode):
             features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
             clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
                                              cube, edge_len=config.hrtf_size)
-            hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i)
+            hrir_original, _ = get_hrtf_from_ds(config, ds, i, domain='time')
+            hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i, domain='mag')
 
             ####################LAP########################
             ###############################################
@@ -105,7 +106,7 @@ def main(config, mode):
 
             sphere_original_full = []
             for index, coordinates in enumerate(sphere_original):
-                position = {'coordinates': coordinates, 'IR': hrtf_original[index]}
+                position = {'coordinates': coordinates, 'IR': hrir_original[index]}
                 sphere_original_full.append(position)
 
             sphere_original_selected = []

@@ -92,7 +92,7 @@ def merge_files(config):
     merge_left_right_hrtfs(config.valid_lap_dir, config.valid_lap_merge_dir)
 
 
-def get_hrtf_from_ds(config, ds, index):
+def get_hrtf_from_ds(config, ds, index, domain='mag'):
     coordinates = ds.row_angles, ds.column_angles
     position_grid = np.stack(np.meshgrid(*coordinates, indexing='ij'), axis=-1)
 
@@ -105,9 +105,12 @@ def get_hrtf_from_ds(config, ds, index):
                 el_temp = np.radians(position_grid[row_idx][column_idx][1])
                 sphere_temp.append([el_temp, az_temp])
                 hrir_temp.append(np.ma.getdata(ds[index]['features'][row_idx][column_idx]).flatten())
-    hrtf_temp, phase_temp = calc_hrtf(config, hrir_temp)
 
-    return torch.tensor(np.array(hrtf_temp)), torch.tensor(np.array(phase_temp)), sphere_temp
+    if domain == 'mag':
+        hrtf_temp, phase_temp = calc_hrtf(config, hrir_temp)
+        return torch.tensor(np.array(hrtf_temp)), torch.tensor(np.array(phase_temp)), sphere_temp
+    elif domain == 'time':
+        return torch.tensor(np.array(hrir_temp)), sphere_temp
 
 
 def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343):

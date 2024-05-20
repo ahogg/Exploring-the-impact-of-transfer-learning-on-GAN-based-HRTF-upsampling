@@ -634,65 +634,76 @@ def run_train(hpc, type, test_id=None, lap_flag=None):
         main(config, args.mode)
 
 
-def run_evaluation(hpc, experiment_id, type, test_id=None):
+def run_evaluation(hpc, experiment_id, type, test_id=None, lap_flag=None):
     print(f'Running {type} experiment {experiment_id}')
+    lap = 'lap_100' if lap_flag else False
     config_files = []
-    if experiment_id == 1:
-        upscale_factors = [2, 4, 8, 16]
-        datasets = ['ARI']
-        for dataset in datasets:
-            for upscale_factor in upscale_factors:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
-                for tag in tags:
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-                    config.upscale_factor = upscale_factor
-                    config_files.append(config)
-    elif experiment_id == 2:
-        upscale_factors = [2, 4, 8, 16]
-        datasets = ['ARI', 'SONICOM', ]
-        for dataset in datasets:
-            other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
-            for upscale_factor in upscale_factors:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
-                for tag in tags:
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-                    config.upscale_factor = upscale_factor
-                    config_files.append(config)
-    elif experiment_id == 3:
-        datasets = ['ARI', 'SONICOM']
-        for dataset in datasets:
-            tag = None
-            config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-            config_files.append(config)
-    elif experiment_id == 4:
-        upscale_factors = [2]
+    if lap=='lap_100':
         datasets = ['SONICOM']
+        upscale_factor = 2
         for dataset in datasets:
-            other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
-            for upscale_factor in upscale_factors:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
-                        {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
-                for tag in tags:
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-                    config.upscale_factor = upscale_factor
-                    config_files.append(config)
-    # elif experiment_id == 4:
-    #     upscale_factors = [2, 4, 8, 16]
-    #     datasets = ['ARI', 'SONICOM']
-    #     for dataset in datasets:
-    #         for upscale_factor in upscale_factors:
-    #             tag = None
-    #             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-    #             config.upscale_factor = upscale_factor
-    #             config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
-    #             config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
-    #             config_files.append(config)
+            tags = [{'tag': f'pub-prep-upscale-{dataset}-{lap.upper()}'.replace('_', '-')}]
+            for tag in tags:
+                config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap=lap)
+                config.upscale_factor = upscale_factor
+                config_files.append(config)
     else:
-        print('Experiment does not exist')
-        return
+        if experiment_id == 1:
+            upscale_factors = [2, 4, 8, 16]
+            datasets = ['ARI']
+            for dataset in datasets:
+                for upscale_factor in upscale_factors:
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
+                    for tag in tags:
+                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                        config.upscale_factor = upscale_factor
+                        config_files.append(config)
+        elif experiment_id == 2:
+            upscale_factors = [2, 4, 8, 16]
+            datasets = ['ARI', 'SONICOM', ]
+            for dataset in datasets:
+                other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
+                for upscale_factor in upscale_factors:
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
+                    for tag in tags:
+                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                        config.upscale_factor = upscale_factor
+                        config_files.append(config)
+        elif experiment_id == 3:
+            datasets = ['ARI', 'SONICOM']
+            for dataset in datasets:
+                tag = None
+                config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                config_files.append(config)
+        elif experiment_id == 4:
+            upscale_factors = [2]
+            datasets = ['SONICOM']
+            for dataset in datasets:
+                other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
+                for upscale_factor in upscale_factors:
+                    tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}'},
+                            {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}'}]
+                    for tag in tags:
+                        config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                        config.upscale_factor = upscale_factor
+                        config_files.append(config)
+        # elif experiment_id == 4:
+        #     upscale_factors = [2, 4, 8, 16]
+        #     datasets = ['ARI', 'SONICOM']
+        #     for dataset in datasets:
+        #         for upscale_factor in upscale_factors:
+        #             tag = None
+        #             config = Config(tag, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+        #             config.upscale_factor = upscale_factor
+        #             config.valid_path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid/barycentric_interpolated_data_{upscale_factor}'
+        #             config.path = f'{config.data_dirs_path}/baseline_results/{config.dataset}/barycentric/valid'
+        #             config_files.append(config)
+        else:
+            print('Experiment does not exist')
+            return
 
     print(f'{len(config_files)} config files created successfully.')
     if test_id is not None:
@@ -1042,7 +1053,7 @@ if __name__ == '__main__':
     elif args.mode == 'train':
         run_train(hpc, args.type, args.test, args.lap)
     elif args.mode == 'evaluation':
-        run_evaluation(hpc, int(args.exp), args.type, args.test)
+        run_evaluation(hpc, int(args.exp), args.type, args.test, args.lap)
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
     elif args.mode == 'barycentric_baseline' or args.mode == 'hrtf_selection_baseline' or args.mode == 'sh_baseline':
