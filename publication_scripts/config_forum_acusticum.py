@@ -72,10 +72,11 @@ class Config:
             self.data_dir += '/cube_sphere'
             self.baseline_dir += '/cube_sphere'
 
-        self.train_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/train'
-        self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/valid'
-        self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/train'
-        self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/valid'
+        if self.lap:
+            self.train_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/train'
+            self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/valid'
+            self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/train'
+            self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/valid'
 
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'

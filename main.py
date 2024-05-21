@@ -136,10 +136,13 @@ def main(config, mode):
                 projected_dir_lap = config.valid_lap_dir
                 projected_dir_original = config.valid_original_hrtf_dir
 
+            min_hrtf = torch.min(train_hrtfs)
+            max_hrtf = torch.max(train_hrtfs)
+
             subject_id = str(ds.subject_ids[i])
             side = ds.sides[i]
             with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
-                pickle.dump(clean_hrtf, file)
+                pickle.dump(clean_hrtf/max_hrtf, file)
 
             with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
                 pickle.dump(hrtf_original, file)
@@ -149,7 +152,7 @@ def main(config, mode):
 
             if config.lap is not False:
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(hrtf_100, file)
+                    pickle.dump(hrtf_100/max_hrtf, file)
 
 
         if config.merge_flag:
@@ -166,15 +169,17 @@ def main(config, mode):
         # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
         mean = torch.mean(train_hrtfs, [0, 1, 2, 3])
         std = torch.std(train_hrtfs, [0, 1, 2, 3])
-        min_hrtf = torch.min(train_hrtfs)
-        max_hrtf = torch.max(train_hrtfs)
         mean_std_filename = config.mean_std_filename
         with open(mean_std_filename, "wb") as file:
             pickle.dump((mean, std, min_hrtf, max_hrtf), file)
 
     elif mode == 'train':
         # Trains the GANs, according to the parameters specified in Config
-        train_prefetcher, _ = load_dataset(config, mean=None, std=None)
+        # mean_std_filename = config.mean_std_filename
+        # with open(mean_std_filename, "rb") as file:
+        #     mean, std, min_hrtf, max_hrtf = pickle.load(file)
+        # train_prefetcher, _ = load_dataset(config, mean=torch.cat((mean, mean)), std=torch.cat((std, std)))
+        train_prefetcher, _ = load_dataset(config,  mean=None, std=None)
         print("Loaded all datasets successfully.")
 
         util.initialise_folders(config, overwrite=True)
