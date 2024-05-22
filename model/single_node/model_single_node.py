@@ -7,9 +7,9 @@ from model.single_node.custom_conv_single_node import CubeSphereConv2DSingleNode
 # based on https://github.com/Lornatang/SRGAN-PyTorch/blob/main/model.py
 
 
-class Discriminator(nn.Module):
+class DiscriminatorSingleNode(nn.Module):
     def __init__(self, nbins: int):
-        super(Discriminator, self).__init__()
+        super(DiscriminatorSingleNode, self).__init__()
         self.nbins = nbins
         self.features = nn.Sequential(
             # input size. (nbin) x 5 x 16 x 16
