@@ -142,7 +142,7 @@ def main(config, mode):
             subject_id = str(ds.subject_ids[i])
             side = ds.sides[i]
             with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
-                pickle.dump(clean_hrtf/max_hrtf, file)
+                pickle.dump(clean_hrtf, file)
 
             with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
                 pickle.dump(hrtf_original, file)
@@ -152,7 +152,7 @@ def main(config, mode):
 
             if config.lap is not False:
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(hrtf_100/max_hrtf, file)
+                    pickle.dump(hrtf_100, file)
 
 
         if config.merge_flag:

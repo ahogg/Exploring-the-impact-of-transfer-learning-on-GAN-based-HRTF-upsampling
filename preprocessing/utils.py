@@ -451,158 +451,159 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
         magnitudes_zero_cube[i][j][k] = {'magnitude': np.array([1e-6 for mag in magnitudes[count]]), 'cube': (panel, x, y)}
         count += 1
 
-
-    bottom_strip = np.concatenate((magnitudes_raw_cube[3], magnitudes_raw_cube[0], magnitudes_raw_cube[1], magnitudes_raw_cube[2]))
-
-    top = magnitudes_raw_cube[4]
-    top_rotated_cw_90 = list(zip(*top[::-1]))
-    top_rotated_cw_180 = list(zip(*top_rotated_cw_90[::-1]))
-    top_rotated_ccw_90 = list(zip(*top))[::-1]
-
-    # top_strip = np.concatenate((top_rotated_ccw_90, top, top_rotated_cw_90, top_rotated_cw_180))[:, 0:int(edge_len/2)]
-    top_strip = np.concatenate((magnitudes_zero_cube[4], top, magnitudes_zero_cube[4], top_rotated_cw_180))[:, 0:int(edge_len / 2)]
-
-    magnitudes_raw_flattened = np.concatenate((bottom_strip, top_strip), axis=1)
-
-
-    #######################################
-    #
-    # import matplotlib.pyplot as plt
-    #
-    # fig, ax = plt.subplots()
-    # import matplotlib
-    # matplotlib.use('TkAgg')
-    #
-    # # Format data.
-    # x, y = [], []
-    # mask = []
-    #
-    # def getColour(magnitudes_cube):
-    #     print(magnitudes_cube['cube'])
-    #
-    #     panel = magnitudes_cube['cube'][0]
-    #     p = magnitudes_cube['cube'][1]
-    #     q = magnitudes_cube['cube'][2]
-    #
-    #     if panel == 1:
-    #         x_i, y_i = p, q
-    #         colour = 'b'
-    #     elif panel == 2:
-    #         x_i, y_i = p + np.pi / 2, q
-    #         colour = 'g'
-    #     elif panel == 3:
-    #         x_i, y_i = p + np.pi, q
-    #         colour = 'r'
-    #     elif panel == 4:
-    #         x_i, y_i = p - np.pi / 2, q
-    #         colour = 'k'
-    #     elif panel == 5:
-    #         x_i, y_i = p, q + np.pi / 2
-    #         if x_i > 0 and y_i > 1.55:
-    #             colour = 'y'
-    #         elif x_i > 0 and y_i < 1.55:
-    #             colour = 'magenta'
-    #         elif x_i < 0 and y_i > 1.55:
-    #             colour = 'pink'
-    #         elif x_i < 0 and y_i < 1.55:
-    #             colour = 'Lavender'
-    #         else:
-    #             colour = 'Gray'
-    #     else:
-    #         colour = 'Gray'
-    #
-    #     return colour
-    #
-    # for i in range(len(magnitudes_raw_flattened)):
-    #     for j in range(len(magnitudes_raw_flattened[i])):
-    #         colour = getColour(magnitudes_raw_flattened[i][j])
-    #         x.append((i, colour))
-    #         y.append((j, colour))
-    #
-    # colours = np.asarray([j[1] for j in x])
-    # x, y = np.asarray([j[0] for j in x]), np.asarray([j[0] for j in y])
-    #
-    # # Plot the surface.
-    # ax.scatter(x, y, c=colours, s=10, linewidth=0, antialiased=False)
-    #
-    # fig.tight_layout()
-    # fig.set_size_inches(9, 4)
-    # plt.show()
-    #
-    # #######################################
-    #
-    # import matplotlib.pyplot as plt
-    # import matplotlib
-    #
-    # fig, ax = plt.subplots()
-    # matplotlib.use('TkAgg')
-    #
-    # # Format data.
-    # x, y = [], []
-    # mask = []
-    #
-    # for panel, p, q in cube:
-    #     if not np.isnan(p) and not np.isnan(q):
-    #         mask.append(True)
-    #
-    #         if panel == 1:
-    #             x_i, y_i = p, q
-    #             colour = 'b'
-    #         elif panel == 2:
-    #             x_i, y_i = p + np.pi / 2, q
-    #             colour = 'g'
-    #         elif panel == 3:
-    #             x_i, y_i = p + np.pi, q
-    #             colour = 'r'
-    #         elif panel == 4:
-    #             x_i, y_i = p - np.pi / 2, q
-    #             colour = 'k'
-    #         elif panel == 5:
-    #             x_i, y_i = p, q + np.pi / 2
-    #             if x_i > 0 and y_i > 1.55:
-    #                 colour = 'y'
-    #             elif x_i > 0 and y_i < 1.55:
-    #                 colour = 'magenta'
-    #             elif x_i < 0 and y_i > 1.55:
-    #                 colour = 'pink'
-    #             elif x_i < 0 and y_i < 1.55:
-    #                 colour = 'Lavender'
-    #             else:
-    #                 colour = 'Gray'
-    #         else:
-    #             x_i, y_i = p, q - np.pi / 2
-    #
-    #         x.append((x_i, colour))
-    #         y.append((y_i, colour))
-    #
-    #     else:
-    #         mask.append(False)
-    #
-    # colours = np.asarray([j[1] for j in x])
-    # x, y = np.asarray([j[0] for j in x]), np.asarray([j[0] for j in y])
-    #
-    # # Plot the surface.
-    # ax.scatter(x, y, c=colours, s=10, linewidth=0, antialiased=False)
-    #
-    # # draw lines outlining cube
-    # ax.hlines(y=-PI_4, xmin=-3 * PI_4, xmax=5 * PI_4, linewidth=2, color="grey")
-    # ax.hlines(y=PI_4, xmin=-3 * PI_4, xmax=5 * PI_4, linewidth=2, color="grey")
-    # ax.hlines(y=3 * PI_4, xmin=-PI_4, xmax=PI_4, linewidth=2, color="grey")
-    #
-    # ax.vlines(x=-3 * PI_4, ymin=-PI_4, ymax=PI_4, linewidth=2, color="grey")
-    # ax.vlines(x=-PI_4, ymin=-PI_4, ymax=3 * PI_4, linewidth=2, color="grey")
-    # ax.vlines(x=PI_4, ymin=-PI_4, ymax=3 * PI_4, linewidth=2, color="grey")
-    # ax.vlines(x=3 * PI_4, ymin=-PI_4, ymax=PI_4, linewidth=2, color="grey")
-    # ax.vlines(x=5 * PI_4, ymin=-PI_4, ymax=PI_4, linewidth=2, color="grey")
-    #
-    # fig.tight_layout()
-    # fig.set_size_inches(9, 4)
-    # plt.show()
-
-    #######################################
-
     if config.single_panel:
+        bottom_strip = np.concatenate(
+            (magnitudes_raw_cube[3], magnitudes_raw_cube[0], magnitudes_raw_cube[1], magnitudes_raw_cube[2]))
+
+        top = magnitudes_raw_cube[4]
+        top_rotated_cw_90 = list(zip(*top[::-1]))
+        top_rotated_cw_180 = list(zip(*top_rotated_cw_90[::-1]))
+        top_rotated_ccw_90 = list(zip(*top))[::-1]
+
+        # top_strip = np.concatenate((top_rotated_ccw_90, top, top_rotated_cw_90, top_rotated_cw_180))[:, 0:int(edge_len/2)]
+        top_strip = np.concatenate((magnitudes_zero_cube[4], top, magnitudes_zero_cube[4], top_rotated_cw_180))[:,
+                    0:int(edge_len / 2)]
+
+        magnitudes_raw_flattened = np.concatenate((bottom_strip, top_strip), axis=1)
+
         feature = [[y['magnitude'] for y in x] for x in magnitudes_raw_flattened]
+
+        #######################################
+        #
+        # import matplotlib.pyplot as plt
+        #
+        # fig, ax = plt.subplots()
+        # import matplotlib
+        # matplotlib.use('TkAgg')
+        #
+        # # Format data.
+        # x, y = [], []
+        # mask = []
+        #
+        # def getColour(magnitudes_cube):
+        #     print(magnitudes_cube['cube'])
+        #
+        #     panel = magnitudes_cube['cube'][0]
+        #     p = magnitudes_cube['cube'][1]
+        #     q = magnitudes_cube['cube'][2]
+        #
+        #     if panel == 1:
+        #         x_i, y_i = p, q
+        #         colour = 'b'
+        #     elif panel == 2:
+        #         x_i, y_i = p + np.pi / 2, q
+        #         colour = 'g'
+        #     elif panel == 3:
+        #         x_i, y_i = p + np.pi, q
+        #         colour = 'r'
+        #     elif panel == 4:
+        #         x_i, y_i = p - np.pi / 2, q
+        #         colour = 'k'
+        #     elif panel == 5:
+        #         x_i, y_i = p, q + np.pi / 2
+        #         if x_i > 0 and y_i > 1.55:
+        #             colour = 'y'
+        #         elif x_i > 0 and y_i < 1.55:
+        #             colour = 'magenta'
+        #         elif x_i < 0 and y_i > 1.55:
+        #             colour = 'pink'
+        #         elif x_i < 0 and y_i < 1.55:
+        #             colour = 'Lavender'
+        #         else:
+        #             colour = 'Gray'
+        #     else:
+        #         colour = 'Gray'
+        #
+        #     return colour
+        #
+        # for i in range(len(magnitudes_raw_flattened)):
+        #     for j in range(len(magnitudes_raw_flattened[i])):
+        #         colour = getColour(magnitudes_raw_flattened[i][j])
+        #         x.append((i, colour))
+        #         y.append((j, colour))
+        #
+        # colours = np.asarray([j[1] for j in x])
+        # x, y = np.asarray([j[0] for j in x]), np.asarray([j[0] for j in y])
+        #
+        # # Plot the surface.
+        # ax.scatter(x, y, c=colours, s=10, linewidth=0, antialiased=False)
+        #
+        # fig.tight_layout()
+        # fig.set_size_inches(9, 4)
+        # plt.show()
+        #
+        # #######################################
+        #
+        # import matplotlib.pyplot as plt
+        # import matplotlib
+        #
+        # fig, ax = plt.subplots()
+        # matplotlib.use('TkAgg')
+        #
+        # # Format data.
+        # x, y = [], []
+        # mask = []
+        #
+        # for panel, p, q in cube:
+        #     if not np.isnan(p) and not np.isnan(q):
+        #         mask.append(True)
+        #
+        #         if panel == 1:
+        #             x_i, y_i = p, q
+        #             colour = 'b'
+        #         elif panel == 2:
+        #             x_i, y_i = p + np.pi / 2, q
+        #             colour = 'g'
+        #         elif panel == 3:
+        #             x_i, y_i = p + np.pi, q
+        #             colour = 'r'
+        #         elif panel == 4:
+        #             x_i, y_i = p - np.pi / 2, q
+        #             colour = 'k'
+        #         elif panel == 5:
+        #             x_i, y_i = p, q + np.pi / 2
+        #             if x_i > 0 and y_i > 1.55:
+        #                 colour = 'y'
+        #             elif x_i > 0 and y_i < 1.55:
+        #                 colour = 'magenta'
+        #             elif x_i < 0 and y_i > 1.55:
+        #                 colour = 'pink'
+        #             elif x_i < 0 and y_i < 1.55:
+        #                 colour = 'Lavender'
+        #             else:
+        #                 colour = 'Gray'
+        #         else:
+        #             x_i, y_i = p, q - np.pi / 2
+        #
+        #         x.append((x_i, colour))
+        #         y.append((y_i, colour))
+        #
+        #     else:
+        #         mask.append(False)
+        #
+        # colours = np.asarray([j[1] for j in x])
+        # x, y = np.asarray([j[0] for j in x]), np.asarray([j[0] for j in y])
+        #
+        # # Plot the surface.
+        # ax.scatter(x, y, c=colours, s=10, linewidth=0, antialiased=False)
+        #
+        # # draw lines outlining cube
+        # ax.hlines(y=-PI_4, xmin=-3 * PI_4, xmax=5 * PI_4, linewidth=2, color="grey")
+        # ax.hlines(y=PI_4, xmin=-3 * PI_4, xmax=5 * PI_4, linewidth=2, color="grey")
+        # ax.hlines(y=3 * PI_4, xmin=-PI_4, xmax=PI_4, linewidth=2, color="grey")
+        #
+        # ax.vlines(x=-3 * PI_4, ymin=-PI_4, ymax=PI_4, linewidth=2, color="grey")
+        # ax.vlines(x=-PI_4, ymin=-PI_4, ymax=3 * PI_4, linewidth=2, color="grey")
+        # ax.vlines(x=PI_4, ymin=-PI_4, ymax=3 * PI_4, linewidth=2, color="grey")
+        # ax.vlines(x=3 * PI_4, ymin=-PI_4, ymax=PI_4, linewidth=2, color="grey")
+        # ax.vlines(x=5 * PI_4, ymin=-PI_4, ymax=PI_4, linewidth=2, color="grey")
+        #
+        # fig.tight_layout()
+        # fig.set_size_inches(9, 4)
+        # plt.show()
+
+        #######################################
+
     else:
         feature = magnitudes_raw
 
