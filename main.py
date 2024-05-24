@@ -11,7 +11,7 @@ from preprocessing.convert_coordinates import convert_sphere_to_cube
 import sofar as sf
 
 from config import Config
-from model.test import test
+from model.train import train
 from model.test import test
 from model.util import load_dataset
 from preprocessing.cubed_sphere import CubedSphere
