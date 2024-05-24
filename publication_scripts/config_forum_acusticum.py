@@ -43,14 +43,14 @@ class Config:
             # HPC data dirs
             self.data_dirs_path = '/rds/general/user/aos13/home/HRTF-upsampling-with-a-generative-' \
                                   'adversarial-network-using-a-gnomonic-equiangular-projection'
-            self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live/HRTF Datasets')
+            self.raw_hrtf_dir = Path('/rds/general/project/sonicom/live')
             self.amt_dir = '/rds/general/user/aos13/home/HRTF-GANs-27Sep22-prep-for-publication/thirdParty'
             self.supdeq_dir = '/rds/general/user/aos13/home/SUpDEq'
         else:
             self.ngpu = 0
             # local data dirs
             self.data_dirs_path = '/home/ahogg/PycharmProjects/HRTF-GAN'
-            self.raw_hrtf_dir = Path('/home/ahogg/Documents/HRTF Datasets')
+            self.raw_hrtf_dir = Path('/home/ahogg/Downloads')
             self.amt_dir = '/home/ahogg/PycharmProjects/HRTF-GAN/thirdParty'
             self.supdeq_dir = '/home/ahogg/Documents/SUpDEq'
 
@@ -94,7 +94,7 @@ class Config:
         self.hrtf_selection_dir = self.data_dirs_path + self.baseline_dir + '/hrtf_selection/valid'
 
         # Training hyperparams
-        self.batch_size = 1
+        self.batch_size = 8
         self.num_workers = 1
         self.num_epochs = 300  # was originally 250
         self.lr_gen = 0.0002

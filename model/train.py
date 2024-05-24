@@ -118,9 +118,9 @@ def train(config, train_prefetcher):
 
             # Transfer in-memory data to CUDA devices to speed up training
             lr = batch_data["lr"].to(device=device, memory_format=torch.contiguous_format,
-                                     non_blocking=True, dtype=torch.float)
+                                     non_blocking=True, dtype=torch.float)*100
             hr = batch_data["hr"].to(device=device, memory_format=torch.contiguous_format,
-                                     non_blocking=True, dtype=torch.float)
+                                     non_blocking=True, dtype=torch.float)*100
 
             # during every 25th epoch and last epoch, save filename for mag spectrum plot
             if epoch % 25 == 0 or epoch == (num_epochs - 1):

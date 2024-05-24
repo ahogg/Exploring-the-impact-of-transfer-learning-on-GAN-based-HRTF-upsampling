@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import importlib
 
+from hartufo import CollectionSpec, SideSpec, SubjectSpec, HrirSpec, AnthropometrySpec, ImageSpec
 from operator import itemgetter
 from preprocessing.convert_coordinates import convert_sphere_to_cube
 import sofar as sf
@@ -35,17 +36,17 @@ def main(config, mode):
     print(os.getcwd())
     print(config.dataset)
 
-    imp = importlib.import_module('hrtfdata.full')
-    load_function = getattr(imp, config.dataset)
+    imp = importlib.import_module('hartufo')
+    load_function = getattr(imp, config.dataset.title())
 
     if mode == 'generate_projection':
         # Must be run in this mode once per dataset, finds barycentric coordinates for each point in the cubed sphere
         # No need to load the entire dataset in this case
 
         if config.lap == False:
-            ds = load_function(data_dir, features_spec={'hrirs': {'samplerate': config.hrir_samplerate, 'side': 'left', 'domain': 'time'}}, subject_ids='first')
+            ds = ds = load_function(data_dir, features_spec=HrirSpec(domain='time', side='left', samplerate=config.hrir_samplerate), subject_ids='first')
             # need to use protected member to get this data, no getters
-            cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
+            cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.fundamental_angles, column_angles=ds.orthogonal_angles)
             generate_euclidean_cube(config, cs.get_sphere_coords(), edge_len=config.hrtf_size)
 
             _, sphere_original = get_hrtf_from_ds(config, ds, 0, domain='time')
@@ -61,8 +62,8 @@ def main(config, mode):
     elif mode == 'preprocess':
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
         # val sets and saves processed data
-        ds = load_function(data_dir, features_spec={'hrirs': {'samplerate': config.hrir_samplerate, 'side': 'both', 'domain': 'time'}})
-        cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.row_angles, column_angles=ds.column_angles)
+        ds = load_function(data_dir, features_spec=HrirSpec(domain='time', side='both', samplerate=config.hrir_samplerate))
+        cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.fundamental_angles, column_angles=ds.orthogonal_angles)
 
         # need to use protected member to get this data, no getters
         projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
@@ -75,12 +76,10 @@ def main(config, mode):
         # Split data into train and test sets
         train_size = int(len(set(ds.subject_ids)) * config.train_samples_ratio)
         train_sample = np.random.choice(list(set(ds.subject_ids)), train_size, replace=False)
+        scale_HRTF = 100
 
         # collect all train_hrtfs to get mean and sd
-        if config.single_panel:
-            train_hrtfs = torch.empty(size=(2 * train_size, 4*config.hrtf_size, int(config.hrtf_size*1.5), config.nbins_hrtf))
-        else:
-            train_hrtfs = torch.empty(size=(2 * train_size, 5, config.hrtf_size, config.hrtf_size, config.nbins_hrtf))
+        train_hrtfs = []
         j = 0
         for i in range(len(ds)):
             if i % 10 == 0:
@@ -129,15 +128,12 @@ def main(config, mode):
                 projected_dir = config.train_hrtf_dir
                 projected_dir_lap = config.train_lap_dir
                 projected_dir_original = config.train_original_hrtf_dir
-                train_hrtfs[j] = clean_hrtf
+                train_hrtfs.append(clean_hrtf)
                 j += 1
             else:
                 projected_dir = config.valid_hrtf_dir
                 projected_dir_lap = config.valid_lap_dir
                 projected_dir_original = config.valid_original_hrtf_dir
-
-            min_hrtf = torch.min(train_hrtfs)
-            max_hrtf = torch.max(train_hrtfs)
 
             subject_id = str(ds.subject_ids[i])
             side = ds.sides[i]
@@ -167,8 +163,10 @@ def main(config, mode):
             convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
 
         # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
-        mean = torch.mean(train_hrtfs, [0, 1, 2, 3])
-        std = torch.std(train_hrtfs, [0, 1, 2, 3])
+        mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
+        std = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
+        min_hrtf = torch.min(torch.from_numpy(np.array(train_hrtfs)))
+        max_hrtf = torch.max(torch.from_numpy(np.array(train_hrtfs)))
         mean_std_filename = config.mean_std_filename
         with open(mean_std_filename, "wb") as file:
             pickle.dump((mean, std, min_hrtf, max_hrtf), file)

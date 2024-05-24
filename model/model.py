@@ -148,8 +148,8 @@ class Generator(nn.Module):
             CubeSphereConv2D(self.ngf, self.nbins, (3, 3), (1, 1))
         )
 
-        # self.classifier = nn.Softplus()
-        self.classifier = nn.Softmax()
+        self.classifier = nn.Softplus()
+        # self.classifier = nn.Softmax()
 
         # Initialize neural network weights
         self._initialize_weights()

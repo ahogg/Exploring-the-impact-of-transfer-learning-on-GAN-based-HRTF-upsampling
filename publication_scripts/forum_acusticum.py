@@ -598,8 +598,8 @@ def run_train(hpc, type, test_id=None, lap_flag=None):
                 config.lr_gen = 0.0001
                 config.lr_dis = 0.0001
                 if lap == 'lap_100':
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.01
+                    config.content_weight = 0.1
+                    config.adversarial_weight = 0.001
                 else:
                     if upscale_factor == 2:
                         config.content_weight = 0.1

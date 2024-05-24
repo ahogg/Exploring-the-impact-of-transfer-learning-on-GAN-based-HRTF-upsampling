@@ -93,13 +93,13 @@ def merge_files(config):
 
 
 def get_hrtf_from_ds(config, ds, index, domain='mag'):
-    coordinates = ds.row_angles, ds.column_angles
+    coordinates = ds.fundamental_angles, ds.orthogonal_angles
     position_grid = np.stack(np.meshgrid(*coordinates, indexing='ij'), axis=-1)
 
     sphere_temp = []
     hrir_temp = []
-    for row_idx, row in enumerate(ds.row_angles):
-        for column_idx, column in enumerate(ds.column_angles):
+    for row_idx, row in enumerate(ds.fundamental_angles):
+        for column_idx, column in enumerate(ds.orthogonal_angles):
             if not any(np.ma.getmaskarray(ds[index]['features'][row_idx][column_idx].flatten())):
                 az_temp = np.radians(position_grid[row_idx][column_idx][0])
                 el_temp = np.radians(position_grid[row_idx][column_idx][1])
