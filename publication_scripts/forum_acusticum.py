@@ -595,8 +595,8 @@ def run_train(hpc, type, test_id=None, lap_flag=None):
                 elif type == 'tl':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, lap=lap)
                 config.upscale_factor = upscale_factor
-                config.lr_gen = 0.0001
-                config.lr_dis = 0.0001
+                config.lr_gen = 0.0002
+                config.lr_dis = 0.0000015
                 if lap == 'lap_100':
                     config.content_weight = 0.1
                     config.adversarial_weight = 0.001
