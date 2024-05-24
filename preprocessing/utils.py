@@ -326,9 +326,13 @@ def save_euclidean_cube(edge_len=16):
 def get_feature_for_point(elevation, azimuth, all_coords, subject_features):
     """For a given point (elevation, azimuth), get the associated feature value"""
     all_coords_row = all_coords.query(f'elevation == {elevation} & azimuth == {azimuth}')
-    azimuth_index = int(all_coords_row.azimuth_index)
-    elevation_index = int(all_coords_row.elevation_index)
-    return subject_features[azimuth_index][elevation_index]
+    if len(np.shape(subject_features)) == 2:
+        index = int(all_coords_row.index.values[0])
+        return subject_features[index]
+    else:
+        azimuth_index = int(all_coords_row.azimuth_index.iloc[0])
+        elevation_index = int(all_coords_row.elevation_index.iloc[0])
+        return subject_features[azimuth_index][elevation_index]
 
 
 def get_feature_for_point_tensor(elevation, azimuth, all_coords, subject_features, config=None):
@@ -378,7 +382,7 @@ def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sph
             #     time_domain_flag = False
             # else:
             #     time_domain_flag = True
-            time_domain_flag = False
+            time_domain_flag = True
             features_p = calc_interpolated_feature(time_domain_flag=time_domain_flag,
                                                    triangle_vertices=euclidean_sphere_triangles[i],
                                                    coeffs=euclidean_sphere_coeffs[i],

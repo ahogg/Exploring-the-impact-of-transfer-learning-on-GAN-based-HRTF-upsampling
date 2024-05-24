@@ -6,6 +6,7 @@ from preprocessing.convert_coordinates import convert_single_panel_indices_to_cu
 from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft
+from preprocessing.utils import calc_hrtf
 
 import matplotlib.pyplot as plt
 
@@ -118,7 +119,7 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
 
             postprocessing_projection_filename = f'{config.postprocessing_dir}/{config.dataset}_postprocessing_projection_{config.hrtf_size}'
             if os.path.exists(postprocessing_projection_filename):
-                 with open(postprocessing_projection_filename, "rb") as f:
+                with open(postprocessing_projection_filename, "rb") as f:
                     (euclidean_sphere_triangles, euclidean_sphere_coeffs, xy_postprocessing) = pickle.load(f)
             else:
                 euclidean_sphere_triangles = []
