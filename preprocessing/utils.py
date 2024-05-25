@@ -372,17 +372,12 @@ def calc_interpolated_feature(time_domain_flag, triangle_vertices, coeffs, all_c
     return interpolated_feature
 
 
-def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sphere_triangles, euclidean_sphere_coeffs, config=None):
+def calc_all_interpolated_features(cs, features, euclidean_sphere, euclidean_sphere_triangles, euclidean_sphere_coeffs, config=None, time_domain_flag=True):
     """Essentially a wrapper function for calc_interpolated_features above, calculated interpolated features for all
     points on the euclidean sphere rather than a single point"""
     selected_feature_interpolated = []
     for i, p in enumerate(euclidean_sphere):
         if p[0] is not None:
-            # if 'panel_index' in cs.all_coords.columns:
-            #     time_domain_flag = False
-            # else:
-            #     time_domain_flag = True
-            time_domain_flag = True
             features_p = calc_interpolated_feature(time_domain_flag=time_domain_flag,
                                                    triangle_vertices=euclidean_sphere_triangles[i],
                                                    coeffs=euclidean_sphere_coeffs[i],
@@ -412,7 +407,7 @@ def calc_hrtf(config, hrirs):
     return magnitudes, phases
 
 
-def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs, cube, edge_len, cs_output=True):
+def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs, cube, edge_len, cs_output=True, time_domain_flag=True):
     """Combine all data processing steps into one function
 
     :param cs: Cubed sphere object associated with dataset
@@ -429,7 +424,7 @@ def interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeff
 
     # interpolated_hrirs is a list of interpolated HRIRs corresponding to the points specified in load_sphere and
     # load_cube, all three lists share the same ordering
-    interpolated_hrirs = calc_all_interpolated_features(cs, features, sphere, sphere_triangles, sphere_coeffs, config)
+    interpolated_hrirs = calc_all_interpolated_features(cs, features, sphere, sphere_triangles, sphere_coeffs, config, time_domain_flag)
 
     magnitudes, phases = calc_hrtf(config, interpolated_hrirs)
 

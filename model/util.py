@@ -86,6 +86,8 @@ def spectral_distortion_inner(input_spectrum, target_spectrum):
     # return np.sqrt(np.mean((20 * np.log10(numerator / denominator)) ** 2))
     numerator = target_spectrum
     denominator = input_spectrum
+    numerator[np.abs(numerator) < 0.001] = 0.01
+    denominator[np.abs(denominator) < 0.001] = 0.01
     return torch.sqrt(torch.mean((20 * torch.log10(numerator / denominator)) ** 2))
 
 

@@ -143,9 +143,9 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
             sr_hrtf_right = sr_hrtf[:, :, :, config.nbins_hrtf:]
 
             barycentric_sr_left = interpolate_fft(config, cs, sr_hrtf_left, sphere_original, euclidean_sphere_triangles,
-                                                  euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size, cs_output=False)
+                                                  euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size, cs_output=False, time_domain_flag=False)
             barycentric_sr_right = interpolate_fft(config, cs, sr_hrtf_right, sphere_original, euclidean_sphere_triangles,
-                                                   euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size, cs_output=False)
+                                                   euclidean_sphere_coeffs, cube_coords, edge_len=config.hrtf_size, cs_output=False, time_domain_flag=False)
 
             barycentric_sr_merged = torch.tensor(np.concatenate((barycentric_sr_left, barycentric_sr_right), axis=1))
 
