@@ -163,28 +163,28 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     generated_sofa_file = file_path + '/' + file
                     metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
-                eng = matlab.engine.start_matlab()
-                s = eng.genpath(config.amt_dir)
-                eng.addpath(s, nargout=0)
-                s = eng.genpath(config.data_dirs_path)
-                eng.addpath(s, nargout=0)
-
-                print(f'Target: {target_sofa_file}')
-                print(f'Generated: {generated_sofa_file}')
-                [pol_acc1, pol_rms1, querr1] = eng.calc_loc(generated_sofa_file, target_sofa_file, nargout=3)
-                subject_id = ''.join(re.findall(r'\d+', file))
-                loc_errors.append([subject_id, pol_acc1, pol_rms1, querr1])
-                print('pol_acc1: %s' % pol_acc1)
-                print('pol_rms1: %s' % pol_rms1)
-                print('querr1: %s' % querr1)
-
-                eng.quit()
-
-            print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_errors]))
-            print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_errors]))
-            print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_errors]))
-            with open(f'{file_path}/{file_ext}', "wb") as file:
-                pickle.dump(loc_errors, file)
+            #     eng = matlab.engine.start_matlab()
+            #     s = eng.genpath(config.amt_dir)
+            #     eng.addpath(s, nargout=0)
+            #     s = eng.genpath(config.data_dirs_path)
+            #     eng.addpath(s, nargout=0)
+            #
+            #     print(f'Target: {target_sofa_file}')
+            #     print(f'Generated: {generated_sofa_file}')
+            #     [pol_acc1, pol_rms1, querr1] = eng.calc_loc(generated_sofa_file, target_sofa_file, nargout=3)
+            #     subject_id = ''.join(re.findall(r'\d+', file))
+            #     loc_errors.append([subject_id, pol_acc1, pol_rms1, querr1])
+            #     print('pol_acc1: %s' % pol_acc1)
+            #     print('pol_rms1: %s' % pol_rms1)
+            #     print('querr1: %s' % querr1)
+            #
+            #     eng.quit()
+            #
+            # print('Mean ACC Error: %0.3f' % np.mean([error[1] for error in loc_errors]))
+            # print('Mean RMS Error: %0.3f' % np.mean([error[2] for error in loc_errors]))
+            # print('Mean QUERR Error: %0.3f' % np.mean([error[3] for error in loc_errors]))
+            # with open(f'{file_path}/{file_ext}', "wb") as file:
+            #     pickle.dump(loc_errors, file)
 
 
         else:
