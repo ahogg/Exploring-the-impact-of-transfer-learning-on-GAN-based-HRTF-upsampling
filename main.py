@@ -62,7 +62,7 @@ def main(config, mode):
     elif mode == 'preprocess':
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
         # val sets and saves processed data
-        ds = load_function(data_dir, features_spec=HrirSpec(domain='time', side='both', length=config.nbins_hrtf, samplerate=config.hrir_samplerate))
+        ds = load_function(data_dir, features_spec=HrirSpec(domain='time', side='both', length=config.nbins_hrtf*2, samplerate=config.hrir_samplerate))
         cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.fundamental_angles, column_angles=ds.orthogonal_angles)
 
         # need to use protected member to get this data, no getters
