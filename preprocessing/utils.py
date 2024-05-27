@@ -97,20 +97,23 @@ def get_hrtf_from_ds(config, ds, index, domain='mag'):
     position_grid = np.stack(np.meshgrid(*coordinates, indexing='ij'), axis=-1)
 
     sphere_temp = []
-    hrir_temp = []
+    hrir_temps = []
+    hrir_temps_no_ITD = []
     for row_idx, row in enumerate(ds.fundamental_angles):
         for column_idx, column in enumerate(ds.orthogonal_angles):
             if not any(np.ma.getmaskarray(ds[index]['features'][row_idx][column_idx].flatten())):
                 az_temp = np.radians(position_grid[row_idx][column_idx][0])
                 el_temp = np.radians(position_grid[row_idx][column_idx][1])
                 sphere_temp.append([el_temp, az_temp])
-                hrir_temp.append(np.ma.getdata(ds[index]['features'][row_idx][column_idx]).flatten())
+                hrir_temp = np.ma.getdata(ds[index]['features'][row_idx][column_idx]).flatten()
+                hrir_temps.append(hrir_temp)
+                hrir_temps_no_ITD.append(remove_itd(hrir_temp, int(len(hrir_temp) * 0.04), len(hrir_temp)))
 
     if domain == 'mag':
-        hrtf_temp, phase_temp = calc_hrtf(config, hrir_temp)
-        return torch.tensor(np.array(hrtf_temp)), torch.tensor(np.array(phase_temp)), sphere_temp
+        hrtf_temps_no_ITD, phase_temp = calc_hrtf(config, hrir_temps_no_ITD)
+        return torch.tensor(np.array(hrtf_temps_no_ITD)), torch.tensor(np.array(phase_temp)), sphere_temp
     elif domain == 'time':
-        return torch.tensor(np.array(hrir_temp)), sphere_temp
+        return torch.tensor(np.array(hrir_temps)), sphere_temp
 
 
 def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343):
