@@ -8,13 +8,14 @@ class Config:
     Set using HPC to true in order to use appropriate paths for HPC
     """
 
-    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None, runs_folder=None, lap=None):
+    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None, runs_folder=None, lap_factor=None):
 
         # overwrite settings with arguments provided
         self.tag = tag if tag is not None else 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
         self.dataset = dataset if dataset is not None else 'SONICOM'
         self.data_dir = data_dir if data_dir is not None else '/data/' + self.dataset
         self.runs_folder = runs_folder if runs_folder is not None else '/runs-hpc'
+        self.lap_factor = lap_factor
 
         if existing_model_tag is not None:
             self.start_with_existing_model = True
@@ -22,8 +23,6 @@ class Config:
             self.start_with_existing_model = False
 
         self.existing_model_tag = existing_model_tag if existing_model_tag is not None else None
-
-        self.lap = lap if lap is not None else False
 
         # Data processing parameters
         self.merge_flag = True
@@ -36,6 +35,11 @@ class Config:
         self.hrir_samplerate = 48000.0
         self.single_panel = False
         self.barycentric_postprocessing = True
+
+        if lap_factor == '100' :
+            self.upscale_factor = 2
+        elif lap_factor == '19':
+            self.upscale_factor = 4
 
         # Data dirs
         if using_hpc:
@@ -72,11 +76,11 @@ class Config:
             self.data_dir += '/cube_sphere'
             self.baseline_dir += '/cube_sphere'
 
-        if self.lap:
-            self.train_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/train'
-            self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '/valid'
-            self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/train'
-            self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/' + self.lap + '_merge/valid'
+        if self.lap_factor is not None:
+            self.train_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '/train'
+            self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '/valid'
+            self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge/train'
+            self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge/valid'
 
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'

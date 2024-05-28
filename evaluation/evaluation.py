@@ -8,6 +8,8 @@ from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft
 from preprocessing.utils import calc_hrtf
 
+from spatialaudiometrics import lap_challenge as lap
+
 import matplotlib.pyplot as plt
 
 import shutil
@@ -208,18 +210,10 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
         sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
         sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
 
-        lsd_errors = []
         for file_name in sr_data_file_names:
             target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=False)
-            error = sum(errors) / len(xy)
-            subject_id = ''.join(re.findall(r'\d+', file_name))
-            lsd_errors.append({'subject_id': subject_id, 'total_error': error, 'errors': errors, 'coordinates': xy})
-            print('LSD Error of subject %s: %0.4f' % (subject_id, error))
-
             with open(nodes_replaced_path + file_name, "wb") as file:
                 pickle.dump(torch.permute(generated[0], (1, 2, 3, 0)), file)
-
-        print('Mean LSD Error: %0.3f' % np.mean([error['total_error'] for error in lsd_errors]))
 
         projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
         with open(projection_filename, "rb") as file:
@@ -229,32 +223,61 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
 
         print('Created valid sofa files')
 
-        try:
-            with open(f'{config.path}/{file_ext}', "wb") as file:
-                pickle.dump(lsd_errors, file)
-        except OSError:
-            print(f"Unable to load {config.path}/{file_ext} successfully.")
-            return
-
         if config.barycentric_postprocessing:
-            lsd_errors_postprocessing = []
             for file_name in sr_data_file_names:
-                target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True,
-                                                              barycentric_postprocessing=True)
-                error_postprocessing = sum(errors_postprocessing) / len(xy_postprocessing)
-                subject_id = ''.join(re.findall(r'\d+', file_name))
-                lsd_errors_postprocessing.append({'subject_id': subject_id, 'total_error': error_postprocessing, 'errors': errors_postprocessing, 'coordinates': xy_postprocessing})
-                print('LSD Error (with barycentric postprocessing) of subject %s: %0.4f' % (subject_id, error_postprocessing))
-
+                target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=True)
                 with open(original_coordinates_path + file_name, "wb") as file:
                     pickle.dump(generated_postprocessing, file)
-            print('Mean LSD Error (with barycentric postprocessing): %0.3f' % np.mean([error_postprocessing['total_error'] for error_postprocessing in lsd_errors_postprocessing]))
 
             sphere_original_filename = f'{config.projection_dir}/{config.dataset}_original'
             with open(sphere_original_filename, "rb") as file:
                 sphere_original = pickle.load(file)
 
             convert_to_sofa(original_coordinates_path, config, cube=None, sphere=sphere_original)
+
+            file_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-100/valid/nodes_replaced/sofa_min_phase'
+            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
+            if not os.path.exists(file_path):
+                raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
+
+            if config.barycentric_postprocessing:
+                file_original_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-100/valid/original_coordinates/sofa_min_phase'
+
+            # Calculate LSD
+            lsd_errors = []
+            lsd_errors_postprocessing = []
+            for file in hrtf_file_names:
+                target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
+                target_sofa_file = target_sofa_file.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
+                generated_sofa_file = file_path + '/' + file
+                metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
+
+                error = metrics[2]
+                subject_id = ''.join(re.findall(r'\d+', file_name))
+                lsd_errors.append({'subject_id': subject_id, 'total_error': error, 'errors': errors, 'coordinates': xy})
+                print('LSD Error of subject %s: %0.4f' % (subject_id, error))
+
+                if config.barycentric_postprocessing:
+                    sub_id = int(file.split('_')[-1].replace('.sofa', ''))
+                    target_sofa_original_file = f'{config.raw_hrtf_dir}/{config.dataset}/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
+                    generated_sofa_original_file = file_original_path + '/' + file
+                    metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_original_file, generated_sofa_original_file)
+
+                    error_postprocessing = metrics[2]
+                    subject_id = ''.join(re.findall(r'\d+', file_name))
+                    lsd_errors_postprocessing.append({'subject_id': subject_id, 'total_error': error_postprocessing, 'errors': errors_postprocessing, 'coordinates': xy_postprocessing})
+                    print('LSD Error (with barycentric postprocessing) of subject %s: %0.4f' % (subject_id, error_postprocessing))
+
+            print('Mean LSD Error: %0.3f' % np.mean([error['total_error'] for error in lsd_errors]))
+            if config.barycentric_postprocessing:
+                print('Mean LSD Error (with barycentric postprocessing): %0.3f' % np.mean([error_postprocessing['total_error'] for error_postprocessing in lsd_errors_postprocessing]))
+
+            try:
+                with open(f'{config.path}/{file_ext}', "wb") as file:
+                    pickle.dump(lsd_errors, file)
+            except OSError:
+                print(f"Unable to load {config.path}/{file_ext} successfully.")
+                return
 
             try:
                 with open(f'{config.path}/{file_ext_postprocessing}', "wb") as file:

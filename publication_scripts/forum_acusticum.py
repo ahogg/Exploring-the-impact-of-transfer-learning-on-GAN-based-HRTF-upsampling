@@ -503,13 +503,12 @@ def get_results(tag, mode, upscale_factors=[16, 8, 4, 2], file_ext=None, runs_fo
 #     return full_results
 
 
-def run_projection(hpc, dataset_id=None, lap_flag=None):
+def run_projection(hpc, dataset_id=None, lap_factor=None):
     print(f'Running projection')
     config_files = []
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
-    lap = 'lap_100' if lap_flag else False
     for dataset in datasets:
-        config = Config(tag=None, using_hpc=hpc, dataset=dataset, lap=lap)
+        config = Config(tag=None, using_hpc=hpc, dataset=dataset, lap_factor=lap_factor)
         config.hrtf_size = 16
         config_files.append(config)
 
@@ -529,17 +528,16 @@ def run_projection(hpc, dataset_id=None, lap_flag=None):
     for config in config_files:
         main(config, 'generate_projection')
 
-def run_preprocess(hpc, type, dataset_id=None, lap_flag=None):
+def run_preprocess(hpc, type, dataset_id=None, lap_factor=None):
     print(f'Running preprocess')
     config_files = []
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
-    lap = 'lap_100' if lap_flag else False
     for dataset in datasets:
         if type == 'base':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap=lap)
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
             config.train_samples_ratio = 0.8
         elif type == 'tl':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap=lap)
+            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap_factor=lap_factor)
             config.train_samples_ratio = 1.0
         config.hrtf_size = 16
         config_files.append(config)
@@ -1036,7 +1034,7 @@ if __name__ == '__main__':
     parser.add_argument("--exp")
     parser.add_argument("--type")
     parser.add_argument("--test")
-    parser.add_argument("-lap", action='store_true')
+    parser.add_argument("--lap")
     args = parser.parse_args()
 
     if args.hpc == "True":

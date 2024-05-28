@@ -42,8 +42,7 @@ def main(config, mode):
     if mode == 'generate_projection':
         # Must be run in this mode once per dataset, finds barycentric coordinates for each point in the cubed sphere
         # No need to load the entire dataset in this case
-
-        if config.lap == False:
+        if config.lap_factor is None:
             ds = ds = load_function(data_dir, features_spec=HrirSpec(domain='time', side='left', samplerate=config.hrir_samplerate), subject_ids='first')
             # need to use protected member to get this data, no getters
             cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.fundamental_angles, column_angles=ds.orthogonal_angles)
@@ -53,11 +52,13 @@ def main(config, mode):
             filename = f'{config.projection_dir}/{config.dataset}_original'
             with open(filename, "wb") as file:
                 pickle.dump(sphere_original, file)
-
-        elif config.lap == 'lap_100':
-            sofa = sf.read_sofa(config.data_dirs_path + '/lap_data/LAPtask2_100_1.sofa')
-            generate_euclidean_cube(config, [tuple([np.radians(x[1]), np.radians(x[0]-180)]) for x in sofa.SourcePosition], edge_len=8,
-                                    filename=config.lap+'_8', output_measured_coords=True)
+        elif config.lap_factor == '100' or config.lap_factor == '19':
+            edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
+            sofa = sf.read_sofa(f'{config.data_dirs_path}/lap_data/LAPtask2_{config.lap_factor}_1.sofa')
+            generate_euclidean_cube(config, [tuple([np.radians(x[1]), np.radians(x[0]-180)]) for x in sofa.SourcePosition], edge_len=edge_len,
+                                    filename=f'lap_{config.lap_factor}_{edge_len}', output_measured_coords=True)
+        else:
+            raise Exception('LAP factor not found')
 
     elif mode == 'preprocess':
         # Interpolates data to find HRIRs on cubed sphere, then FFT to obtain HRTF, finally splits data into train and
@@ -76,7 +77,6 @@ def main(config, mode):
         # Split data into train and test sets
         train_size = int(len(set(ds.subject_ids)) * config.train_samples_ratio)
         train_sample = np.random.choice(list(set(ds.subject_ids)), train_size, replace=False)
-        scale_HRTF = 100
 
         # collect all train_hrtfs to get mean and sd
         train_hrtfs = []
@@ -93,35 +93,38 @@ def main(config, mode):
             features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
             clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
                                              cube, edge_len=config.hrtf_size)
+
             hrir_original, _ = get_hrtf_from_ds(config, ds, i, domain='time')
             hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i, domain='mag')
 
             ####################LAP########################
             ###############################################
 
-            projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.lap}_8'
-            with open(projection_filename, "rb") as file:
-                cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
+            if config.lap_factor is not None:
+                edge_len = int(int(config.hrtf_size)/int(config.upscale_factor))
+                projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
 
-            sphere_original_full = []
-            for index, coordinates in enumerate(sphere_original):
-                position = {'coordinates': coordinates, 'IR': hrir_original[index]}
-                sphere_original_full.append(position)
+                with open(projection_filename, "rb") as file:
+                    cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
 
-            sphere_original_selected = []
-            for measured_coord_lap in measured_coords_lap:
-                try:
-                    index = [tuple([x['coordinates'][0], x['coordinates'][1]]) for x in sphere_original_full].index(measured_coord_lap)
-                except ValueError as e:
-                    print(e)
-                else:
-                    sphere_original_selected.append(sphere_original_full[index])
+                sphere_original_full = []
+                for index, coordinates in enumerate(sphere_original):
+                    position = {'coordinates': coordinates, 'IR': hrir_original[index]}
+                    sphere_original_full.append(position)
 
-            cs_lap = CubedSphere(sphere_coords=[tuple(x['coordinates']) for x in sphere_original_selected], indices=[[x] for x in np.arange(100)])
-            hrtf_100 = interpolate_fft(config, cs_lap, np.array([np.array(x['IR']) for x in sphere_original_selected]), sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=8)
+                sphere_original_selected = []
+                for measured_coord_lap in measured_coords_lap:
+                    try:
+                        index = [tuple([x['coordinates'][0], x['coordinates'][1]]) for x in sphere_original_full].index(measured_coord_lap)
+                    except ValueError as e:
+                        print(e)
+                    else:
+                        sphere_original_selected.append(sphere_original_full[index])
+
+                cs_lap = CubedSphere(sphere_coords=[tuple(x['coordinates']) for x in sphere_original_selected], indices=[[x] for x in np.arange(int(config.lap_factor))])
+                hrtf_lap = interpolate_fft(config, cs_lap, np.array([np.array(x['IR']) for x in sphere_original_selected]), sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=edge_len)
 
             ###############################################
-
 
             # save cleaned hrtfdata
             if ds.subject_ids[i] in train_sample:
@@ -146,10 +149,9 @@ def main(config, mode):
             with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
                 pickle.dump(phase_original, file)
 
-            if config.lap is not False:
+            if config.lap_factor is not None:
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(hrtf_100, file)
-
+                    pickle.dump(hrtf_lap, file)
 
         if config.merge_flag:
             merge_files(config)
