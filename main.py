@@ -159,8 +159,8 @@ def main(config, mode):
         if config.gen_sofa_flag:
             gen_sofa_preprocess(config, cube, sphere, sphere_original)
 
-        if config.lap is not False:
-            config.hrtf_size = 8
+        if config.lap_factor is not None:
+            config.hrtf_size = edge_len
             convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
             convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
 
