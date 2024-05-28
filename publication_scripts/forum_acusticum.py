@@ -557,13 +557,14 @@ def run_preprocess(hpc, type, dataset_id=None, lap_factor=None):
     for config in config_files:
         main(config, 'preprocess')
 
-def run_train(hpc, type, test_id=None, lap_flag=None):
+def run_train(hpc, type, test_id=None, lap_factor=None):
     print(f'Running training')
     config_files = []
     tags = []
-    lap = 'lap_100' if lap_flag else False
-    if lap == 'lap_100':
+    if lap_factor == '100':
         upscale_factors = [2]
+    elif lap_factor == '19':
+        upscale_factors = [4]
     else:
         upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
@@ -572,8 +573,8 @@ def run_train(hpc, type, test_id=None, lap_flag=None):
     for dataset in datasets:
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
         for upscale_factor in upscale_factors:
-            if lap:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-{lap.upper()}'.replace('_','-')}]
+            if lap_factor is not None:
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}'.replace('_','-')}]
             else:
                 if type == 'base':
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
@@ -587,17 +588,20 @@ def run_train(hpc, type, test_id=None, lap_flag=None):
 
             for tag in tags:
                 if type == 'base':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap=lap)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
                 elif type == 'base-tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap=lap)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap_factor=lap_factor)
                 elif type == 'tl':
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, lap=lap)
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, lap_factor=lap_factor)
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
                 config.lr_dis = 0.0000015
-                if lap == 'lap_100':
+                if lap_factor == '100':
                     config.content_weight = 0.1
                     config.adversarial_weight = 0.001
+                elif lap_factor == '19':
+                    config.content_weight = 0.01
+                    config.adversarial_weight = 0.1
                 else:
                     if upscale_factor == 2:
                         config.content_weight = 0.1

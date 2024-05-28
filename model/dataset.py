@@ -124,10 +124,10 @@ class TrainValidHRTFDataset(Dataset):
             hr_hrtf = torch.moveaxis(hrtf, -1, 0)
 
         # downsample hrtf
-        if self.config.lap is False:
+        if self.config.lap_factor is None:
             lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)
         else:
-            with open(self.hrtf_file_names[batch_index].replace('hr', self.config.lap), "rb") as file:
+            with open(self.hrtf_file_names[batch_index].replace('hr', f'lap_{self.config.lap_factor}'), "rb") as file:
                 lr_hrtf = pickle.load(file)
 
             # hrtf processing operations
