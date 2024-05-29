@@ -564,7 +564,7 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
     if lap_factor == '100':
         upscale_factors = [2]
     elif lap_factor == '19':
-        upscale_factors = [4]
+        upscale_factors = [2]
     else:
         upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
@@ -600,8 +600,8 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
                     config.content_weight = 0.1
                     config.adversarial_weight = 0.001
                 elif lap_factor == '19':
-                    config.content_weight = 0.01
-                    config.adversarial_weight = 0.1
+                    config.content_weight = 0.1
+                    config.adversarial_weight = 0.001
                 else:
                     if upscale_factor == 2:
                         config.content_weight = 0.1
@@ -636,17 +636,19 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
         main(config, args.mode)
 
 
-def run_evaluation(hpc, experiment_id, type, test_id=None, lap_flag=None):
+def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
     print(f'Running {type} experiment {experiment_id}')
-    lap = 'lap_100' if lap_flag else False
     config_files = []
-    if lap=='lap_100':
+    if lap_factor is not None:
         datasets = ['SONICOM']
-        upscale_factor = 2
+        if lap_factor == '100':
+            upscale_factor = 2
+        elif lap_factor == '19':
+           upscale_factor = 2
         for dataset in datasets:
-            tags = [{'tag': f'pub-prep-upscale-{dataset}-{lap.upper()}'.replace('_', '-')}]
+            tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}'.replace('_', '-')}]
             for tag in tags:
-                config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap=lap)
+                config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
                 config.upscale_factor = upscale_factor
                 config_files.append(config)
     else:

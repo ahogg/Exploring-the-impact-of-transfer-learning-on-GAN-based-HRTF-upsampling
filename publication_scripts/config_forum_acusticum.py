@@ -39,7 +39,7 @@ class Config:
         if lap_factor == '100' :
             self.upscale_factor = 2
         elif lap_factor == '19':
-            self.upscale_factor = 4
+            self.upscale_factor = 2
 
         # Data dirs
         if using_hpc:
