@@ -565,6 +565,8 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
         upscale_factors = [2]
     elif lap_factor == '19':
         upscale_factors = [2]
+    elif lap_factor == '3':
+        upscale_factors = [2]
     else:
         upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
