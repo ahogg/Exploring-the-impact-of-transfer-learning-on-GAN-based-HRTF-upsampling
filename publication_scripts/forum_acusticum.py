@@ -604,6 +604,9 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
                 elif lap_factor == '19':
                     config.content_weight = 0.1
                     config.adversarial_weight = 0.001
+                elif lap_factor == '3':
+                    config.content_weight = 0.1
+                    config.adversarial_weight = 0.001
                 else:
                     if upscale_factor == 2:
                         config.content_weight = 0.1
@@ -646,6 +649,10 @@ def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
         if lap_factor == '100':
             upscale_factor = 2
         elif lap_factor == '19':
+           upscale_factor = 2
+        elif lap_factor == '5':
+           upscale_factor = 2
+        elif lap_factor == '3':
            upscale_factor = 2
         for dataset in datasets:
             tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}'.replace('_', '-')}]
