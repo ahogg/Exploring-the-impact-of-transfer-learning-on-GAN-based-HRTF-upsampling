@@ -565,6 +565,8 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
         upscale_factors = [2]
     elif lap_factor == '19':
         upscale_factors = [2]
+    elif lap_factor == '5':
+        upscale_factors = [2]
     elif lap_factor == '3':
         upscale_factors = [2]
     else:
@@ -602,6 +604,9 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
                     config.content_weight = 0.1
                     config.adversarial_weight = 0.001
                 elif lap_factor == '19':
+                    config.content_weight = 0.1
+                    config.adversarial_weight = 0.001
+                elif lap_factor == '5':
                     config.content_weight = 0.1
                     config.adversarial_weight = 0.001
                 elif lap_factor == '3':
