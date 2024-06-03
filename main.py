@@ -16,7 +16,7 @@ from model.test import test
 from model.util import load_dataset
 from preprocessing.cubed_sphere import CubedSphere
 from preprocessing.utils import interpolate_fft, generate_euclidean_cube, convert_to_sofa, \
-     merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories
+     merge_files, gen_sofa_preprocess, get_hrtf_from_ds, clear_create_directories, remove_itd, calc_hrtf
 from model import util
 from baselines.barycentric_interpolation import run_barycentric_interpolation
 from baselines.sh_interpolation import run_sh_interpolation
@@ -81,7 +81,8 @@ def main(config, mode):
         # collect all train_hrtfs to get mean and sd
         train_hrtfs = []
         j = 0
-        for i in range(len(ds)):
+        for i in range(30):
+        # for i in range(len(ds)):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
 
@@ -108,11 +109,15 @@ def main(config, mode):
                     cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
 
                 sphere_original_full = []
+                sphere_original_full_hrtf = []
                 for index, coordinates in enumerate(sphere_original):
                     position = {'coordinates': coordinates, 'IR': hrir_original[index]}
                     sphere_original_full.append(position)
+                    position_hrtf = {'coordinates': coordinates, 'TF': hrtf_original[index], 'phase': phase_original[index]}
+                    sphere_original_full_hrtf.append(position_hrtf)
 
                 sphere_original_selected = []
+                sphere_original_selected_hrtf = []
                 for measured_coord_lap in measured_coords_lap:
                     try:
                         index = [tuple([x['coordinates'][0], x['coordinates'][1]]) for x in sphere_original_full].index(measured_coord_lap)
@@ -120,9 +125,13 @@ def main(config, mode):
                         print(e)
                     else:
                         sphere_original_selected.append(sphere_original_full[index])
+                        sphere_original_selected_hrtf.append(sphere_original_full_hrtf[index])
 
                 cs_lap = CubedSphere(sphere_coords=[tuple(x['coordinates']) for x in sphere_original_selected], indices=[[x] for x in np.arange(int(config.lap_factor))])
                 hrtf_lap = interpolate_fft(config, cs_lap, np.array([np.array(x['IR']) for x in sphere_original_selected]), sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=edge_len)
+
+                hrtf_original_lap = torch.tensor(np.array([np.array(x['IR']) for x in sphere_original_selected]))
+                phase_original_lap = torch.tensor(np.array([np.array(x['phase']) for x in sphere_original_selected_hrtf]))
 
             ###############################################
 
@@ -131,12 +140,14 @@ def main(config, mode):
                 projected_dir = config.train_hrtf_dir
                 projected_dir_lap = config.train_lap_dir
                 projected_dir_original = config.train_original_hrtf_dir
+                projected_dir_lap_original = config.train_lap_original_hrtf_dir
                 train_hrtfs.append(clean_hrtf)
                 j += 1
             else:
                 projected_dir = config.valid_hrtf_dir
                 projected_dir_lap = config.valid_lap_dir
                 projected_dir_original = config.valid_original_hrtf_dir
+                projected_dir_lap_original = config.valid_lap_original_hrtf_dir
 
             subject_id = str(ds.subject_ids[i])
             side = ds.sides[i]
@@ -153,6 +164,12 @@ def main(config, mode):
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, config.dataset, subject_id, side), "wb") as file:
                     pickle.dump(hrtf_lap, file)
 
+                with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap_original, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(hrtf_original_lap, file)
+
+                with open('%s/%s_phase_%s%s.pickle' % (projected_dir_lap_original, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(phase_original_lap, file)
+
         if config.merge_flag:
             merge_files(config)
 
@@ -163,6 +180,8 @@ def main(config, mode):
             config.hrtf_size = edge_len
             convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
             convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
+            convert_to_sofa(config.train_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
+            convert_to_sofa(config.valid_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
 
         # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
         mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
@@ -198,8 +217,12 @@ def main(config, mode):
         print('Barycentric Baseline')
         print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
 
-        barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
-        barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
+        if config.lap_factor is not None:
+            barycentric_output_path = config.barycentric_hrtf_dir + '/barycentric_interpolated_data_lap_' + config.lap_factor
+        else:
+            barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
+            barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
+
         cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
 
         if config.gen_sofa_flag:

@@ -634,12 +634,14 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
             test_id = int(test_id)
             config_files = [config_files[test_id]]
         else:
+            test_id_found = False
             for config in config_files:
                 if config.tag == test_id:
                     config_files = [config]
+                    test_id_found = True
                     break
-                else:
-                    print(f'{test_id} not found')
+            if not test_id_found:
+                print(f'Running all config files: {test_id} not found')
 
     print(f'Running a total of {len(config_files)} config files')
     for config in config_files:
@@ -1016,22 +1018,40 @@ def plot_evaluation(hpc, experiment_id, mode):
         print('Experiment does not exist')
 
 
-def run_baseline(hpc, test_id=None):
+def run_baseline(hpc, test_id=None, lap_factor=None):
     print(f'Running training')
     config_files = []
-    upscale_factors = [2, 4, 8, 16]
-    datasets = ['ARI', 'SONICOM']
-    for dataset in datasets:
-        if args.mode == 'barycentric_baseline' or args.mode == 'sh_baseline':
-            for upscale_factor in upscale_factors:
-                config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+    if lap_factor is not None:
+        datasets = ['SONICOM']
+        if lap_factor == '100':
+            upscale_factor = 2
+        elif lap_factor == '19':
+           upscale_factor = 2
+        elif lap_factor == '5':
+           upscale_factor = 2
+        elif lap_factor == '3':
+           upscale_factor = 2
+        for dataset in datasets:
+            if args.mode == 'barycentric_baseline' or args.mode == 'sh_baseline':
+                config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
                 config.upscale_factor = upscale_factor
+                config_files.append(config)
+            else:
+                print('HRTF selection baseline not implemented for LAP')
+    else:
+        upscale_factors = [2, 4, 8, 16]
+        datasets = ['ARI', 'SONICOM']
+        for dataset in datasets:
+            if args.mode == 'barycentric_baseline' or args.mode == 'sh_baseline':
+                for upscale_factor in upscale_factors:
+                    config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
+                    config.upscale_factor = upscale_factor
+                    config.dataset = dataset
+                    config_files.append(config)
+            elif args.mode == 'hrtf_selection_baseline':
+                config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
                 config.dataset = dataset
                 config_files.append(config)
-        elif args.mode == 'hrtf_selection_baseline':
-            config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset)
-            config.dataset = dataset
-            config_files.append(config)
 
     print(f'{len(config_files)} config files created successfully.')
     if test_id is not None:
@@ -1075,6 +1095,6 @@ if __name__ == '__main__':
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
     elif args.mode == 'barycentric_baseline' or args.mode == 'hrtf_selection_baseline' or args.mode == 'sh_baseline':
-        run_baseline(hpc, args.test)
+        run_baseline(hpc, args.test, args.lap)
     else:
         print('Please specify a valid mode')

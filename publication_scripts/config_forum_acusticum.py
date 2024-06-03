@@ -86,6 +86,11 @@ class Config:
             self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge/train'
             self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge/valid'
 
+            self.train_lap_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_original/train'
+            self.valid_lap_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_original/valid'
+            self.train_lap_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge_original/train'
+            self.valid_lap_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge_original/valid'
+
         self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
         self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'
         self.train_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/original/train'

@@ -34,6 +34,10 @@ def clear_create_directories(config):
     shutil.rmtree(Path(config.valid_lap_dir), ignore_errors=True)
     Path(config.train_lap_dir).mkdir(parents=True, exist_ok=True)
     Path(config.valid_lap_dir).mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(Path(config.train_lap_original_hrtf_dir), ignore_errors=True)
+    shutil.rmtree(Path(config.valid_lap_original_hrtf_dir), ignore_errors=True)
+    Path(config.train_lap_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+    Path(config.valid_lap_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
 
 
 def merge_left_right_hrtfs(input_dir, output_dir):
@@ -90,6 +94,8 @@ def merge_files(config):
     merge_left_right_hrtfs(config.valid_original_hrtf_dir, config.valid_original_hrtf_merge_dir)
     merge_left_right_hrtfs(config.train_lap_dir, config.train_lap_merge_dir)
     merge_left_right_hrtfs(config.valid_lap_dir, config.valid_lap_merge_dir)
+    merge_left_right_hrtfs(config.train_lap_original_hrtf_dir, config.train_lap_original_hrtf_merge_dir)
+    merge_left_right_hrtfs(config.valid_lap_original_hrtf_dir, config.valid_lap_original_hrtf_merge_dir)
 
 
 def get_hrtf_from_ds(config, ds, index, domain='mag'):
@@ -674,7 +680,7 @@ def remove_itd(hrir, pre_window, length):
     else:
         trimmed_hrir = trim_hrir(hrir, start, -1)
         fade_window = fadein + [1] * (len(trimmed_hrir) - fadein_len - fadeout_len) + fadeout
-        faded_hrir = trimmed_hrir * fade_window
+        faded_hrir = np.array(trimmed_hrir) * fade_window
         zero_pad = [0] * (length - len(trimmed_hrir))
         faded_hrir = np.ma.append(faded_hrir, zero_pad)
 

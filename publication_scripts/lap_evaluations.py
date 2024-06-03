@@ -95,14 +95,14 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
     print(f'Running {type} experiment {experiment_id}')
     config_files = []
     if experiment_id == 1:
-        upscale_factors = [100]
+        upscale_factors = [5]
         datasets = ['SONICOM']
         for dataset in datasets:
             for upscale_factor in upscale_factors:
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{upscale_factor}'}]
                 for tag in tags:
-                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap='lap_100')
-                    if upscale_factor == '100':
+                    config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor='lap_100')
+                    if upscale_factor == '5':
                         config.upscale_factor = 2
                         config.hrtf_size = 16
                     config_files.append(config)
@@ -133,7 +133,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
 
             file_ext = 'loc_errors.pickle'
             if config.barycentric_postprocessing:
-                file_original_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-100/valid/original_coordinates/sofa_min_phase'
+                file_original_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-5/valid/original_coordinates/sofa_min_phase'
                 hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_original_path) if '.sofa' in hrtf_file_name]
                 if not os.path.exists(file_original_path):
                     raise Exception(f'File path does not exist or does not have write permissions ({file_original_path})')
