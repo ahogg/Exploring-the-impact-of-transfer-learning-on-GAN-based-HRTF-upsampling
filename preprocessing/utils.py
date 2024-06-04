@@ -676,7 +676,7 @@ def remove_itd(hrir, pre_window, length):
     if len(hrir) >= stop:
         trimmed_hrir = trim_hrir(hrir, start, stop)
         fade_window = fadein + [1] * (length - fadein_len - fadeout_len) + fadeout
-        faded_hrir = trimmed_hrir * fade_window
+        faded_hrir = np.array(trimmed_hrir) * fade_window
     else:
         trimmed_hrir = trim_hrir(hrir, start, -1)
         fade_window = fadein + [1] * (len(trimmed_hrir) - fadein_len - fadeout_len) + fadeout

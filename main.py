@@ -4,6 +4,7 @@ import pickle
 import torch
 import numpy as np
 import importlib
+import re
 
 from hartufo import CollectionSpec, SideSpec, SubjectSpec, HrirSpec, AnthropometrySpec, ImageSpec
 from operator import itemgetter
@@ -22,6 +23,8 @@ from baselines.barycentric_interpolation import run_barycentric_interpolation
 from baselines.sh_interpolation import run_sh_interpolation
 from baselines.hrtf_selection import run_hrtf_selection
 from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation
+
+from spatialaudiometrics import lap_challenge as lap
 
 PI_4 = np.pi / 4
 
@@ -229,13 +232,33 @@ def main(config, mode):
             convert_to_sofa(barycentric_output_path, config, cube, sphere)
             print('Created barycentric baseline sofa files')
 
-        config.path = config.barycentric_hrtf_dir
+        if config.lap_factor is not None:
+            file_path = barycentric_output_path + '/sofa_min_phase'
+            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
+            if not os.path.exists(file_path):
+                raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
 
-        file_ext = f'lsd_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle'
-        run_lsd_evaluation(config, barycentric_output_path, file_ext)
+            # Calculate LSD
+            lsd_errors = []
+            for file in hrtf_file_names:
+                # target_sofa_file = config.valid_lap_original_hrtf_merge_dir + '/sofa_min_phase/' + file
+                sub_id = int(file.split('_')[-1].replace('.sofa', ''))
+                target_sofa_file = f'/home/ahogg/Downloads/SONICOM/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
+                generated_sofa_file = file_path + '/' + file
+                metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
-        file_ext = f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle'
-        run_localisation_evaluation(config, barycentric_output_path, file_ext, baseline=True)
+                error = metrics[2]
+                lsd_errors.append({'subject_id': sub_id, 'total_error': error})
+            print('Mean LSD Error (with barycentric postprocessing): %0.3f' % np.mean([lsd_error['total_error'] for lsd_error in lsd_errors]))
+
+        else:
+            config.path = config.barycentric_hrtf_dir
+
+            file_ext = f'lsd_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle'
+            run_lsd_evaluation(config, barycentric_output_path, file_ext)
+
+            file_ext = f'loc_errors_barycentric_interpolated_data_{config.upscale_factor}.pickle'
+            run_localisation_evaluation(config, barycentric_output_path, file_ext, baseline=True)
 
     elif mode == 'sh_baseline':
         print('SH Baseline')

@@ -24,33 +24,33 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
         shutil.rmtree(Path(barycentric_output_path), ignore_errors=True)
         Path(barycentric_output_path).mkdir(parents=True, exist_ok=True)
 
+        euclidean_sphere_triangles = []
+        euclidean_sphere_coeffs = []
+
+        original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
+        with open(original_coordinates_filename, "rb") as f:
+            sphere_original = pickle.load(f)
+        sphere_coords = sphere_original
+
+        edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
+        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
+
+        with open(projection_filename, "rb") as file:
+            cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
+
+        for sphere_coord_idx, sphere_coord in enumerate(sphere_coords):
+            # based on cube coordinates, get indices for magnitudes list of lists
+            # print(f'Calculating Barycentric coefficient {sphere_coord_idx} of {len(sphere_coords)}')
+            triangle_vertices = get_triangle_vertices(elevation=sphere_coord[0], azimuth=sphere_coord[1],
+                                                          sphere_coords=measured_coords_lap)
+            coeffs = calc_barycentric_coordinates(elevation=sphere_coord[0], azimuth=sphere_coord[1],
+                                                      closest_points=triangle_vertices)
+            euclidean_sphere_triangles.append(triangle_vertices)
+            euclidean_sphere_coeffs.append(coeffs)
+
         for file_name in valid_lap_original_file_names:
             with open(config.valid_lap_original_hrtf_merge_dir + file_name, "rb") as f:
                 orginal_hrtf = pickle.load(f)
-
-            euclidean_sphere_triangles = []
-            euclidean_sphere_coeffs = []
-
-            original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
-            with open(original_coordinates_filename, "rb") as f:
-                sphere_original = pickle.load(f)
-            sphere_coords = sphere_original
-
-            edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
-            projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
-
-            with open(projection_filename, "rb") as file:
-                cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
-
-            for sphere_coord_idx, sphere_coord in enumerate(sphere_coords):
-                # based on cube coordinates, get indices for magnitudes list of lists
-                # print(f'Calculating Barycentric coefficient {sphere_coord_idx} of {len(sphere_coords)}')
-                triangle_vertices = get_triangle_vertices(elevation=sphere_coord[0], azimuth=sphere_coord[1],
-                                                          sphere_coords=measured_coords_lap)
-                coeffs = calc_barycentric_coordinates(elevation=sphere_coord[0], azimuth=sphere_coord[1],
-                                                      closest_points=triangle_vertices)
-                euclidean_sphere_triangles.append(triangle_vertices)
-                euclidean_sphere_coeffs.append(coeffs)
 
             orginal_hrtf_left = orginal_hrtf[:, :config.nbins_hrtf]
             orginal_hrtf_right = orginal_hrtf[:, config.nbins_hrtf:]

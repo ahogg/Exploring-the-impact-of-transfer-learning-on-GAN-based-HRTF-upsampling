@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from prettytable import PrettyTable
-
 
 from publication_scripts.config_forum_acusticum import Config
 from model.test import test
