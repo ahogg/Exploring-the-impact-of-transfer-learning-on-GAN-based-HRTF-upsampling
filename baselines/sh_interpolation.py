@@ -5,12 +5,14 @@ import numpy as np
 import torch
 import shutil
 import scipy
+import math
 from pathlib import Path
 
 import matlab.engine
 
 from model.dataset import downsample_hrtf
 from preprocessing.convert_coordinates import convert_cube_indices_to_spherical
+from preprocessing.utils import calc_itd_r
 
 PI_4 = np.pi / 4
 
@@ -48,6 +50,14 @@ def run_sh_interpolation(config, sh_output_path, subject_file=None):
 
             orginal_hrir_left = orginal_hrir[:, :config.nbins_hrtf]
             orginal_hrir_right = orginal_hrir[:, config.nbins_hrtf:]
+
+            rs = []
+            for ir_index, measured_coord_lap in enumerate(measured_coords_lap):
+                if not math.isclose(measured_coord_lap[0], np.pi/2, rel_tol=np.pi/4) and not math.isclose(measured_coord_lap[1], -np.pi, rel_tol=np.pi/8) \
+                        and not math.isclose(measured_coord_lap[1], np.pi, rel_tol=np.pi/8) and not math.isclose(measured_coord_lap[1], 0, abs_tol=np.pi/8):
+                    rs.append(calc_itd_r(config, orginal_hrir_left[ir_index], orginal_hrir_right[ir_index], az=measured_coords_lap[ir_index][1], el=measured_coords_lap[ir_index][0]))
+            config.head_radius = np.mean(rs)
+
             orginal_hrtf_left = np.abs(scipy.fft.rfft(np.array(orginal_hrir_left), config.nbins_hrtf * 2)[:, 1:])
             orginal_hrtf_right = np.abs(scipy.fft.rfft(np.array(orginal_hrir_right), config.nbins_hrtf * 2)[:, 1:])
 

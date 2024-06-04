@@ -4,11 +4,12 @@ import glob
 import numpy as np
 import torch
 import shutil
+import math
 from pathlib import Path
 
 from model.dataset import downsample_hrtf
 from preprocessing.cubed_sphere import CubedSphere
-from preprocessing.utils import interpolate_fft
+from preprocessing.utils import interpolate_fft, calc_itd_r
 from preprocessing.convert_coordinates import convert_cube_to_sphere, convert_single_panel_indices_to_cube_indices, convert_cube_indices_to_spherical
 from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
 
@@ -52,16 +53,23 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
             with open(config.valid_lap_original_hrtf_merge_dir + file_name, "rb") as f:
                 orginal_hrtf = pickle.load(f)
 
-            orginal_hrtf_left = orginal_hrtf[:, :config.nbins_hrtf]
-            orginal_hrtf_right = orginal_hrtf[:, config.nbins_hrtf:]
+            orginal_hrir_left = orginal_hrtf[:, :config.nbins_hrtf]
+            orginal_hrir_right = orginal_hrtf[:, config.nbins_hrtf:]
+
+            rs = []
+            for ir_index, measured_coord_lap in enumerate(measured_coords_lap):
+                if not math.isclose(measured_coord_lap[0], np.pi/2, rel_tol=np.pi/4) and not math.isclose(measured_coord_lap[1], -np.pi, rel_tol=np.pi/8) \
+                        and not math.isclose(measured_coord_lap[1], np.pi, rel_tol=np.pi/8) and not math.isclose(measured_coord_lap[1], 0, abs_tol=np.pi/8):
+                    rs.append(calc_itd_r(config, orginal_hrir_left[ir_index], orginal_hrir_right[ir_index], az=measured_coords_lap[ir_index][1], el=measured_coords_lap[ir_index][0]))
+            config.head_radius = np.mean(rs)
 
             cs_lap = CubedSphere(sphere_coords=measured_coords_lap, indices=[[x] for x in np.arange(int(config.lap_factor))])
 
-            barycentric_hr_left = interpolate_fft(config, cs_lap, orginal_hrtf_left, sphere_coords,
+            barycentric_hr_left = interpolate_fft(config, cs_lap, orginal_hrir_left, sphere_coords,
                                                     euclidean_sphere_triangles,
                                                     euclidean_sphere_coeffs, cube_lap, edge_len=config.hrtf_size,
                                                     cs_output=False)
-            barycentric_hr_right = interpolate_fft(config, cs_lap, orginal_hrtf_right, sphere_coords,
+            barycentric_hr_right = interpolate_fft(config, cs_lap, orginal_hrir_right, sphere_coords,
                                                     euclidean_sphere_triangles,
                                                     euclidean_sphere_coeffs, cube_lap, edge_len=config.hrtf_size,
                                                     cs_output=False)

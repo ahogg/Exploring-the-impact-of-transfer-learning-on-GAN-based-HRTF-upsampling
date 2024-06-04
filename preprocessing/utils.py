@@ -122,6 +122,20 @@ def get_hrtf_from_ds(config, ds, index, domain='mag'):
         return torch.tensor(np.array(hrir_temps)), sphere_temp
 
 
+def calc_itd_r(config, ir_left, ir_right, az, el, c=343):
+
+    az = az + 2*np.pi if az < 0 else az
+
+    delay_left = remove_itd(ir_left, output_delay=True)
+    delay_right = remove_itd(ir_right, output_delay=True)
+    itd_samples = abs(delay_left-delay_right)
+
+    itd_in_sec = itd_samples/config.hrir_samplerate
+    interaural_azimuth = np.arcsin(np.sin(az) * np.cos(el))
+    r = abs((itd_in_sec*c)/(interaural_azimuth + np.sin(interaural_azimuth)))
+    return r
+
+
 def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343):
 
     az = np.radians(az)
@@ -635,7 +649,7 @@ def trim_hrir(hrir, start, stop):
     return trimmed_hrir
 
 
-def remove_itd(hrir, pre_window, length):
+def remove_itd(hrir, pre_window=None, length=None, output_delay=False):
     """Remove ITD from HRIR using kalman filter"""
     # normalize such that max(abs(hrir)) == 1
     rescaling_factor = 1 / max(np.abs(hrir))
@@ -663,6 +677,9 @@ def remove_itd(hrir, pre_window, length):
     else:
         print("RuntimeWarning: ITD not removed (Kalman filter did not find a time where post fit residual exceeded threshold).")
         return hrir
+
+    if output_delay:
+        return over_threshold_index
 
     # create fade window in order to taper off HRIR towards the beginning and end
     fadeout_len = 50
@@ -692,3 +709,5 @@ def remove_itd(hrir, pre_window, length):
         faded_hrir = np.ma.append(faded_hrir, zero_pad)
 
     return faded_hrir
+
+
