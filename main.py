@@ -227,11 +227,11 @@ def main(config, mode):
             barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
             barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
 
-        # cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
-        #
-        # if config.gen_sofa_flag:
-        #     convert_to_sofa(barycentric_output_path, config, cube, sphere)
-        #     print('Created barycentric baseline sofa files')
+        cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
+
+        if config.gen_sofa_flag:
+            convert_to_sofa(barycentric_output_path, config, cube, sphere)
+            print('Created barycentric baseline sofa files')
 
         if config.lap_factor is not None:
             file_path = barycentric_output_path + '/sofa_min_phase'
@@ -244,7 +244,7 @@ def main(config, mode):
             for file in hrtf_file_names:
                 # target_sofa_file = config.valid_lap_original_hrtf_merge_dir + '/sofa_min_phase/' + file
                 sub_id = int(file.split('_')[-1].replace('.sofa', ''))
-                target_sofa_file = f'/home/ahogg/Downloads/SONICOM/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
+                target_sofa_file = f'{config.raw_hrtf_dir}/{config.dataset}/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
                 generated_sofa_file = file_path + '/' + file
                 metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 

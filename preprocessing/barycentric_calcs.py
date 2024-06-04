@@ -96,7 +96,10 @@ def triangle_encloses_point(elevation, azimuth, triangle_coordinates):
     # sphere to the point of interest intersects the plane formed by the triangle's vertices
     # check that constraints are satisfied
     solution_sum = np.sum(solution)
-    solution_lambda = 1. / solution_sum
+    if solution_sum == 0:
+        solution_lambda = 0
+    else:
+        solution_lambda = 1. / solution_sum
 
     return solution_lambda > 0 and np.all(solution > 0)
 
