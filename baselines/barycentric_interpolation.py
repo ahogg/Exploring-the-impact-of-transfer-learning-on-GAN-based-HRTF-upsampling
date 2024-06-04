@@ -18,7 +18,7 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
 
     if config.lap_factor:
         valid_lap_original_hrtf_paths = glob.glob('%s/%s_*' % (config.valid_lap_original_hrtf_merge_dir, config.dataset))
-        valid_lap_original_file_names = ['/' + os.path.basename(x) for x in valid_lap_original_hrtf_paths]
+        valid_lap_original_file_names = ['/' + os.path.basename(x) for x in valid_lap_original_hrtf_paths if 'mag' in x]
 
         # Clear/Create directory
         shutil.rmtree(Path(barycentric_output_path), ignore_errors=True)
