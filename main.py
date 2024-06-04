@@ -218,19 +218,20 @@ def main(config, mode):
 
     elif mode == 'barycentric_baseline':
         print('Barycentric Baseline')
-        print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
 
         if config.lap_factor is not None:
+            print(f'Dataset: {config.dataset}, LAP Factor: {config.lap_factor}')
             barycentric_output_path = config.barycentric_hrtf_dir + '/barycentric_interpolated_data_lap_' + config.lap_factor
         else:
+            print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
             barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
             barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
 
-        cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
-
-        if config.gen_sofa_flag:
-            convert_to_sofa(barycentric_output_path, config, cube, sphere)
-            print('Created barycentric baseline sofa files')
+        # cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
+        #
+        # if config.gen_sofa_flag:
+        #     convert_to_sofa(barycentric_output_path, config, cube, sphere)
+        #     print('Created barycentric baseline sofa files')
 
         if config.lap_factor is not None:
             file_path = barycentric_output_path + '/sofa_min_phase'

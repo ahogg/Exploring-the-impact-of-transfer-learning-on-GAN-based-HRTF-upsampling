@@ -235,13 +235,12 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
 
             convert_to_sofa(original_coordinates_path, config, cube=None, sphere=sphere_original)
 
-            if config.barycentric_postprocessing:
-                file_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/nodes_replaced/sofa_min_phase'
-                hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
-                if not os.path.exists(file_path):
-                    raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
+            file_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/nodes_replaced/sofa_min_phase'
+            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
+            if not os.path.exists(file_path):
+                raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
 
-                file_original_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/original_coordinates/sofa_min_phase'
+            file_original_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/original_coordinates/sofa_min_phase'
 
             # Calculate LSD
             lsd_errors = []
