@@ -35,6 +35,7 @@ class Config:
         self.hrir_samplerate = 48000.0
         self.single_panel = False
         self.barycentric_postprocessing = True
+        self.head_radius = 0.0775
 
         if lap_factor == '100' :
             self.upscale_factor = 2

@@ -128,15 +128,22 @@ def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343):
     el = np.radians(el)
     interaural_azimuth = np.arcsin(np.sin(az) * np.cos(el))
     delay_in_sec = (r / c) * (interaural_azimuth + np.sin(interaural_azimuth))
-    fractional_delay = delay_in_sec * fs
+    fractional_delay = abs(delay_in_sec * fs)
 
-    sample_delay = int(abs(fractional_delay))
+    sample_delay = int(fractional_delay)
 
     if (delay_in_sec > 0 and side == 'right') or (delay_in_sec < 0 and side == 'left'):
         N = len(hrir)
-        delayed_hrir = np.zeros(N)
-        delayed_hrir[sample_delay:] = hrir[0:N - sample_delay]
-        sofa_delay = sample_delay
+
+        B = N/4+1
+        n = np.arange(B) # Filter length
+        h = np.sinc(n-(B-1)/2-fractional_delay) # Compute sinc filter
+        h *= np.blackman(B) # Multiply sinc filter by window
+        h /= np.sum(h) # Normalize to get unity gain.
+        delayed_hrir = np.convolve(hrir, h)
+        delayed_hrir = delayed_hrir[int((B-1)/2):][:N]
+
+        sofa_delay = fractional_delay
     else:
         sofa_delay = 0
         delayed_hrir = hrir
@@ -147,20 +154,20 @@ def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343):
 def gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count, left_phase=None, right_phase=None):
     el = np.degrees(sphere_coords[count][0])
     az = np.degrees(sphere_coords[count][1])
-    source_position = [az + 360 if az < 0 else az, el, 1.2]
+    source_position = [az + 360 if az < 0 else az, el, 1.5]
 
     if left_phase is None:
         left_hrtf[left_hrtf == 0.0] = 1.0e-08
-        left_phase = np.imag(-hilbert(np.log(np.abs(left_hrtf))))
+        left_phase = np.imag(hilbert(-np.log(np.abs(left_hrtf))))
     if right_phase is None:
         right_hrtf[right_hrtf == 0.0] = 1.0e-08
-        right_phase = np.imag(-hilbert(np.log(np.abs(right_hrtf))))
+        right_phase = np.imag(hilbert(-np.log(np.abs(right_hrtf))))
 
     left_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(left_hrtf[:config.nbins_hrtf-1]))) * np.exp(1j * left_phase))[:config.nbins_hrtf]
     right_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(right_hrtf[:config.nbins_hrtf-1]))) * np.exp(1j * right_phase))[:config.nbins_hrtf]
 
-    left_hrir, left_sample_delay = add_itd(az, el, left_hrir, side='left')
-    right_hrir, right_sample_delay = add_itd(az, el, right_hrir, side='right')
+    left_hrir, left_sample_delay = add_itd(az, el, left_hrir, side='left', fs=config.hrir_samplerate, r=config.head_radius)
+    right_hrir, right_sample_delay = add_itd(az, el, right_hrir, side='right', fs=config.hrir_samplerate, r=config.head_radius)
 
     full_hrir = [left_hrir, right_hrir]
     delay = [left_sample_delay, right_sample_delay]

@@ -240,7 +240,7 @@ def main(config, mode):
                 raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
 
             # Calculate LSD
-            lsd_errors = []
+            errors = []
             for file in hrtf_file_names:
                 # target_sofa_file = config.valid_lap_original_hrtf_merge_dir + '/sofa_min_phase/' + file
                 sub_id = int(file.split('_')[-1].replace('.sofa', ''))
@@ -248,9 +248,15 @@ def main(config, mode):
                 generated_sofa_file = file_path + '/' + file
                 metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
-                error = metrics[2]
-                lsd_errors.append({'subject_id': sub_id, 'total_error': error})
-            print('Mean LSD Error (with barycentric postprocessing): %0.3f' % np.mean([lsd_error['total_error'] for lsd_error in lsd_errors]))
+                idt_error = metrics[0]
+                ild_error = metrics[1]
+                lsd_error = metrics[2]
+
+                errors.append({'subject_id': sub_id, 'total_itd_error': idt_error, 'total_ild_error': ild_error, 'total_lsd_error': lsd_error})
+
+            print('Mean ITD Error: %0.3f' % np.mean([error['total_itd_error'] for error in errors]))
+            print('Mean ILD Error: %0.3f' % np.mean([error['total_ild_error'] for error in errors]))
+            print('Mean LSD Error: %0.3f' % np.mean([error['total_lsd_error'] for error in errors]))
 
         else:
             config.path = config.barycentric_hrtf_dir
@@ -263,23 +269,54 @@ def main(config, mode):
 
     elif mode == 'sh_baseline':
         print('SH Baseline')
-        print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
 
-        sh_data_folder = f'/sh_interpolated_data_{config.upscale_factor}'
-        sh_output_path = config.sh_hrtf_dir + sh_data_folder
+        if config.lap_factor is not None:
+            print(f'Dataset: {config.dataset}, LAP Factor: {config.lap_factor}')
+            sh_output_path = config.sh_hrtf_dir + '/sh_interpolated_data_lap_' + config.lap_factor
+        else:
+            print(f'Dataset: {config.dataset}, Upscale Factor: {config.upscale_factor}')
+            sh_data_folder = f'/sh_interpolated_data_{config.upscale_factor}'
+            sh_output_path = config.sh_hrtf_dir + sh_data_folder
+
         cube, sphere = run_sh_interpolation(config, sh_output_path)
 
         if config.gen_sofa_flag:
             convert_to_sofa(sh_output_path, config, cube, sphere)
             print('Created sh baseline sofa files')
 
-        config.path = config.sh_hrtf_dir
+        if config.lap_factor is not None:
+            file_path = sh_output_path + '/sofa_min_phase'
+            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
+            if not os.path.exists(file_path):
+                raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
 
-        file_ext = f'lsd_errors_sh_interpolated_data_{config.upscale_factor}.pickle'
-        run_lsd_evaluation(config, sh_output_path, file_ext)
+            # Calculate LSD
+            errors = []
+            for file in hrtf_file_names:
+                # target_sofa_file = config.valid_lap_original_hrtf_merge_dir + '/sofa_min_phase/' + file
+                sub_id = int(file.split('_')[-1].replace('.sofa', ''))
+                target_sofa_file = f'{config.raw_hrtf_dir}/{config.dataset}/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
+                generated_sofa_file = file_path + '/' + file
+                metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
-        file_ext = f'loc_errors_sh_interpolated_data_{config.upscale_factor}.pickle'
-        run_localisation_evaluation(config, sh_output_path, file_ext, baseline=True)
+                idt_error = metrics[0]
+                ild_error = metrics[1]
+                lsd_error = metrics[2]
+
+                errors.append({'subject_id': sub_id, 'total_itd_error': idt_error, 'total_ild_error': ild_error, 'total_lsd_error': lsd_error})
+
+            print('Mean ITD Error: %0.3f' % np.mean([error['total_itd_error'] for error in errors]))
+            print('Mean ILD Error: %0.3f' % np.mean([error['total_ild_error'] for error in errors]))
+            print('Mean LSD Error: %0.3f' % np.mean([error['total_lsd_error'] for error in errors]))
+
+        else:
+            config.path = config.sh_hrtf_dir
+
+            file_ext = f'lsd_errors_sh_interpolated_data_{config.upscale_factor}.pickle'
+            run_lsd_evaluation(config, sh_output_path, file_ext)
+
+            file_ext = f'loc_errors_sh_interpolated_data_{config.upscale_factor}.pickle'
+            run_localisation_evaluation(config, sh_output_path, file_ext, baseline=True)
 
     elif mode == 'hrtf_selection_baseline':
 
