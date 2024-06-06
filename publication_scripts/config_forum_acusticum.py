@@ -82,10 +82,11 @@ class Config:
             self.baseline_dir += '/cube_sphere'
 
         if self.lap_factor is not None:
-            self.train_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '/train'
-            self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '/valid'
-            self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge/train'
-            self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge/valid'
+            edge_len = str(int(int(self.hrtf_size) / int(self.upscale_factor)))
+            self.train_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_' + edge_len + '/train'
+            self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_' + edge_len + '/valid'
+            self.train_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_' + edge_len + '_merge/train'
+            self.valid_lap_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_' + edge_len + '_merge/valid'
 
             self.train_lap_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_original/train'
             self.valid_lap_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_original/valid'

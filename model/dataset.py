@@ -127,7 +127,8 @@ class TrainValidHRTFDataset(Dataset):
         if self.config.lap_factor is None:
             lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)
         else:
-            with open(self.hrtf_file_names[batch_index].replace('hr', f'lap_{self.config.lap_factor}'), "rb") as file:
+            edge_len = str(int(int(self.hrtf_size) / int(self.upscale_factor)))
+            with open(self.hrtf_file_names[batch_index].replace('hr_merge', f'{self.config.train_lap_merge_dir.split("/")[-2]}'), "rb") as file:
                 lr_hrtf = pickle.load(file)
 
             # hrtf processing operations

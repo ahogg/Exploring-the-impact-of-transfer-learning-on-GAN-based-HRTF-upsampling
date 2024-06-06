@@ -558,10 +558,11 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
     print(f'Running training')
     config_files = []
     tags = []
+    hrtf_size = 16
     if lap_factor == '100':
         upscale_factors = [2]
     elif lap_factor == '19':
-        upscale_factors = [2]
+        upscale_factors = [8]
     elif lap_factor == '5':
         upscale_factors = [2]
     elif lap_factor == '3':
@@ -575,7 +576,7 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
         for upscale_factor in upscale_factors:
             if lap_factor is not None:
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}'.replace('_','-')}]
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(hrtf_size/upscale_factor)}'.replace('_','-')}]
             else:
                 if type == 'base':
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
