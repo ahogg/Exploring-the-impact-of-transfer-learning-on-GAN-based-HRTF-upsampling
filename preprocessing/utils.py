@@ -6,6 +6,7 @@ import sofar as sf
 import numpy as np
 import torch
 import scipy
+import math
 from scipy.signal import hilbert
 import scipy.signal as sps
 import shutil
@@ -258,7 +259,7 @@ def save_sofa(clean_hrtf, config, cube_coords, sphere_coords, sofa_path_output, 
     sf.write_sofa(sofa_path_output, sofa)
 
 
-def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phase=False, mag_ext='_mag'):
+def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phase=False, mag_ext='_mag', lap_factor=None):
     if use_phase:
         sofa_path_output = hrtf_dir + '/sofa_with_phase/'
     else:
@@ -278,6 +279,35 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
             hrtf = pickle.load(hrtf_file)
             sofa_filename_output = os.path.basename(hrtf_file.name).replace('.pickle', '.sofa').replace(mag_ext,'')
             sofa_output = sofa_path_output + sofa_filename_output
+
+            if lap_factor is not None:
+                #######################################################
+                edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
+                projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
+
+                with open(projection_filename, "rb") as file:
+                    cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(
+                        file)
+
+                with open(config.valid_lap_original_hrtf_merge_dir + '/' + f, "rb") as f:
+                    orginal_hrir = pickle.load(f)
+
+                orginal_hrir_left = orginal_hrir[:, :config.nbins_hrtf]
+                orginal_hrir_right = orginal_hrir[:, config.nbins_hrtf:]
+
+                rs = []
+                for ir_index, measured_coord_lap in enumerate(measured_coords_lap):
+                    if not math.isclose(measured_coord_lap[0], np.pi / 2, abs_tol=np.pi / 4) and not math.isclose(
+                            measured_coord_lap[1], -np.pi, abs_tol=np.pi / 8) \
+                            and not math.isclose(measured_coord_lap[1], np.pi, abs_tol=np.pi / 8) and not math.isclose(
+                        measured_coord_lap[1], 0, abs_tol=np.pi / 8):
+                        rs.append(calc_itd_r(config, orginal_hrir_left[ir_index], orginal_hrir_right[ir_index],
+                                             az=measured_coords_lap[ir_index][1], el=measured_coords_lap[ir_index][0]))
+                config.head_radius = np.mean([r for r in rs if math.isclose(r, 0.08, abs_tol=0.02)])
+
+                #######################################################
+            else:
+                config.head_radius = 0.0875
 
             if use_phase:
                 for f_phase in phase_file_names:

@@ -60,7 +60,7 @@ sgD = samplingGridInterp;
 
 sparseHRTF.sourceDistance = 3;
 sparseHRTF.FFToversize = 4;
-sparseHRTF.Nmax = 4;
+sparseHRTF.Nmax = min([floor(sqrt(length(samplingGrid(:,1))))-1, 8]);
 
 samplingGrid(:,1) = samplingGrid(:,1);
 samplingGrid(:,2) = samplingGrid(:,2);

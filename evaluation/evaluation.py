@@ -5,7 +5,7 @@ from preprocessing.utils import convert_to_sofa
 from preprocessing.convert_coordinates import convert_single_panel_indices_to_cube_indices, convert_cube_indices_to_spherical, convert_cube_to_sphere
 from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
 from preprocessing.cubed_sphere import CubedSphere
-from preprocessing.utils import interpolate_fft
+from preprocessing.utils import interpolate_fft, remove_itd, calc_hrtf
 from preprocessing.utils import calc_hrtf
 
 from spatialaudiometrics import lap_challenge as lap
@@ -26,7 +26,7 @@ import matlab.engine
 
 from model.util import spectral_distortion_inner
 
-def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, barycentric_postprocessing=True):
+def replace_nodes(config, sr_dir, file_name, keep_nodes=False, calc_spectral_distortion=False, barycentric_postprocessing=True):
     # Overwrite the generated points that exist in the original data
 
     with open(config.valid_hrtf_merge_dir + file_name, "rb") as f:
@@ -116,6 +116,10 @@ def replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=False, bar
                             errors.append(spectral_distortion_inner(sr_hrtf[p, w, h], hr_hrtf[p, w, h]))
 
         if barycentric_postprocessing:
+
+            if keep_nodes:
+                with open(sr_dir + file_name, "rb") as f:
+                    sr_hrtf = pickle.load(f)
 
             cs = CubedSphere(sphere_coords=sphere_coords_lr, indices=sphere_coords_lr_index)
 
@@ -219,23 +223,63 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
         with open(projection_filename, "rb") as file:
             cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
 
-        convert_to_sofa(nodes_replaced_path, config, cube, sphere)
+        if config.lap_factor is not None:
+            convert_to_sofa(nodes_replaced_path, config, cube, sphere, lap_factor=config.lap_factor)
+        else:
+            convert_to_sofa(nodes_replaced_path, config, cube, sphere)
 
-        print('Created valid sofa files')
+        print('Created valid sofa files - Cubed Sphere')
 
         if config.barycentric_postprocessing:
-            for file_name in sr_data_file_names:
-                target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=True)
-                with open(original_coordinates_path + file_name, "wb") as file:
-                    pickle.dump(generated_postprocessing, file)
 
             sphere_original_filename = f'{config.projection_dir}/{config.dataset}_original'
             with open(sphere_original_filename, "rb") as file:
                 sphere_original = pickle.load(file)
 
-            convert_to_sofa(original_coordinates_path, config, cube=None, sphere=sphere_original)
+            for file_name in sr_data_file_names:
 
-            file_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/nodes_replaced/sofa_min_phase'
+                if config.lap_factor is not None:
+                    target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing = replace_nodes(config, sr_dir, file_name, keep_nodes=True, calc_spectral_distortion=True, barycentric_postprocessing=True)
+
+                    replace_original_nodes = True
+                    if replace_original_nodes:
+                        edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
+                        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
+
+                        with open(projection_filename, "rb") as file:
+                            cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
+
+                        with open(config.valid_lap_original_hrtf_merge_dir + file_name, "rb") as f:
+                            orginal_hrir = pickle.load(f)
+
+                        for measured_coord_lap_index, measured_coord_lap in enumerate(measured_coords_lap):
+                            sphere_index = sphere_original.index(list(measured_coord_lap))
+
+                            hrir_temp_merge = orginal_hrir[measured_coord_lap_index]
+                            hrir_temp_left = hrir_temp_merge[:config.nbins_hrtf]
+                            hrir_temp_right = hrir_temp_merge[config.nbins_hrtf:]
+
+                            hrtf_temp_left, _ = calc_hrtf(config, [remove_itd(hrir_temp_left, int(len(hrir_temp_left) * 0.04),len(hrir_temp_left))])
+                            hrtf_temp_right, _ = calc_hrtf(config, [remove_itd(hrir_temp_right, int(len(hrir_temp_right) * 0.04), len(hrir_temp_right))])
+
+                            orginal_hrtf = torch.tensor(np.concatenate((hrtf_temp_left[0], hrtf_temp_right[0]), axis=0))
+                            generated_postprocessing[sphere_index] = orginal_hrtf
+
+                else:
+                    target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=True)
+
+                with open(original_coordinates_path + file_name, "wb") as file:
+                    pickle.dump(generated_postprocessing, file)
+
+            if config.lap_factor is not None:
+                convert_to_sofa(original_coordinates_path, config, cube=None, sphere=sphere_original, lap_factor=config.lap_factor)
+            else:
+                convert_to_sofa(original_coordinates_path, config, cube=None, sphere=sphere_original,
+                                lap_factor=config.lap_factor)
+
+            print('Created valid sofa files - Original')
+
+            file_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/original_coordinates/sofa_min_phase'
             hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
             if not os.path.exists(file_path):
                 raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
@@ -248,12 +292,12 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
             for file in hrtf_file_names:
                 target_sofa_file = config.valid_hrtf_merge_dir + '/sofa_min_phase/' + file
                 target_sofa_file = target_sofa_file.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
-                generated_sofa_file = file_path + '/' + file
+                generated_sofa_file = file_path.replace('original_coordinates', 'nodes_replaced') + '/' + file
                 metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
                 error = metrics[2]
                 subject_id = ''.join(re.findall(r'\d+', file_name))
-                lsd_errors.append({'subject_id': subject_id, 'total_error': error, 'errors': errors, 'coordinates': xy})
+                lsd_errors.append({'subject_id': subject_id, 'total_error': error})
                 print('LSD Error of subject %s: %0.4f' % (subject_id, error))
 
                 if config.barycentric_postprocessing:
@@ -264,7 +308,7 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
 
                     error_postprocessing = metrics[2]
                     subject_id = ''.join(re.findall(r'\d+', file_name))
-                    lsd_errors_postprocessing.append({'subject_id': subject_id, 'total_error': error_postprocessing, 'errors': errors_postprocessing, 'coordinates': xy_postprocessing})
+                    lsd_errors_postprocessing.append({'subject_id': subject_id, 'total_error': error_postprocessing})
                     print('LSD Error (with barycentric postprocessing) of subject %s: %0.4f' % (subject_id, error_postprocessing))
 
             print('Mean LSD Error: %0.3f' % np.mean([error['total_error'] for error in lsd_errors]))

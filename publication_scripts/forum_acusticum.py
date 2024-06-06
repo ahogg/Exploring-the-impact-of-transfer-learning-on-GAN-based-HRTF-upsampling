@@ -507,7 +507,6 @@ def run_projection(hpc, dataset_id=None, lap_factor=None):
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
     for dataset in datasets:
         config = Config(tag=None, using_hpc=hpc, dataset=dataset, lap_factor=lap_factor)
-        config.hrtf_size = 16
         config_files.append(config)
 
 

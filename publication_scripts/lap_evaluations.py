@@ -2,6 +2,8 @@ import argparse
 import matplotlib as mpl
 mpl.use('pdf')
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 import pickle
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
@@ -90,6 +92,101 @@ import re
 import numpy as np
 
 import matlab.engine
+
+def run_baseline_plots():
+
+    # baselines = ['barycentric', 'sh', 'gan']
+    lap_factors = ['100', '19', '5', '3']
+    baselines = ['gan']
+    # lap_factors = ['5']
+
+    barycentric_errors = []
+    sh_errors = []
+    gan_errors = []
+    for baseline in baselines:
+        for lap_factor in lap_factors:
+
+            dataset = 'SONICOM'
+            tag = {'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}'}
+            config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
+
+            if baseline == 'barycentric':
+                output_path = config.barycentric_hrtf_dir + '/barycentric_interpolated_data_lap_' + lap_factor
+            elif baseline == 'sh':
+                output_path = config.valid_lap_merge_dir + '/sh_interpolated_data_lap_' + config.lap_factor
+            elif baseline == 'gan':
+                output_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/original_coordinates'
+
+            file_path = output_path + '/sofa_min_phase'
+
+            hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
+            if not os.path.exists(file_path):
+                raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
+
+            # Calculate LSD
+            errors = []
+            for file in hrtf_file_names:
+                # target_sofa_file = config.valid_lap_original_hrtf_merge_dir + '/sofa_min_phase/' + file
+                sub_id = int(file.split('_')[-1].replace('.sofa', ''))
+                target_sofa_file = f'{config.raw_hrtf_dir}/{config.dataset}/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
+                generated_sofa_file = file_path + '/' + file
+                metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
+
+                idt_error = metrics[0]
+                ild_error = metrics[1]
+                lsd_error = metrics[2]
+
+                errors.append({'subject_id': sub_id, 'total_itd_error': idt_error, 'total_ild_error': ild_error,
+                                'total_lsd_error': lsd_error})
+
+
+            print('Mean ITD Error: %0.3f' % np.mean([error['total_itd_error'] for error in errors]))
+            print('Mean ILD Error: %0.3f' % np.mean([error['total_ild_error'] for error in errors]))
+            print('Mean LSD Error: %0.3f' % np.mean([error['total_lsd_error'] for error in errors]))
+
+            if baseline == 'barycentric':
+                barycentric_errors.append({'lap_factor': lap_factor, 'errors': errors})
+            elif baseline == 'sh':
+                sh_errors.append({'lap_factor': lap_factor, 'errors': errors})
+            elif baseline == 'gan':
+                gan_errors.append({'lap_factor': lap_factor, 'errors': errors})
+
+    error_types = ['total_itd_error', 'total_ild_error', 'total_lsd_error']
+    error_units = ['(µs)', '(dB)', '(dB)']
+    x_limits = [(20, 85), (0, 11.5), (2.8, 11)]
+    error_thresholds = [62.5, 4.4, 7.4]
+    for baseline in baselines:
+        for error_index, error_type in enumerate(error_types):
+
+            if baseline == 'barycentric':
+                plot_errors = barycentric_errors
+                title = 'Barycentric Interpolation'
+            elif baseline == 'sh':
+                plot_errors = sh_errors
+                title = 'Spherical Harmonics Interpolation'
+            elif baseline == 'gan':
+                plot_errors = gan_errors
+                title = 'SRGAN'
+
+            plot_errors_3 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '3']).flatten()
+            plot_errors_5 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '5']).flatten()
+            plot_errors_19 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '19']).flatten()
+            plot_errors_100 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '100']).flatten()
+
+            fig, ax = plt.subplots(figsize=(8, 2.5))
+            data = pd.DataFrame(np.array([plot_errors_100, plot_errors_19, plot_errors_5, plot_errors_3]).T, columns = lap_factors)
+            x_label = error_type.replace('_', ' ').replace('total ', '').upper().replace('ERROR', 'Error') + ' ' + error_units[error_index]
+            sns.boxplot(data=data, orient="h", whis=[0, 100], width=.8, palette="vlag", gap=.1)
+            ax.set(ylabel='Sparsity Level', xlabel=x_label)
+            ax.set_title(title)
+            ax.axvline(x=error_thresholds[error_index], linewidth=2, color='r', linestyle='--')
+            ax.set_xlim(x_limits[error_index])
+            ax.xaxis.grid(True)  # Show the vertical gridlines
+            fig.tight_layout()
+            fig.savefig(f'{baseline}_{error_type}.png')
+            plt.close()
+
+    return
 
 def run_evaluation(hpc, experiment_id, type, test_id=None):
     print(f'Running {type} experiment {experiment_id}')
@@ -207,5 +304,9 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
-    run_evaluation(hpc, int(args.exp), args.type, args.test)
+
+
+    run_baseline_plots()
+
+    # run_evaluation(hpc, int(args.exp), args.type, args.test)
 
