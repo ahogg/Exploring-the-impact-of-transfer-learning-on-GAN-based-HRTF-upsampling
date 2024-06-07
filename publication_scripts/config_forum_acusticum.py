@@ -40,7 +40,7 @@ class Config:
         if lap_factor == '100' :
             self.upscale_factor = 2
         elif lap_factor == '19':
-            self.upscale_factor = 16
+            self.upscale_factor = 1
         elif lap_factor == '5':
             self.upscale_factor = 2
         elif lap_factor == '3':
