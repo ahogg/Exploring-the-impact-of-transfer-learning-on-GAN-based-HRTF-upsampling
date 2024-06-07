@@ -655,7 +655,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
         if lap_factor == '100':
             upscale_factor = 2
         elif lap_factor == '19':
-           upscale_factor = 8
+           upscale_factor = 1
         elif lap_factor == '5':
            upscale_factor = 2
         elif lap_factor == '3':
