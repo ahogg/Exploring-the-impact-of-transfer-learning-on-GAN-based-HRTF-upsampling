@@ -561,7 +561,7 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
     if lap_factor == '100':
         upscale_factors = [2]
     elif lap_factor == '19':
-        upscale_factors = [8]
+        upscale_factors = [1]
     elif lap_factor == '5':
         upscale_factors = [2]
     elif lap_factor == '3':
