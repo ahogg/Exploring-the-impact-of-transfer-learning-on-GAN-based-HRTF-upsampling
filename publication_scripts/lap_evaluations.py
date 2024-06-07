@@ -8,6 +8,7 @@ import pickle
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from prettytable import PrettyTable
+from pathlib import Path
 
 from spatialaudiometrics import lap_challenge as lap
 from publication_scripts.config_forum_acusticum import Config
@@ -93,12 +94,16 @@ import numpy as np
 
 import matlab.engine
 
-def run_baseline_plots():
+def run_baseline_plots(hpc):
 
     # baselines = ['barycentric', 'sh', 'gan']
     lap_factors = ['100', '19', '5', '3']
+
     baselines = ['gan']
     # lap_factors = ['5']
+
+    config = Config(None, using_hpc=hpc)
+    Path(config.data_dirs_path + '/lap_plots').mkdir(parents=True, exist_ok=True)
 
     barycentric_errors = []
     sh_errors = []
@@ -107,7 +112,7 @@ def run_baseline_plots():
         for lap_factor in lap_factors:
 
             dataset = 'SONICOM'
-            tag = {'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}'}
+            tag = {'tag': None}
             config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
 
             if baseline == 'barycentric':
@@ -115,7 +120,7 @@ def run_baseline_plots():
             elif baseline == 'sh':
                 output_path = config.valid_lap_merge_dir + '/sh_interpolated_data_lap_' + config.lap_factor
             elif baseline == 'gan':
-                output_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/original_coordinates'
+                output_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}-{int(config.hrtf_size/config.upscale_factor)}/valid/original_coordinates'
 
             file_path = output_path + '/sofa_min_phase'
 
@@ -183,7 +188,7 @@ def run_baseline_plots():
             ax.set_xlim(x_limits[error_index])
             ax.xaxis.grid(True)  # Show the vertical gridlines
             fig.tight_layout()
-            fig.savefig(f'{baseline}_{error_type}.png')
+            fig.savefig(f'lap_plots/{baseline}_{error_type}.png')
             plt.close()
 
     return
@@ -306,7 +311,7 @@ if __name__ == '__main__':
 
 
 
-    run_baseline_plots()
+    run_baseline_plots(hpc)
 
     # run_evaluation(hpc, int(args.exp), args.type, args.test)
 

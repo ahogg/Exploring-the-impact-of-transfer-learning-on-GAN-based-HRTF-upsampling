@@ -215,7 +215,11 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
         sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
 
         for file_name in sr_data_file_names:
-            target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=False)
+            if config.lap_factor is not None:
+                target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, keep_nodes = True, calc_spectral_distortion=True, barycentric_postprocessing=False)
+            else:
+                target, generated, errors, xy = replace_nodes(config, sr_dir, file_name, calc_spectral_distortion=True, barycentric_postprocessing=False)
+
             with open(nodes_replaced_path + file_name, "wb") as file:
                 pickle.dump(torch.permute(generated[0], (1, 2, 3, 0)), file)
 
@@ -279,12 +283,12 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
 
             print('Created valid sofa files - Original')
 
-            file_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/original_coordinates/sofa_min_phase'
+            file_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}-{int(config.hrtf_size/config.upscale_factor)}/valid/original_coordinates/sofa_min_phase'
             hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
             if not os.path.exists(file_path):
                 raise Exception(f'File path does not exist or does not have write permissions ({file_path})')
 
-            file_original_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}/valid/original_coordinates/sofa_min_phase'
+            file_original_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}-{int(config.hrtf_size/config.upscale_factor)}/valid/original_coordinates/sofa_min_phase'
 
             # Calculate LSD
             lsd_errors = []
@@ -296,7 +300,7 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
                 metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
                 error = metrics[2]
-                subject_id = ''.join(re.findall(r'\d+', file_name))
+                subject_id = ''.join(re.findall(r'\d+', file))
                 lsd_errors.append({'subject_id': subject_id, 'total_error': error})
                 print('LSD Error of subject %s: %0.4f' % (subject_id, error))
 
