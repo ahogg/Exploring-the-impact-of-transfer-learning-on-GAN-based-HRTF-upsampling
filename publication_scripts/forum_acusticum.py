@@ -559,13 +559,13 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
     config_files = []
     tags = []
     if lap_factor == '100':
-        upscale_factors = [2]
+        upscale_factors = [1]
     elif lap_factor == '19':
         upscale_factors = [1]
     elif lap_factor == '5':
-        upscale_factors = [2]
+        upscale_factors = [1]
     elif lap_factor == '3':
-        upscale_factors = [2]
+        upscale_factors = [1]
     else:
         upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
@@ -653,13 +653,13 @@ def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
         hrtf_size = 16
         datasets = ['SONICOM']
         if lap_factor == '100':
-            upscale_factor = 2
+            upscale_factor = 1
         elif lap_factor == '19':
            upscale_factor = 1
         elif lap_factor == '5':
-           upscale_factor = 2
+           upscale_factor = 1
         elif lap_factor == '3':
-           upscale_factor = 2
+           upscale_factor = 1
         for dataset in datasets:
             tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(hrtf_size/upscale_factor)}'.replace('_', '-')}]
             for tag in tags:

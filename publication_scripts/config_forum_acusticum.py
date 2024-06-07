@@ -38,13 +38,13 @@ class Config:
         self.head_radius = None
 
         if lap_factor == '100' :
-            self.upscale_factor = 2
+            self.upscale_factor = 1
         elif lap_factor == '19':
             self.upscale_factor = 1
         elif lap_factor == '5':
-            self.upscale_factor = 2
+            self.upscale_factor = 1
         elif lap_factor == '3':
-            self.upscale_factor = 2
+            self.upscale_factor = 1
 
         # Data dirs
         if using_hpc:
