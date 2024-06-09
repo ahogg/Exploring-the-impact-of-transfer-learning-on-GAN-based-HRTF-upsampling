@@ -536,6 +536,7 @@ def run_preprocess(hpc, type, dataset_id=None, lap_factor=None):
         elif type == 'tl':
             config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap_factor=lap_factor)
             config.train_samples_ratio = 1.0
+        config_files.append(config)
 
     print(f'{len(config_files)} config files created successfully.')
     if dataset_id is not None:
