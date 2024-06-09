@@ -115,11 +115,11 @@ def replace_nodes(config, sr_dir, file_name, keep_nodes=False, calc_spectral_dis
                         if calc_spectral_distortion:
                             errors.append(spectral_distortion_inner(sr_hrtf[p, w, h], hr_hrtf[p, w, h]))
 
-        if barycentric_postprocessing:
+        if keep_nodes:
+            with open(sr_dir + file_name, "rb") as f:
+                sr_hrtf = pickle.load(f)
 
-            if keep_nodes:
-                with open(sr_dir + file_name, "rb") as f:
-                    sr_hrtf = pickle.load(f)
+        if barycentric_postprocessing:
 
             cs = CubedSphere(sphere_coords=sphere_coords_lr, indices=sphere_coords_lr_index)
 

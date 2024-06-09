@@ -536,8 +536,6 @@ def run_preprocess(hpc, type, dataset_id=None, lap_factor=None):
         elif type == 'tl':
             config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap_factor=lap_factor)
             config.train_samples_ratio = 1.0
-        config.hrtf_size = 16
-        config_files.append(config)
 
     print(f'{len(config_files)} config files created successfully.')
     if dataset_id is not None:
@@ -558,14 +556,9 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
     print(f'Running training')
     config_files = []
     tags = []
-    if lap_factor == '100':
-        upscale_factors = [1]
-    elif lap_factor == '19':
-        upscale_factors = [1]
-    elif lap_factor == '5':
-        upscale_factors = [1]
-    elif lap_factor == '3':
-        upscale_factors = [1]
+    settings = Config(tag=None, using_hpc=hpc)
+    if lap_factor is not None:
+        upscale_factors = [settings.upscale_factor]
     else:
         upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
@@ -575,8 +568,7 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
         for upscale_factor in upscale_factors:
             if lap_factor is not None:
-                hrtf_size = 16
-                tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(hrtf_size/upscale_factor)}'.replace('_','-')}]
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(settings.hrtf_size/upscale_factor)}'.replace('_','-')}]
             else:
                 if type == 'base':
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
@@ -649,22 +641,13 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
 def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
     print(f'Running {type} experiment {experiment_id}')
     config_files = []
+    settings = Config(tag=None, using_hpc=hpc)
     if lap_factor is not None:
-        hrtf_size = 16
         datasets = ['SONICOM']
-        if lap_factor == '100':
-            upscale_factor = 1
-        elif lap_factor == '19':
-           upscale_factor = 1
-        elif lap_factor == '5':
-           upscale_factor = 1
-        elif lap_factor == '3':
-           upscale_factor = 1
         for dataset in datasets:
-            tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(hrtf_size/upscale_factor)}'.replace('_', '-')}]
+            tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(settings.hrtf_size/settings.upscale_factor)}'.replace('_', '-')}]
             for tag in tags:
                 config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
-                config.upscale_factor = upscale_factor
                 config_files.append(config)
     else:
         if experiment_id == 1:
