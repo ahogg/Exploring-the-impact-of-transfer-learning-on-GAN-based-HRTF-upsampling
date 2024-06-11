@@ -103,7 +103,7 @@ class Config:
         self.train_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/merge_original/train'
         self.valid_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/merge_original/valid'
 
-        self.mean_std_filename = self.data_dirs_path + self.data_dir + '/mean_std_' + self.dataset
+        self.mean_std_filename = self.data_dirs_path + self.data_dir + '/mean_std_' + self.dataset + '_' + str(self.hrtf_size)
         self.barycentric_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/barycentric/valid'
         self.sh_hrtf_dir = self.data_dirs_path + self.baseline_dir + '/sh/valid'
         self.hrtf_selection_dir = self.data_dirs_path + self.baseline_dir + '/hrtf_selection/valid'

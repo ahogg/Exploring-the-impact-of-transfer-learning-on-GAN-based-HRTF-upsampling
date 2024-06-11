@@ -83,7 +83,7 @@ def main(config, mode):
 
         # collect all train_hrtfs to get mean and sd
         train_hrtfs = []
-        # for i in range(30):
+        # for i in range(4):
         for i in range(len(ds)):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
@@ -96,11 +96,15 @@ def main(config, mode):
             hrir_original, _ = get_hrtf_from_ds(config, ds, i, domain='time')
             hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i, domain='mag')
 
+            edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
+            cube_lap = None
+            sphere_lap = None
+
+
             ####################LAP########################
             ###############################################
 
             if config.lap_factor is not None:
-                edge_len = int(int(config.hrtf_size)/int(config.upscale_factor))
                 projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
 
                 with open(projection_filename, "rb") as file:
@@ -175,27 +179,25 @@ def main(config, mode):
                 with open('%s/%s_phase_%s%s.pickle' % (projected_dir_lap_original, config.dataset, subject_id, side), "wb") as file:
                     pickle.dump(phase_original_lap, file)
 
+        # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
+        if config.lap_factor is not None:
+            mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
+            std = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
+            min_hrtf = torch.min(torch.from_numpy(np.array(train_hrtfs)))
+            max_hrtf = torch.max(torch.from_numpy(np.array(train_hrtfs)))
+            mean_std_filename = config.mean_std_filename
+            with open(mean_std_filename, "wb") as file:
+                pickle.dump((mean, std, min_hrtf, max_hrtf), file)
+
+        print(f"All HRTFs created (100%)")
+
         if config.merge_flag:
             merge_files(config)
+            print(f"Merged HRTFs created")
 
         if config.gen_sofa_flag:
-            if config.lap_factor is None:
-                gen_sofa_preprocess(config, cube, sphere, sphere_original)
-            else:
-                config.hrtf_size = edge_len
-                convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
-                convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
-                convert_to_sofa(config.train_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
-                convert_to_sofa(config.valid_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
-
-        # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
-        mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
-        std = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
-        min_hrtf = torch.min(torch.from_numpy(np.array(train_hrtfs)))
-        max_hrtf = torch.max(torch.from_numpy(np.array(train_hrtfs)))
-        mean_std_filename = config.mean_std_filename
-        with open(mean_std_filename, "wb") as file:
-            pickle.dump((mean, std, min_hrtf, max_hrtf), file)
+            gen_sofa_preprocess(config, cube, sphere, sphere_original, edge_len=edge_len,cube_lap=cube_lap, sphere_lap=sphere_lap)
+            print(f"SOFA files created")
 
     elif mode == 'train':
         # Trains the GANs, according to the parameters specified in Config

@@ -324,13 +324,20 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
                 save_sofa(hrtf, config, cube, sphere, sofa_output)
 
 
-def gen_sofa_preprocess(config, cube, sphere, sphere_original):
-    convert_to_sofa(config.train_hrtf_merge_dir, config, cube, sphere)
-    convert_to_sofa(config.valid_hrtf_merge_dir, config, cube, sphere)
-    convert_to_sofa(config.train_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
-    convert_to_sofa(config.valid_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
-    convert_to_sofa(config.train_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
-    convert_to_sofa(config.valid_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
+def gen_sofa_preprocess(config, cube, sphere, sphere_original, edge_len=None, cube_lap=None, sphere_lap=None):
+    if config.lap_factor is None:
+        convert_to_sofa(config.train_hrtf_merge_dir, config, cube, sphere)
+        convert_to_sofa(config.valid_hrtf_merge_dir, config, cube, sphere)
+        convert_to_sofa(config.train_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
+        convert_to_sofa(config.valid_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
+        convert_to_sofa(config.train_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
+        convert_to_sofa(config.valid_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
+    else:
+        config.hrtf_size = edge_len
+        convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
+        convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
+        convert_to_sofa(config.train_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
+        convert_to_sofa(config.valid_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
 
 
 def generate_euclidean_cube(config, measured_coords, edge_len=16, filename=None, output_measured_coords=False):
