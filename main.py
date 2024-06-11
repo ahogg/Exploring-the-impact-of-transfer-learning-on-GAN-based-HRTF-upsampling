@@ -83,7 +83,6 @@ def main(config, mode):
 
         # collect all train_hrtfs to get mean and sd
         train_hrtfs = []
-        j = 0
         # for i in range(30):
         for i in range(len(ds)):
             if i % 10 == 0:
@@ -93,10 +92,6 @@ def main(config, mode):
             if np.isnan(ds[i]['features']).any():
                 print(f'HRTF (Subject ID: {i}) contains nan values')
                 continue
-
-            features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
-            clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
-                                             cube, edge_len=config.hrtf_size)
 
             hrir_original, _ = get_hrtf_from_ds(config, ds, i, domain='time')
             hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(config, ds, i, domain='mag')
@@ -137,6 +132,11 @@ def main(config, mode):
                 phase_original_lap = torch.tensor(np.array([np.array(x['phase']) for x in sphere_original_selected_hrtf]))
 
             ###############################################
+            else:
+                features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
+                clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
+                                             cube, edge_len=config.hrtf_size)
+                train_hrtfs.append(clean_hrtf)
 
             # save cleaned hrtfdata
             if ds.subject_ids[i] in train_sample:
@@ -144,8 +144,6 @@ def main(config, mode):
                 projected_dir_lap = config.train_lap_dir
                 projected_dir_original = config.train_original_hrtf_dir
                 projected_dir_lap_original = config.train_lap_original_hrtf_dir
-                train_hrtfs.append(clean_hrtf)
-                j += 1
             else:
                 projected_dir = config.valid_hrtf_dir
                 projected_dir_lap = config.valid_lap_dir
@@ -154,16 +152,17 @@ def main(config, mode):
 
             subject_id = str(ds.subject_ids[i])
             side = ds.sides[i]
-            with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
-                pickle.dump(clean_hrtf, file)
 
-            with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
-                pickle.dump(hrtf_original, file)
+            if config.lap_factor is None:
+                with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(clean_hrtf, file)
 
-            with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
-                pickle.dump(phase_original, file)
+                with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(hrtf_original, file)
 
-            if config.lap_factor is not None:
+                with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(phase_original, file)
+            else:
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, config.dataset, subject_id, side), "wb") as file:
                     pickle.dump(hrtf_lap, file)
 
@@ -177,14 +176,14 @@ def main(config, mode):
             merge_files(config)
 
         if config.gen_sofa_flag:
-            gen_sofa_preprocess(config, cube, sphere, sphere_original)
-
-        if config.lap_factor is not None:
-            config.hrtf_size = edge_len
-            convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
-            convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
-            convert_to_sofa(config.train_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
-            convert_to_sofa(config.valid_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
+            if config.lap_factor is None:
+                gen_sofa_preprocess(config, cube, sphere, sphere_original)
+            else:
+                config.hrtf_size = edge_len
+                convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
+                convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
+                convert_to_sofa(config.train_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
+                convert_to_sofa(config.valid_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
 
         # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
         mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])

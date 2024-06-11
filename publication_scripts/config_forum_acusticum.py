@@ -93,13 +93,13 @@ class Config:
             self.train_lap_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge_original/train'
             self.valid_lap_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_merge_original/valid'
 
-        self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/train'
-        self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr/valid'
+        self.train_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr_' + str(self.hrtf_size) +'/train'
+        self.valid_hrtf_dir = self.data_dirs_path + self.data_dir + '/hr_' + str(self.hrtf_size) +'/valid'
         self.train_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/original/train'
         self.valid_original_hrtf_dir = self.data_dirs_path + self.data_dir + '/original/valid'
 
-        self.train_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/hr_merge/train'
-        self.valid_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/hr_merge/valid'
+        self.train_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/hr_' + str(self.hrtf_size) +'_merge/train'
+        self.valid_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/hr_' + str(self.hrtf_size) +'_merge/valid'
         self.train_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/merge_original/train'
         self.valid_original_hrtf_merge_dir = self.data_dirs_path + self.data_dir + '/merge_original/valid'
 
