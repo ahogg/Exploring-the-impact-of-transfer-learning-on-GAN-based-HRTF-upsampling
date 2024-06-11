@@ -23,22 +23,24 @@ PI_4 = np.pi / 4
 
 def clear_create_directories(config):
     """Clear/Create directories"""
-    shutil.rmtree(Path(config.train_hrtf_dir), ignore_errors=True)
-    shutil.rmtree(Path(config.valid_hrtf_dir), ignore_errors=True)
-    Path(config.train_hrtf_dir).mkdir(parents=True, exist_ok=True)
-    Path(config.valid_hrtf_dir).mkdir(parents=True, exist_ok=True)
-    shutil.rmtree(Path(config.train_original_hrtf_dir), ignore_errors=True)
-    shutil.rmtree(Path(config.valid_original_hrtf_dir), ignore_errors=True)
-    Path(config.train_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
-    Path(config.valid_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
-    shutil.rmtree(Path(config.train_lap_dir), ignore_errors=True)
-    shutil.rmtree(Path(config.valid_lap_dir), ignore_errors=True)
-    Path(config.train_lap_dir).mkdir(parents=True, exist_ok=True)
-    Path(config.valid_lap_dir).mkdir(parents=True, exist_ok=True)
-    shutil.rmtree(Path(config.train_lap_original_hrtf_dir), ignore_errors=True)
-    shutil.rmtree(Path(config.valid_lap_original_hrtf_dir), ignore_errors=True)
-    Path(config.train_lap_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
-    Path(config.valid_lap_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+    if config.lap_factor is None:
+        shutil.rmtree(Path(config.train_hrtf_dir), ignore_errors=True)
+        shutil.rmtree(Path(config.valid_hrtf_dir), ignore_errors=True)
+        Path(config.train_hrtf_dir).mkdir(parents=True, exist_ok=True)
+        Path(config.valid_hrtf_dir).mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(Path(config.train_original_hrtf_dir), ignore_errors=True)
+        shutil.rmtree(Path(config.valid_original_hrtf_dir), ignore_errors=True)
+        Path(config.train_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+        Path(config.valid_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+    else:
+        shutil.rmtree(Path(config.train_lap_dir), ignore_errors=True)
+        shutil.rmtree(Path(config.valid_lap_dir), ignore_errors=True)
+        Path(config.train_lap_dir).mkdir(parents=True, exist_ok=True)
+        Path(config.valid_lap_dir).mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(Path(config.train_lap_original_hrtf_dir), ignore_errors=True)
+        shutil.rmtree(Path(config.valid_lap_original_hrtf_dir), ignore_errors=True)
+        Path(config.train_lap_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
+        Path(config.valid_lap_original_hrtf_dir).mkdir(parents=True, exist_ok=True)
 
 
 def merge_left_right_hrtfs(input_dir, output_dir):
