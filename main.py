@@ -180,7 +180,7 @@ def main(config, mode):
                     pickle.dump(phase_original_lap, file)
 
         # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
-        if config.lap_factor is not None:
+        if config.lap_factor is None:
             mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
             std = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
             min_hrtf = torch.min(torch.from_numpy(np.array(train_hrtfs)))
