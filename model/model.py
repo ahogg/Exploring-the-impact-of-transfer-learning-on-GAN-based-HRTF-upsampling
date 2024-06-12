@@ -52,47 +52,37 @@ class UpsampleBlock(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, nbins: int):
+    def __init__(self, nbins: int, hrft_size: int):
         super(Discriminator, self).__init__()
         self.nbins = nbins
+        self.hrft_size = hrft_size
+
+        downsample = []
+        for i in range(int(np.sqrt(self.hrft_size))):
+            downsample.extend([
+                # state size. (64) x 5 x (hrft_size) x (hrft_size)
+                CubeSpherePadding2D(1),
+                CubeSphereConv2D(64*2**i, 128*2**i, (3, 3), (1, 1), bias=False),
+                nn.BatchNorm3d(128*2**i),
+                nn.LeakyReLU(0.2, True),
+                # state size. (nbins) x 5 x (hrtf_size) x (hrtf_size)
+                CubeSpherePadding2D(1),
+                CubeSphereConv2D(128*2**i, 128*2**i, (3, 3), (2, 2), bias=False),
+                nn.BatchNorm3d(128*2**i),
+                nn.LeakyReLU(0.2, True)]
+            )
+        self.downsample= nn.Sequential(*downsample)
+
         self.features = nn.Sequential(
-            # input size. (nbin) x 5 x 16 x 16
+            # input size. (nbin) x 5 x (hrft_size) x (hrft_size)
             CubeSpherePadding2D(1),
             CubeSphereConv2D(self.nbins, 64, (3, 3), (1, 1), bias=True),
             nn.LeakyReLU(0.2, True),
-            # state size. (64) x 5 x 16 x 16
+            # state size. (64) x 5 x (hrft_size) x (hrft_size)
             CubeSpherePadding2D(1),
             CubeSphereConv2D(64, 64, (3, 3), (1, 1), bias=False),
             nn.BatchNorm3d(64),
-            nn.LeakyReLU(0.2, True),
-            # state size. (64) x 5 x 16 x 16
-            CubeSpherePadding2D(1),
-            CubeSphereConv2D(64, 128, (3, 3), (1, 1), bias=False),
-            nn.BatchNorm3d(128),
-            nn.LeakyReLU(0.2, True),
-            # state size. (nbins) x 5 x (hrtf_size) x (hrtf_size)
-            CubeSpherePadding2D(1),
-            CubeSphereConv2D(128, 128, (3, 3), (2, 2), bias=False),
-            nn.BatchNorm3d(128),
-            nn.LeakyReLU(0.2, True),
-            CubeSpherePadding2D(1),
-            CubeSphereConv2D(128, 256, (3, 3), (1, 1), bias=False),
-            nn.BatchNorm3d(256),
-            nn.LeakyReLU(0.2, True),
-            # state size. (256) x 5 x 8 x 8
-            CubeSpherePadding2D(1),
-            CubeSphereConv2D(256, 256, (3, 3), (2, 2), bias=False),
-            nn.BatchNorm3d(256),
-            nn.LeakyReLU(0.2, True),
-            CubeSpherePadding2D(1),
-            CubeSphereConv2D(256, 512, (3, 3), (1, 1), bias=False),
-            nn.BatchNorm3d(512),
-            nn.LeakyReLU(0.2, True),
-            # state size. (512) x 5 x 4 x 4
-            CubeSpherePadding2D(1),
-            CubeSphereConv2D(512, 512, (3, 3), (2, 2), bias=False),
-            nn.BatchNorm3d(512),
-            nn.LeakyReLU(0.2, True),
+            nn.LeakyReLU(0.2, True)
         )
 
         self.classifier = nn.Sequential(
@@ -103,6 +93,7 @@ class Discriminator(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.features(x)
+        out = self.downsample(out)
         out = torch.flatten(out, 1)
         out = self.classifier(out)
 

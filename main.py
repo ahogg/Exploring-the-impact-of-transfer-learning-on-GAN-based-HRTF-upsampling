@@ -136,6 +136,7 @@ def main(config, mode):
                 phase_original_lap = torch.tensor(np.array([np.array(x['phase']) for x in sphere_original_selected_hrtf]))
 
             ###############################################
+
             else:
                 features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
                 clean_hrtf = interpolate_fft(config, cs, features, sphere, sphere_triangles, sphere_coeffs,
@@ -155,7 +156,6 @@ def main(config, mode):
                 if config.lap_factor is not None:
                     projected_dir_lap_original = config.valid_lap_original_hrtf_dir
                     projected_dir_lap = config.valid_lap_dir
-
 
             subject_id = str(ds.subject_ids[i])
             side = ds.sides[i]

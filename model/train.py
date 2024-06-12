@@ -50,13 +50,13 @@ def train(config, train_prefetcher):
     # Define Generator network and transfer to CUDA
     if config.single_panel:
         netG = GeneratorSinglePanel(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
-        netD = DiscriminatorSinglePanel(nbins=nbins).to(device)
+        netD = DiscriminatorSinglePanel(nbins=nbins, hrft_size=config.hrtf_size).to(device)
     elif config.upscale_factor == config.hrtf_size*5 or config.upscale_factor == config.hrtf_size*2.5:
         netG = GeneratorSingleNode(hrtf_size=config.hrtf_size, upscale_factor=config.upscale_factor, nbins=nbins).to(device)
-        netD = DiscriminatorSingleNode(nbins=nbins).to(device)
+        netD = DiscriminatorSingleNode(nbins=nbins, hrft_size=config.hrtf_size).to(device)
     else:
         netG = Generator(upscale_factor=config.upscale_factor, nbins=nbins).to(device)
-        netD = Discriminator(nbins=nbins).to(device)
+        netD = Discriminator(nbins=nbins, hrft_size=config.hrtf_size).to(device)
 
     if ('cuda' in str(device)) and (ngpu > 1):
         netD = (nn.DataParallel(netD, list(range(ngpu)))).to(device)

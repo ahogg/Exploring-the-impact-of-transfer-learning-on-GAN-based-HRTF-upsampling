@@ -557,7 +557,7 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
     print(f'Running training')
     config_files = []
     tags = []
-    settings = Config(tag=None, using_hpc=hpc)
+    settings = Config(tag=None, using_hpc=hpc, lap_factor=lap_factor)
     if lap_factor is not None:
         upscale_factors = [settings.upscale_factor]
     else:
@@ -642,7 +642,7 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
 def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
     print(f'Running {type} experiment {experiment_id}')
     config_files = []
-    settings = Config(tag=None, using_hpc=hpc)
+    settings = Config(tag=None, using_hpc=hpc, lap_factor=lap_factor)
     if lap_factor is not None:
         datasets = ['SONICOM']
         for dataset in datasets:
