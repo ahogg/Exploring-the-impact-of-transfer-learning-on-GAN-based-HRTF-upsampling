@@ -91,16 +91,16 @@ def merge_left_right_hrtfs(input_dir, output_dir):
 
 
 def merge_files(config):
-    if config.lap_factor is None:
-        merge_left_right_hrtfs(config.train_hrtf_dir, config.train_hrtf_merge_dir)
-        merge_left_right_hrtfs(config.valid_hrtf_dir, config.valid_hrtf_merge_dir)
-        merge_left_right_hrtfs(config.train_original_hrtf_dir, config.train_original_hrtf_merge_dir)
-        merge_left_right_hrtfs(config.valid_original_hrtf_dir, config.valid_original_hrtf_merge_dir)
-    else:
+    if config.lap_factor:
         merge_left_right_hrtfs(config.train_lap_dir, config.train_lap_merge_dir)
         merge_left_right_hrtfs(config.valid_lap_dir, config.valid_lap_merge_dir)
         merge_left_right_hrtfs(config.train_lap_original_hrtf_dir, config.train_lap_original_hrtf_merge_dir)
         merge_left_right_hrtfs(config.valid_lap_original_hrtf_dir, config.valid_lap_original_hrtf_merge_dir)
+    else:
+        merge_left_right_hrtfs(config.train_hrtf_dir, config.train_hrtf_merge_dir)
+        merge_left_right_hrtfs(config.valid_hrtf_dir, config.valid_hrtf_merge_dir)
+        merge_left_right_hrtfs(config.train_original_hrtf_dir, config.train_original_hrtf_merge_dir)
+        merge_left_right_hrtfs(config.valid_original_hrtf_dir, config.valid_original_hrtf_merge_dir)
 
 
 def get_hrtf_from_ds(config, ds, index, domain='mag'):

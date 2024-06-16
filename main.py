@@ -45,7 +45,7 @@ def main(config, mode):
     if mode == 'generate_projection':
         # Must be run in this mode once per dataset, finds barycentric coordinates for each point in the cubed sphere
         # No need to load the entire dataset in this case
-        if config.lap_factor is None:
+        if not config.lap_factor:
             ds = ds = load_function(data_dir, features_spec=HrirSpec(domain='time', side='left', samplerate=config.hrir_samplerate), subject_ids='first')
             # need to use protected member to get this data, no getters
             cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.fundamental_angles, column_angles=ds.orthogonal_angles)
@@ -81,10 +81,9 @@ def main(config, mode):
         train_size = int(len(set(ds.subject_ids)) * config.train_samples_ratio)
         train_sample = np.random.choice(list(set(ds.subject_ids)), train_size, replace=False)
 
-        # collect all train_hrtfs to get mean and sd
+        # create all train and valid hrtfs
         train_hrtfs = []
         for i in range(len(ds)):
-        # for i in range(20):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
 
@@ -220,7 +219,7 @@ def main(config, mode):
     elif mode == 'barycentric_baseline':
         print('Barycentric Baseline')
 
-        if config.lap_factor is not None:
+        if config.lap_factor:
             print(f'Dataset: {config.dataset}, LAP Factor: {config.lap_factor}')
             barycentric_output_path = config.barycentric_hrtf_dir + '/barycentric_interpolated_data_lap_' + config.lap_factor
         else:
@@ -234,7 +233,7 @@ def main(config, mode):
             convert_to_sofa(barycentric_output_path, config, cube, sphere)
             print('Created barycentric baseline sofa files')
 
-        if config.lap_factor is not None:
+        if config.lap_factor:
             file_path = barycentric_output_path + '/sofa_min_phase'
             hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
             if not os.path.exists(file_path):
@@ -271,7 +270,7 @@ def main(config, mode):
     elif mode == 'sh_baseline':
         print('SH Baseline')
 
-        if config.lap_factor is not None:
+        if config.lap_factor:
             print(f'Dataset: {config.dataset}, LAP Factor: {config.lap_factor}')
             sh_output_path = config.sh_hrtf_dir + '/sh_interpolated_data_lap_' + config.lap_factor
         else:
@@ -285,7 +284,7 @@ def main(config, mode):
             convert_to_sofa(sh_output_path, config, cube, sphere)
             print('Created sh baseline sofa files')
 
-        if config.lap_factor is not None:
+        if config.lap_factor:
             file_path = sh_output_path + '/sofa_min_phase'
             hrtf_file_names = [hrtf_file_name for hrtf_file_name in os.listdir(file_path) if '.sofa' in hrtf_file_name]
             if not os.path.exists(file_path):
