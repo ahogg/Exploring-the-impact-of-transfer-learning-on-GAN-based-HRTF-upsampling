@@ -553,40 +553,50 @@ def run_preprocess(hpc, type, dataset_id=None, lap_factor=None):
     for config in config_files:
         main(config, 'preprocess')
 
-def run_train(hpc, type, test_id=None, lap_factor=None):
+def run_train(hpc, type_eval, test_id=None, lap_factor=None):
     print(f'Running training')
     config_files = []
     tags = []
-    settings = Config(tag=None, using_hpc=hpc, lap_factor=lap_factor)
-    if lap_factor is not None:
+    lap_factors = None
+    if type(lap_factor) is not str:
+        lap_factors = ['3', '5', '19', '100']
+        upscale_factors = []
+        for lap_factor in lap_factors:
+            settings = Config(tag=None, using_hpc=hpc, lap_factor=lap_factor)
+            upscale_factors.append(settings.upscale_factor)
+    elif type(lap_factor) is str:
+        settings = Config(tag=None, using_hpc=hpc, lap_factor=lap_factor)
         upscale_factors = [settings.upscale_factor]
     else:
         upscale_factors = [2, 4, 8, 16]
     datasets = ['ARI', 'SONICOM', 'SONICOMSynthetic']
-    if type == 'tl' or type == 'base':
+    if type_eval == 'tl' or type_eval == 'base':
         datasets.remove('SONICOMSynthetic')
     for dataset in datasets:
         other_dataset = 'ARI' if dataset == 'SONICOM' else 'SONICOM'
-        for upscale_factor in upscale_factors:
-            if lap_factor is not None:
+        for index, upscale_factor in enumerate(upscale_factors):
+            if lap_factors is not None:
+                lap_factor = lap_factors[index]
+                tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(settings.hrtf_size/upscale_factor)}'.replace('_', '-')}]
+            elif type(lap_factor) is str:
                 tags = [{'tag': f'pub-prep-upscale-{dataset}-LAP-{lap_factor}-{int(settings.hrtf_size/upscale_factor)}'.replace('_','-')}]
             else:
-                if type == 'base':
+                if type_eval == 'base':
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{upscale_factor}'}]
-                elif type == 'base-tl':
+                elif type_eval == 'base-tl':
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-tl-{upscale_factor}'}]
-                elif type == 'tl':
+                elif type_eval == 'tl':
                     tags = [{'tag': f'pub-prep-upscale-{dataset}-{other_dataset}-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-{other_dataset}-tl-{upscale_factor}'},
                             {'tag': f'pub-prep-upscale-{dataset}-SONICOMSynthetic-tl-{upscale_factor}', 'existing_model_tag': f'pub-prep-upscale-SONICOMSynthetic-tl-{upscale_factor}'}]
                 else:
                     print("Type not valid. Please use 'base' or 'tl'")
 
             for tag in tags:
-                if type == 'base':
+                if type_eval == 'base':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
-                elif type == 'base-tl':
+                elif type_eval == 'base-tl':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap_factor=lap_factor)
-                elif type == 'tl':
+                elif type_eval == 'tl':
                     config = Config(tag['tag'], using_hpc=hpc, dataset=dataset, existing_model_tag=tag['existing_model_tag'], data_dir='/data/' + dataset, lap_factor=lap_factor)
                 config.upscale_factor = upscale_factor
                 config.lr_gen = 0.0002
@@ -1062,7 +1072,7 @@ if __name__ == '__main__':
     parser.add_argument("--exp")
     parser.add_argument("--type")
     parser.add_argument("--test")
-    parser.add_argument("--lap")
+    parser.add_argument("--lap", action='store_true')
     args = parser.parse_args()
 
     if args.hpc == "True":
