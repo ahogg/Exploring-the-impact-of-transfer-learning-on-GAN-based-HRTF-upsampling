@@ -118,7 +118,6 @@ def replace_nodes(config, sr_dir, file_name, keep_nodes=False, calc_spectral_dis
         if keep_nodes:
             with open(sr_dir + file_name, "rb") as f:
                 sr_hrtf = pickle.load(f)
-            sr_hrtf = hr_hrtf
 
         if barycentric_postprocessing:
 
