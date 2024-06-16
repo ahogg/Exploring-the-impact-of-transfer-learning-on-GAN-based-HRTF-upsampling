@@ -103,7 +103,7 @@ def main(config, mode):
             ####################LAP########################
             ###############################################
 
-            if config.lap_factor is not None:
+            if config.lap_factor:
                 projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
 
                 with open(projection_filename, "rb") as file:
@@ -145,7 +145,7 @@ def main(config, mode):
             if ds.subject_ids[i] in train_sample:
                 projected_dir = config.train_hrtf_dir
                 projected_dir_original = config.train_original_hrtf_dir
-                if config.lap_factor is not None:
+                if config.lap_factor:
                     projected_dir_lap_original = config.train_lap_original_hrtf_dir
                     projected_dir_lap = config.train_lap_dir
             else:
@@ -158,31 +158,32 @@ def main(config, mode):
             subject_id = str(ds.subject_ids[i])
             side = ds.sides[i]
 
-            if config.lap_factor is None:
-                with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(clean_hrtf, file)
-
-                with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(hrtf_original, file)
-
-                with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(phase_original, file)
-            else:
+            if config.lap_factor:
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, config.dataset, subject_id, side), "wb") as file:
                     pickle.dump(hrtf_lap, file)
 
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap_original, config.dataset, subject_id, side), "wb") as file:
                     pickle.dump(hrir_original_lap, file)
+            else:
+                with open('%s/%s_mag_%s%s.pickle' % (projected_dir, config.dataset, subject_id, side), "wb") as file:
+                    pickle.dump(clean_hrtf, file)
 
-        # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
-        if config.lap_factor is None:
-            mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
-            std = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
-            min_hrtf = torch.min(torch.from_numpy(np.array(train_hrtfs)))
-            max_hrtf = torch.max(torch.from_numpy(np.array(train_hrtfs)))
-            mean_std_filename = config.mean_std_filename
-            with open(mean_std_filename, "wb") as file:
-                pickle.dump((mean, std, min_hrtf, max_hrtf), file)
+                with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side),
+                          "wb") as file:
+                    pickle.dump(hrtf_original, file)
+
+                with open('%s/%s_phase_%s%s.pickle' % (projected_dir_original, config.dataset, subject_id, side),
+                          "wb") as file:
+                    pickle.dump(phase_original, file)
+
+                # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
+                mean = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
+                std = torch.mean(torch.from_numpy(np.array(train_hrtfs)), [0, 1, 2, 3])
+                min_hrtf = torch.min(torch.from_numpy(np.array(train_hrtfs)))
+                max_hrtf = torch.max(torch.from_numpy(np.array(train_hrtfs)))
+                mean_std_filename = config.mean_std_filename
+                with open(mean_std_filename, "wb") as file:
+                    pickle.dump((mean, std, min_hrtf, max_hrtf), file)
 
         print(f"All HRTFs created (100%)")
 

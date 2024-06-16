@@ -82,7 +82,7 @@ class Config:
             self.data_dir += '/cube_sphere'
             self.baseline_dir += '/cube_sphere'
 
-        if self.lap_factor is not None:
+        if self.lap_factor:
             edge_len = str(int(int(self.hrtf_size) / int(self.upscale_factor)))
             self.train_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_' + edge_len + '/train'
             self.valid_lap_dir = self.data_dirs_path + self.data_dir + '/lap_' + self.lap_factor + '_' + edge_len + '/valid'

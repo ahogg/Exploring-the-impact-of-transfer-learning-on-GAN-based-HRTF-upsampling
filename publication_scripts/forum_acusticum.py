@@ -553,7 +553,7 @@ def run_preprocess(hpc, type, dataset_id=None, lap_factor=None):
     for config in config_files:
         main(config, 'preprocess')
 
-def run_train(hpc, type_eval, test_id=None, lap_factor=None):
+def run_train(hpc, type_eval, test_id=None, lap_factor=False):
     print(f'Running training')
     config_files = []
     tags = []
@@ -649,7 +649,7 @@ def run_train(hpc, type_eval, test_id=None, lap_factor=None):
         main(config, args.mode)
 
 
-def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
+def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=False):
 
     print(f'Running {type} experiment {experiment_id}')
 
@@ -1016,7 +1016,7 @@ def plot_evaluation(hpc, experiment_id, mode):
         print('Experiment does not exist')
 
 
-def run_baseline(hpc, test_id=None, lap_factor=None):
+def run_baseline(hpc, test_id=None, lap_factor=False):
     print(f'Running training')
     config_files = []
     if lap_factor is not None:
