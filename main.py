@@ -83,7 +83,8 @@ def main(config, mode):
 
         # collect all train_hrtfs to get mean and sd
         train_hrtfs = []
-        for i in range(len(ds)):
+        # for i in range(len(ds)):
+        for i in range(20):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
 
@@ -151,7 +152,7 @@ def main(config, mode):
             else:
                 projected_dir = config.valid_hrtf_dir
                 projected_dir_original = config.valid_original_hrtf_dir
-                if config.lap_factor is not None:
+                if config.lap_factor:
                     projected_dir_lap_original = config.valid_lap_original_hrtf_dir
                     projected_dir_lap = config.valid_lap_dir
 
