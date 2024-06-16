@@ -289,8 +289,10 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
             if lap_factor is None:
                 config.head_radius = 0.0875
             else:
+                if type(lap_factor) is not str:
+                    config.lap_factor = re.search('_(.+?)_', f).group(1)
+
                 edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
-                config.lap_factor = re.search('_(.+?)_', f).group(1)
                 projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
 
                 with open(projection_filename, "rb") as file:

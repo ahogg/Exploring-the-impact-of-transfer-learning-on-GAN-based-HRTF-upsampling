@@ -732,7 +732,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
             test(config, test_prefetcher)
-            run_lsd_evaluation(config, config.valid_path)
+            run_lsd_evaluation(config, config.valid_path, CHECK_FIRST=False)
         elif type == 'loc':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")

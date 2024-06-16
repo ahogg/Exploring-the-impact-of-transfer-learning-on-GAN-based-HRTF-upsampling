@@ -173,7 +173,7 @@ def replace_nodes(config, sr_dir, file_name, keep_nodes=False, calc_spectral_dis
         return target, generated, errors, xy
 
 
-def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_ext_postprocessing=None):
+def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_ext_postprocessing=None, CHECK_FIRST=False):
 
     file_ext = 'lsd_errors.pickle' if file_ext is None else file_ext
     file_ext_postprocessing = 'lsd_errors_postprocessing.pickle' if file_ext_postprocessing is None else file_ext_postprocessing
@@ -214,6 +214,9 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
 
         sr_data_paths = glob.glob('%s/%s_*' % (sr_dir, config.dataset))
         sr_data_file_names = ['/' + os.path.basename(x) for x in sr_data_paths]
+
+        if CHECK_FIRST:
+            sr_data_file_names = sr_data_file_names[:1]
 
         for file_name in sr_data_file_names:
             if config.lap_factor is not None:
