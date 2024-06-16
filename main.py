@@ -83,8 +83,8 @@ def main(config, mode):
 
         # collect all train_hrtfs to get mean and sd
         train_hrtfs = []
-        # for i in range(len(ds)):
-        for i in range(20):
+        for i in range(len(ds)):
+        # for i in range(20):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
 
