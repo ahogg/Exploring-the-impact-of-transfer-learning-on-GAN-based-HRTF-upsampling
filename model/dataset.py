@@ -110,8 +110,9 @@ class TrainValidHRTFDataset(Dataset):
 
     def __getitem__(self, batch_index: int) -> [torch.Tensor, torch.Tensor]:
         # Read a batch of hrtf data
-        with open(self.hrtf_file_names[batch_index], "rb") as file:
-            hrtf = pickle.load(file)
+        file_name_hr = self.hrtf_file_names[batch_index]
+        with open(file_name_hr, "rb") as file_hr:
+            hrtf = pickle.load(file_hr)
 
         # hrtf processing operations
         if self.transform is not None:
@@ -123,13 +124,16 @@ class TrainValidHRTFDataset(Dataset):
             # If no transform, go directly to (channels, ..., X, Y)
             hr_hrtf = torch.moveaxis(hrtf, -1, 0)
 
+        # print(f'Load Data (Target): {file_name_hr}')
+
         # downsample hrtf
         if self.config.lap_factor is None:
             lr_hrtf = downsample_hrtf(hr_hrtf, self.hrtf_size, self.upscale_factor,  self.panel)
         else:
-            edge_len = str(int(int(self.hrtf_size) / int(self.upscale_factor)))
-            with open(self.hrtf_file_names[batch_index].replace('hr_merge', f'{self.config.train_lap_merge_dir.split("/")[-2]}'), "rb") as file:
-                lr_hrtf = pickle.load(file)
+            file_name_lr = self.hrtf_file_names[batch_index].replace(f'hr_{self.hrtf_size}_merge', f'{self.config.train_lap_merge_dir.split("/")[-2]}')
+            # print(f'Load Data (input): {file_name_lr}')
+            with open(file_name_lr, "rb") as file_lr:
+                lr_hrtf = pickle.load(file_lr)
 
             # hrtf processing operations
             if self.transform is not None:

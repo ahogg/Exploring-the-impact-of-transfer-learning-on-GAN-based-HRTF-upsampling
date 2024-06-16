@@ -640,7 +640,12 @@ def run_train(hpc, type, test_id=None, lap_factor=None):
 
 
 def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
+
     print(f'Running {type} experiment {experiment_id}')
+
+    if test_id is not None:
+        test_id = int(test_id)
+
     config_files = []
     settings = Config(tag=None, using_hpc=hpc, lap_factor=lap_factor)
     if lap_factor is not None:
@@ -732,7 +737,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=None):
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
             test(config, test_prefetcher)
-            run_lsd_evaluation(config, config.valid_path, CHECK_FIRST=False)
+            run_lsd_evaluation(config, config.valid_path, CHECK_FIRST=True)
         elif type == 'loc':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
@@ -1074,7 +1079,7 @@ if __name__ == '__main__':
     elif args.mode == 'train':
         run_train(hpc, args.type, args.test, args.lap)
     elif args.mode == 'evaluation':
-        run_evaluation(hpc, int(args.exp), args.type, args.test, args.lap)
+        run_evaluation(hpc, args.exp, args.type, args.test, args.lap)
     elif args.mode == 'plot':
         plot_evaluation(hpc, int(args.exp), args.type)
     elif args.mode == 'barycentric_baseline' or args.mode == 'hrtf_selection_baseline' or args.mode == 'sh_baseline':
