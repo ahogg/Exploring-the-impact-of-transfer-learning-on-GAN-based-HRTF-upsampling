@@ -8,7 +8,7 @@ class Config:
     Set using HPC to true in order to use appropriate paths for HPC
     """
 
-    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None, runs_folder=None, lap_factor=None):
+    def __init__(self, tag, using_hpc, dataset=None, existing_model_tag=None, data_dir=None, runs_folder=None, lap_factor=False):
 
         # overwrite settings with arguments provided
         self.tag = tag if tag is not None else 'pub-prep-upscale-sonicom-sonicom-synthetic-tl-2'
