@@ -4,18 +4,12 @@ mpl.use('pdf')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import pickle
-import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from prettytable import PrettyTable
 from pathlib import Path
 
 from spatialaudiometrics import lap_challenge as lap
-from publication_scripts.config_forum_acusticum import Config
-from model.test import test
 from model.util import load_dataset
-from evaluation.evaluation import run_lsd_evaluation, run_localisation_evaluation, run_target_localisation_evaluation
-from main import main
+
 
 plt.rcParams['legend.fancybox'] = False
 
@@ -89,10 +83,173 @@ parula = LinearSegmentedColormap.from_list('parula', cm_data_vb[::-1])
 
 import pickle
 import os
-import re
+import shutil
 import numpy as np
+import sofar as sf
+import torch
 
-import matlab.engine
+from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
+from preprocessing.convert_coordinates import convert_cube_indices_to_spherical
+
+from preprocessing.utils import interpolate_fft, convert_to_sofa,  remove_itd, calc_hrtf
+from preprocessing.cubed_sphere import CubedSphere
+
+from publication_scripts.config_forum_acusticum import Config
+
+from model.model import Generator
+
+def run_lap(hpc):
+
+    lap_factors = ['100', '19', '5', '3']
+    sub_ids = [1, 2, 3]
+    # lap_factors = ['100']
+    # sub_ids = [1]
+
+    # Clear/Create directory
+    settings = Config(tag=None, using_hpc=hpc)
+    shutil.rmtree(Path(settings.lap_dir), ignore_errors=True)
+    Path(settings.lap_dir).mkdir(parents=True, exist_ok=True)
+
+    sphere_coords_hr = []
+    sphere_coords_hr_index = []
+    for p in range(5):
+        for w in range(settings.hrtf_size):
+            for h in range(settings.hrtf_size):
+                xy_spherical = convert_cube_indices_to_spherical(p, w, h, settings.hrtf_size)
+                sphere_coords_hr.append((xy_spherical[0], xy_spherical[1]))
+                sphere_coords_hr_index.append([p, w, h])
+
+    cs = CubedSphere(sphere_coords=sphere_coords_hr, indices=sphere_coords_hr_index)
+
+    projection_filename = f'{settings.projection_dir}/{settings.dataset}_projection_{settings.hrtf_size}'
+    with open(projection_filename, "rb") as file:
+        cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
+
+    for lap_factor in lap_factors:
+
+        settings = Config(tag=None, using_hpc=hpc, lap_factor=lap_factor)
+
+        edge_len = int(int(settings.hrtf_size) / int(settings.upscale_factor))
+        projection_filename_lap = f'{settings.projection_dir}/{settings.dataset}_projection_lap_{settings.lap_factor}_{edge_len}'
+
+        with open(projection_filename_lap, "rb") as file:
+            cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
+
+
+        for sub_id in sub_ids:
+            file = f'{settings.data_dirs_path}/lap_data/LAPtask2_{settings.lap_factor}_{sub_id}.sofa'
+            print(f'LAP file: {file}')
+            sofa = sf.read_sofa(file)
+            hrirs = sofa.Data_IR
+            hrirs_left = hrirs[:, 1, :]
+            hrirs_right = hrirs[:, 0, :]
+
+            cs_lap = CubedSphere(sphere_coords=measured_coords_lap,
+                                 indices=[[x] for x in np.arange(int(settings.lap_factor))])
+            hrtf_left_lap = interpolate_fft(settings, cs_lap, hrirs_left,
+                                       sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=edge_len)
+            hrtf_right_lap = interpolate_fft(settings, cs_lap, hrirs_right,
+                                       sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=edge_len)
+
+            hrtf_lap = torch.tensor(np.concatenate((hrtf_left_lap, hrtf_right_lap), axis=3))
+
+            ngpu = settings.ngpu
+            device = torch.device(settings.device_name if (
+                    torch.cuda.is_available() and ngpu > 0) else "cpu")
+
+            nbins = settings.nbins_hrtf
+            if settings.merge_flag:
+                nbins = settings.nbins_hrtf * 2
+
+            model = Generator(upscale_factor=settings.upscale_factor, nbins=nbins).to(device)
+            print('Using SRGAN model')
+
+            # Load super-resolution model weights (always uses the CPU due to HPC having long wait times)
+            try:
+                tag = f"pub-prep-upscale-{settings.dataset}-LAP-{settings.lap_factor}-{int(settings.hrtf_size/settings.upscale_factor)}/Gen.pt".replace('_', '-')
+                print(f'Weights: {tag}')
+                model.load_state_dict(torch.load(f'{settings.data_dirs_path}{settings.runs_folder}/{tag}', map_location=torch.device('cpu')))
+            except OSError:
+                print(f"Unable to load SRGAN model weights `{tag}` successfully.")
+                return
+            print(f"Load SRGAN model weights `{tag}` successfully.")
+
+            lr = torch.from_numpy(np.array([torch.moveaxis(hrtf_lap.float(), -1, 0)])).to(device)
+
+            with torch.no_grad():
+                sr = model(lr)
+
+            sr = torch.moveaxis(sr[0], 0, -1).detach().cpu()
+
+            sphere_original_filename = f'{settings.projection_dir}/{settings.dataset}_original'
+            with open(sphere_original_filename, "rb") as file:
+                sphere_original = pickle.load(file)
+
+            postprocessing_projection_filename = f'{settings.postprocessing_dir}/{settings.dataset}_postprocessing_projection_{settings.hrtf_size}'
+            if os.path.exists(postprocessing_projection_filename):
+                with open(postprocessing_projection_filename, "rb") as f:
+                    (euclidean_sphere_triangles, euclidean_sphere_coeffs, xy_postprocessing) = pickle.load(f)
+            else:
+                euclidean_sphere_triangles = []
+                euclidean_sphere_coeffs = []
+                xy_postprocessing = []
+                for sphere_coord_idx, sphere_coord in enumerate(sphere_original):
+                    xy_postprocessing.append({'x': np.degrees(sphere_coord[1]), 'y': np.degrees(sphere_coord[0]), 'original': False})
+                    # based on cube coordinates, get indices for magnitudes list of lists
+                    # print(f'Calculating Barycentric coefficient {sphere_coord_idx} of {len(sphere_original)}')
+                    triangle_vertices = get_triangle_vertices(elevation=sphere_coord[0], azimuth=sphere_coord[1],
+                                                              sphere_coords=sphere_original)
+                    coeffs = calc_barycentric_coordinates(elevation=sphere_coord[0], azimuth=sphere_coord[1],
+                                                          closest_points=triangle_vertices)
+                    euclidean_sphere_triangles.append(triangle_vertices)
+                    euclidean_sphere_coeffs.append(coeffs)
+
+                with open(postprocessing_projection_filename, "wb") as f:
+                    pickle.dump((euclidean_sphere_triangles, euclidean_sphere_coeffs, xy_postprocessing), f)
+
+            sr_hrtf_left = sr[:, :, :, :settings.nbins_hrtf]
+            sr_hrtf_right = sr[:, :, :, settings.nbins_hrtf:]
+
+            barycentric_sr_left = interpolate_fft(settings, cs, sr_hrtf_left, sphere_original, euclidean_sphere_triangles,
+                                                  euclidean_sphere_coeffs, cube, edge_len=settings.hrtf_size, cs_output=False, time_domain_flag=False)
+            barycentric_sr_right = interpolate_fft(settings, cs, sr_hrtf_right, sphere_original, euclidean_sphere_triangles,
+                                                   euclidean_sphere_coeffs, cube, edge_len=settings.hrtf_size, cs_output=False, time_domain_flag=False)
+
+            barycentric_sr_merged = torch.tensor(np.concatenate((barycentric_sr_left, barycentric_sr_right), axis=1))
+
+            replace_original_nodes = True
+            if replace_original_nodes:
+                edge_len = int(int(settings.hrtf_size) / int(settings.upscale_factor))
+                projection_filename = f'{settings.projection_dir}/{settings.dataset}_projection_lap_{settings.lap_factor}_{edge_len}'
+
+                with open(projection_filename, "rb") as file:
+                    cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(
+                        file)
+
+                orginal_hrir = torch.tensor(np.concatenate((hrirs_left, hrirs_right), axis=1))
+
+                for measured_coord_lap_index, measured_coord_lap in enumerate(measured_coords_lap):
+                    sphere_index = sphere_original.index(list(measured_coord_lap))
+
+                    hrir_temp_merge = orginal_hrir[measured_coord_lap_index]
+                    hrir_temp_left = hrir_temp_merge[:settings.nbins_hrtf]
+                    hrir_temp_right = hrir_temp_merge[settings.nbins_hrtf:]
+
+                    hrtf_temp_left, _ = calc_hrtf(settings, [
+                        remove_itd(hrir_temp_left, int(len(hrir_temp_left) * 0.04), len(hrir_temp_left))])
+                    hrtf_temp_right, _ = calc_hrtf(settings, [
+                        remove_itd(hrir_temp_right, int(len(hrir_temp_right) * 0.04), len(hrir_temp_right))])
+
+                    orginal_hrtf = torch.tensor(np.concatenate((hrtf_temp_left[0], hrtf_temp_right[0]), axis=0))
+                    barycentric_sr_merged[sphere_index] = orginal_hrtf
+
+            file_name = f'/LAPtask2_{settings.lap_factor}_{sub_id}.pickle'
+            with open(settings.lap_dir + file_name, "wb") as file:
+                 pickle.dump(barycentric_sr_merged, file)
+
+    convert_to_sofa(settings.lap_dir, settings, cube=None, sphere=sphere_original, lap_factor=True)
+
+    print('SOFA Files Created')
 
 def run_baseline_plots(hpc):
 
@@ -310,8 +467,24 @@ if __name__ == '__main__':
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
 
+    # run_lap(hpc)
+    # run_baseline_plots(hpc)
 
-    run_baseline_plots(hpc)
+    lap_factors = ['100', '19', '5', '3']
+    sub_ids = [1, 2, 3]
+
+    # lap_factors = ['100']
+    # sub_ids = [1]
+
+    for lap_factor in lap_factors:
+        for sub_id in sub_ids:
+            hr_sub = 'P0003'
+            sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
+            # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+            hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+            metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
+
+
 
     # run_evaluation(hpc, int(args.exp), args.type, args.test)
 

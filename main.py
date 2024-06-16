@@ -83,7 +83,6 @@ def main(config, mode):
 
         # collect all train_hrtfs to get mean and sd
         train_hrtfs = []
-        # for i in range(4):
         for i in range(len(ds)):
             if i % 10 == 0:
                 print(f"HRTF {i} out of {len(ds)} ({round(100 * i / len(ds))}%)")
@@ -132,8 +131,7 @@ def main(config, mode):
                 cs_lap = CubedSphere(sphere_coords=[tuple(x['coordinates']) for x in sphere_original_selected], indices=[[x] for x in np.arange(int(config.lap_factor))])
                 hrtf_lap = interpolate_fft(config, cs_lap, np.array([np.array(x['IR']) for x in sphere_original_selected]), sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=edge_len)
 
-                hrtf_original_lap = torch.tensor(np.array([np.array(x['IR']) for x in sphere_original_selected]))
-                phase_original_lap = torch.tensor(np.array([np.array(x['phase']) for x in sphere_original_selected_hrtf]))
+                hrir_original_lap = torch.tensor(np.array([np.array(x['IR']) for x in sphere_original_selected]))
 
             ###############################################
 
@@ -174,10 +172,7 @@ def main(config, mode):
                     pickle.dump(hrtf_lap, file)
 
                 with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap_original, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(hrtf_original_lap, file)
-
-                with open('%s/%s_phase_%s%s.pickle' % (projected_dir_lap_original, config.dataset, subject_id, side), "wb") as file:
-                    pickle.dump(phase_original_lap, file)
+                    pickle.dump(hrir_original_lap, file)
 
         # save dataset mean and standard deviation for each channel, across all HRTFs in the training data
         if config.lap_factor is None:

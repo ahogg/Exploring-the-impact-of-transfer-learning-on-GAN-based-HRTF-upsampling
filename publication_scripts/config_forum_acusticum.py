@@ -73,6 +73,7 @@ class Config:
         self.projection_dir = f'{self.data_dirs_path}/projection_coordinates'
         self.postprocessing_dir = f'{self.data_dirs_path}/postprocessing_coordinates'
         self.baseline_dir = '/baseline_results/' + self.dataset
+        self.lap_dir = f'{self.data_dirs_path}/lap_results'
 
         if self.single_panel == True:
             self.data_dir += '/single_panel'

@@ -137,7 +137,9 @@ def calc_itd_r(config, ir_left, ir_right, az, el, c=343):
 
     itd_in_sec = itd_samples/config.hrir_samplerate
     interaural_azimuth = np.arcsin(np.sin(az) * np.cos(el))
+
     r = abs((itd_in_sec*c)/(interaural_azimuth + np.sin(interaural_azimuth)))
+
     return r
 
 
@@ -284,17 +286,28 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
             sofa_filename_output = os.path.basename(hrtf_file.name).replace('.pickle', '.sofa').replace(mag_ext,'')
             sofa_output = sofa_path_output + sofa_filename_output
 
-            if lap_factor is not None:
-                #######################################################
+            if lap_factor is None:
+                config.head_radius = 0.0875
+            else:
                 edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
+                config.lap_factor = re.search('_(.+?)_', f).group(1)
                 projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
 
                 with open(projection_filename, "rb") as file:
                     cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(
                         file)
 
-                with open(config.valid_lap_original_hrtf_merge_dir + '/' + f, "rb") as f:
-                    orginal_hrir = pickle.load(f)
+                if hrtf_dir == '/home/ahogg/PycharmProjects/HRTF-GAN/lap_results':
+                    sofa = sf.read_sofa(f'{config.data_dirs_path}/lap_data/{f.replace(".pickle", ".sofa")}')
+                    hrirs = sofa.Data_IR
+                    hrirs_left = hrirs[:, 1, :]
+                    hrirs_right = hrirs[:, 0, :]
+
+                    orginal_hrir = torch.tensor(np.concatenate((hrirs_left, hrirs_right), axis=1))
+                else:
+                #######################################################
+                    with open(config.valid_lap_original_hrtf_merge_dir + '/' + f, "rb") as f:
+                        orginal_hrir = pickle.load(f)
 
                 orginal_hrir_left = orginal_hrir[:, :config.nbins_hrtf]
                 orginal_hrir_right = orginal_hrir[:, config.nbins_hrtf:]
@@ -310,8 +323,6 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
                 config.head_radius = np.mean([r for r in rs if math.isclose(r, 0.08, abs_tol=0.02)])
 
                 #######################################################
-            else:
-                config.head_radius = 0.0875
 
             if use_phase:
                 for f_phase in phase_file_names:
