@@ -286,9 +286,7 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
             sofa_filename_output = os.path.basename(hrtf_file.name).replace('.pickle', '.sofa').replace(mag_ext,'')
             sofa_output = sofa_path_output + sofa_filename_output
 
-            if lap_factor is None:
-                config.head_radius = 0.0875
-            else:
+            if lap_factor:
                 if type(lap_factor) is not str:
                     config.lap_factor = re.search('_(.+?)_', f).group(1)
 
@@ -325,6 +323,9 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
                 config.head_radius = np.mean([r for r in rs if math.isclose(r, 0.08, abs_tol=0.02)])
 
                 #######################################################
+            else:
+                config.head_radius = 0.0875
+
 
             if use_phase:
                 for f_phase in phase_file_names:
@@ -338,19 +339,19 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
 
 
 def gen_sofa_preprocess(config, cube, sphere, sphere_original, edge_len=None, cube_lap=None, sphere_lap=None):
-    if config.lap_factor is None:
+    if config.lap_factor:
+        config.hrtf_size = edge_len
+        convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
+        convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
+        convert_to_sofa(config.train_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
+        convert_to_sofa(config.valid_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
+    else:
         convert_to_sofa(config.train_hrtf_merge_dir, config, cube, sphere)
         convert_to_sofa(config.valid_hrtf_merge_dir, config, cube, sphere)
         convert_to_sofa(config.train_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
         convert_to_sofa(config.valid_original_hrtf_merge_dir, config, cube=None, sphere=sphere_original)
         convert_to_sofa(config.train_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
         convert_to_sofa(config.valid_original_hrtf_merge_dir, config, use_phase=True, cube=None, sphere=sphere_original)
-    else:
-        config.hrtf_size = edge_len
-        convert_to_sofa(config.train_lap_merge_dir, config, cube_lap, sphere_lap)
-        convert_to_sofa(config.valid_lap_merge_dir, config, cube_lap, sphere_lap)
-        convert_to_sofa(config.train_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
-        convert_to_sofa(config.valid_lap_original_hrtf_merge_dir, config, cube_lap, sphere_lap)
 
 
 def generate_euclidean_cube(config, measured_coords, edge_len=16, filename=None, output_measured_coords=False):
