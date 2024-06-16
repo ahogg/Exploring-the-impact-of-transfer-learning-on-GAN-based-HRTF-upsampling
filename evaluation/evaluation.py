@@ -228,10 +228,7 @@ def run_lsd_evaluation(config, sr_dir, file_ext=None, hrtf_selection=None, file_
         with open(projection_filename, "rb") as file:
             cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
 
-        if config.lap_factor is not None:
-            convert_to_sofa(nodes_replaced_path, config, cube, sphere, lap_factor=config.lap_factor)
-        else:
-            convert_to_sofa(nodes_replaced_path, config, cube, sphere)
+        convert_to_sofa(nodes_replaced_path, config, cube, sphere)
 
         print('Created valid sofa files - Cubed Sphere')
 
