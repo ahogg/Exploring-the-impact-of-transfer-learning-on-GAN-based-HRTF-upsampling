@@ -747,7 +747,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None, lap_factor=False):
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
             test(config, test_prefetcher)
-            run_lsd_evaluation(config, config.valid_path, CHECK_FIRST=True)
+            run_lsd_evaluation(config, config.valid_path, CHECK_FIRST=False)
         elif type == 'loc':
             _, test_prefetcher = load_dataset(config, mean=None, std=None)
             print("Loaded all datasets successfully.")
@@ -1072,8 +1072,11 @@ if __name__ == '__main__':
     parser.add_argument("--exp")
     parser.add_argument("--type")
     parser.add_argument("--test")
-    parser.add_argument("--lap", action='store_true')
+    parser.add_argument("--lap", nargs="?", type=str, dest="lap", const=True)
     args = parser.parse_args()
+
+    if args.lap == None:
+        args.lap = False
 
     if args.hpc == "True":
         hpc = True

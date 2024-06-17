@@ -253,10 +253,10 @@ def run_lap(hpc):
 
 def run_baseline_plots(hpc):
 
-    # baselines = ['barycentric', 'sh', 'gan']
+    baselines = ['barycentric', 'sh']
     lap_factors = ['100', '19', '5', '3']
 
-    baselines = ['gan']
+    # baselines = ['gan']
     # lap_factors = ['5']
 
     config = Config(None, using_hpc=hpc)
@@ -275,7 +275,7 @@ def run_baseline_plots(hpc):
             if baseline == 'barycentric':
                 output_path = config.barycentric_hrtf_dir + '/barycentric_interpolated_data_lap_' + lap_factor
             elif baseline == 'sh':
-                output_path = config.valid_lap_merge_dir + '/sh_interpolated_data_lap_' + config.lap_factor
+                output_path = config.sh_hrtf_dir + '/sh_interpolated_data_lap_' + config.lap_factor
             elif baseline == 'gan':
                 output_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}-{int(config.hrtf_size/config.upscale_factor)}/valid/original_coordinates'
 
