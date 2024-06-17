@@ -58,7 +58,7 @@ class Discriminator(nn.Module):
         self.hrft_size = hrft_size
 
         downsample = []
-        for i in range(int(np.sqrt(self.hrft_size))):
+        for i in range(int(np.log2((self.hrft_size**2)/64))+1):
             downsample.extend([
                 # state size. (64) x 5 x (hrft_size) x (hrft_size)
                 CubeSpherePadding2D(1),
