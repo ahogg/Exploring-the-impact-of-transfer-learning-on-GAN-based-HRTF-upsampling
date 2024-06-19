@@ -12,6 +12,7 @@ import scipy.signal as sps
 import shutil
 from pathlib import Path
 import re
+import scipy.signal as sn
 
 
 from preprocessing.barycentric_calcs import calc_barycentric_coordinates, get_triangle_vertices
@@ -143,31 +144,28 @@ def calc_itd_r(config, ir_left, ir_right, az, el, c=343):
     return r
 
 
-def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343):
-
+def add_itd(az, el, hrir, side, fs=48000, r=0.0875, c=343, onset=0, idt_increase=0):
     az = np.radians(az)
     el = np.radians(el)
     interaural_azimuth = np.arcsin(np.sin(az) * np.cos(el))
     delay_in_sec = (r / c) * (interaural_azimuth + np.sin(interaural_azimuth))
-    fractional_delay = abs(delay_in_sec * fs)
-
-    sample_delay = int(fractional_delay)
 
     if (delay_in_sec > 0 and side == 'right') or (delay_in_sec < 0 and side == 'left'):
-        N = len(hrir)
-
-        B = N/4+1
-        n = np.arange(B) # Filter length
-        h = np.sinc(n-(B-1)/2-fractional_delay) # Compute sinc filter
-        h *= np.blackman(B) # Multiply sinc filter by window
-        h /= np.sum(h) # Normalize to get unity gain.
-        delayed_hrir = np.convolve(hrir, h)
-        delayed_hrir = delayed_hrir[int((B-1)/2):][:N]
-
-        sofa_delay = fractional_delay
+        fractional_delay = abs(delay_in_sec * fs) + idt_increase + onset
     else:
-        sofa_delay = 0
-        delayed_hrir = hrir
+        fractional_delay = onset
+
+    N = len(hrir)
+
+    B = 2*N
+    n = np.arange(B)  # Filter length
+    h = np.sinc(n - (B-1)/2 - fractional_delay)  # Compute sinc filter
+    h *= np.blackman(B)  # Multiply sinc filter by window
+    h /= np.sum(h)  # Normalize to get unity gain.
+    delayed_hrir = np.convolve(hrir, h)
+    delayed_hrir = delayed_hrir[int((B - 1) / 2):][:N]
+
+    sofa_delay = fractional_delay
 
     return delayed_hrir, sofa_delay
 
@@ -187,10 +185,60 @@ def gen_sofa_file(config, sphere_coords, left_hrtf, right_hrtf, count, left_phas
     left_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(left_hrtf[:config.nbins_hrtf-1]))) * np.exp(1j * left_phase))[:config.nbins_hrtf]
     right_hrir = scipy.fft.irfft(np.concatenate((np.array([0]), np.abs(right_hrtf[:config.nbins_hrtf-1]))) * np.exp(1j * right_phase))[:config.nbins_hrtf]
 
-    left_hrir, left_sample_delay = add_itd(az, el, left_hrir, side='left', fs=config.hrir_samplerate, r=config.head_radius)
-    right_hrir, right_sample_delay = add_itd(az, el, right_hrir, side='right', fs=config.hrir_samplerate, r=config.head_radius)
+    left_hrir_delay, left_sample_delay = add_itd(az, el, left_hrir, side='left', fs=config.hrir_samplerate, r=config.head_radius, onset = 10)
+    right_hrir_delay, right_sample_delay = add_itd(az, el, right_hrir, side='right', fs=config.hrir_samplerate, r=config.head_radius, onset = 10)
 
-    full_hrir = [left_hrir, right_hrir]
+
+
+    ##########################################
+    desired_delay = int(abs(left_sample_delay - right_sample_delay))
+
+    upper_cut_freq = 3000
+    filter_order = 10
+    fs = config.hrir_samplerate
+
+    wn = upper_cut_freq / (fs / 2)
+    b, a = sn.butter(filter_order, wn)
+    loc_l = sn.lfilter(b, a, left_hrir_delay)
+    loc_r = sn.lfilter(b, a, right_hrir_delay)
+
+    # Take the maximum absolute value of the cross correlation between the two ears to get the maxiacc
+    correlation = sn.correlate(np.abs(sn.hilbert(left_hrir_delay)), np.abs(sn.hilbert(right_hrir_delay)))
+    idx_lag = np.argmax(np.abs(correlation))
+    lag = abs(idx_lag - len(left_hrir_delay))
+
+    # print(f'desired delay: {desired_delay}')
+    # print(f'lag orginal: {lag}')
+
+    if abs(lag) != desired_delay:
+        if desired_delay == 0:
+            idt_increase = desired_delay - lag
+            left_hrir_delay, left_sample_delay = add_itd(az, el, left_hrir, side='left', fs=config.hrir_samplerate,
+                                                         r=config.head_radius, onset=10+idt_increase)
+            right_hrir_delay, right_sample_delay = add_itd(az, el, right_hrir, side='right', fs=config.hrir_samplerate,
+                                                           r=config.head_radius, onset=10)
+        else:
+            idt_increase =  desired_delay - lag
+            left_hrir_delay, left_sample_delay = add_itd(az, el, left_hrir, side='left', fs=config.hrir_samplerate,
+                                                   r=config.head_radius, onset=10, idt_increase=idt_increase)
+            right_hrir_delay, right_sample_delay = add_itd(az, el, right_hrir, side='right', fs=config.hrir_samplerate,
+                                                     r=config.head_radius, onset=10, idt_increase=idt_increase)
+
+    #     print(f'idt increase: {idt_increase}')
+    #
+    #     # Take the maximum absolute value of the cross correlation between the two ears to get the maxiacc
+    #     correlation = sn.correlate(np.abs(sn.hilbert(left_hrir_delay)), np.abs(sn.hilbert(right_hrir_delay)))
+    #     idx_lag = np.argmax(np.abs(correlation))
+    #     lag = idx_lag - len(left_hrir_delay)
+    #
+    #     print(f'lag new: {lag}')
+    #
+    # if abs(lag - desired_delay) > 2:
+    #         print('ITD failed')
+
+    ##########################################
+
+    full_hrir = [left_hrir_delay, right_hrir_delay]
     delay = [left_sample_delay, right_sample_delay]
 
     return source_position, full_hrir, delay
@@ -324,7 +372,7 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
 
                 #######################################################
             else:
-                config.head_radius = 0.0875
+                config.head_radius = 0.085
 
 
             if use_phase:

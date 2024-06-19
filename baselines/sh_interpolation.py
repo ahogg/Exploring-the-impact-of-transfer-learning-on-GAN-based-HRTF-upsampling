@@ -20,7 +20,6 @@ PI_4 = np.pi / 4
 def run_sh_interpolation(config, sh_output_path, subject_file=None):
 
     if config.lap_factor:
-
         valid_lap_original_hrtf_paths = glob.glob('%s/%s_*' % (config.valid_lap_original_hrtf_merge_dir, config.dataset))
         valid_lap_original_file_names = ['/' + os.path.basename(x) for x in valid_lap_original_hrtf_paths if 'mag' in x]
 
@@ -50,13 +49,6 @@ def run_sh_interpolation(config, sh_output_path, subject_file=None):
 
             orginal_hrir_left = orginal_hrir[:, :config.nbins_hrtf]
             orginal_hrir_right = orginal_hrir[:, config.nbins_hrtf:]
-
-            rs = []
-            for ir_index, measured_coord_lap in enumerate(measured_coords_lap):
-                if not math.isclose(measured_coord_lap[0], np.pi/2, abs_tol=np.pi/4) and not math.isclose(measured_coord_lap[1], -np.pi, abs_tol=np.pi/8) \
-                        and not math.isclose(measured_coord_lap[1], np.pi, abs_tol=np.pi/8) and not math.isclose(measured_coord_lap[1], 0, abs_tol=np.pi/8):
-                    rs.append(calc_itd_r(config, orginal_hrir_left[ir_index], orginal_hrir_right[ir_index], az=measured_coords_lap[ir_index][1], el=measured_coords_lap[ir_index][0]))
-            config.head_radius = np.mean([r for r in rs if math.isclose(r, 0.08, abs_tol=0.015)])
 
             orginal_hrtf_left = np.abs(scipy.fft.rfft(np.array(orginal_hrir_left), config.nbins_hrtf * 2)[:, 1:])
             orginal_hrtf_right = np.abs(scipy.fft.rfft(np.array(orginal_hrir_right), config.nbins_hrtf * 2)[:, 1:])

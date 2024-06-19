@@ -253,7 +253,7 @@ def run_lap(hpc):
 
 def run_baseline_plots(hpc):
 
-    baselines = ['barycentric', 'sh']
+    baselines = ['gan', 'barycentric', 'sh']
     lap_factors = ['100', '19', '5', '3']
 
     # baselines = ['gan']
@@ -315,8 +315,8 @@ def run_baseline_plots(hpc):
 
     error_types = ['total_itd_error', 'total_ild_error', 'total_lsd_error']
     error_units = ['(µs)', '(dB)', '(dB)']
-    x_limits = [(20, 85), (0, 11.5), (2.8, 11)]
-    error_thresholds = [62.5, 4.4, 7.4]
+    x_limits = [(20, 200), (0, 11.5), (2.8, 11)]
+    error_thresholds = [100, 4.4, 7.4]
     for baseline in baselines:
         for error_index, error_type in enumerate(error_types):
 
@@ -468,21 +468,21 @@ if __name__ == '__main__':
 
 
     # run_lap(hpc)
-    # run_baseline_plots(hpc)
+    run_baseline_plots(hpc)
 
-    lap_factors = ['100', '19', '5', '3']
-    sub_ids = [1, 2, 3]
-
-    # lap_factors = ['100']
-    # sub_ids = [1]
-
-    for lap_factor in lap_factors:
-        for sub_id in sub_ids:
-            hr_sub = 'P0003'
-            sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
-            # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-            hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-            metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
+    # lap_factors = ['100', '19', '5', '3']
+    # sub_ids = [1, 2, 3]
+    #
+    # # lap_factors = ['100']
+    # # sub_ids = [1]
+    #
+    # for lap_factor in lap_factors:
+    #     for sub_id in sub_ids:
+    #         hr_sub = 'P0003'
+    #         sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
+    #         # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #         hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #         metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
 
 
 

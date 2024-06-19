@@ -56,13 +56,6 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
             orginal_hrir_left = orginal_hrtf[:, :config.nbins_hrtf]
             orginal_hrir_right = orginal_hrtf[:, config.nbins_hrtf:]
 
-            rs = []
-            for ir_index, measured_coord_lap in enumerate(measured_coords_lap):
-                if not math.isclose(measured_coord_lap[0], np.pi/2, rel_tol=np.pi/16) and not math.isclose(measured_coord_lap[1], -np.pi, rel_tol=np.pi/16) \
-                        and not math.isclose(measured_coord_lap[1], np.pi, rel_tol=np.pi/16) and not math.isclose(measured_coord_lap[1], 0, abs_tol=np.pi/16):
-                    rs.append(calc_itd_r(config, orginal_hrir_left[ir_index], orginal_hrir_right[ir_index], az=measured_coords_lap[ir_index][1], el=measured_coords_lap[ir_index][0]))
-            config.head_radius = np.mean(rs)
-
             cs_lap = CubedSphere(sphere_coords=measured_coords_lap, indices=[[x] for x in np.arange(int(config.lap_factor))])
 
             barycentric_hr_left = interpolate_fft(config, cs_lap, orginal_hrir_left, sphere_coords,
