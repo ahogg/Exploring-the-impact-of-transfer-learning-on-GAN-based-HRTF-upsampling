@@ -33,8 +33,7 @@ def run_barycentric_interpolation(config, barycentric_output_path, subject_file=
             sphere_original = pickle.load(f)
         sphere_coords = sphere_original
 
-        edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
-        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
+        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{config.hrtf_size}'
 
         with open(projection_filename, "rb") as file:
             cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)

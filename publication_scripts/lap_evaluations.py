@@ -429,10 +429,10 @@ def run_lap(hpc):
 
 def run_baseline_plots(hpc):
 
-    baselines = ['gan', 'barycentric', 'sh']
+    # baselines = ['gan', 'barycentric', 'sh']
     lap_factors = ['100', '19', '5', '3']
 
-    # baselines = ['gan']
+    baselines = ['sh']
     # lap_factors = ['5']
 
     config = Config(None, using_hpc=hpc)
@@ -646,9 +646,9 @@ if __name__ == '__main__':
 
 
 
-    # run_baseline_plots(hpc)
+    run_baseline_plots(hpc)
 
-    run_lap(hpc)
+    # run_lap(hpc)
     #
     # # lap_factors = ['100', '19', '5', '3']
     # # sub_ids = [1, 2, 3]
