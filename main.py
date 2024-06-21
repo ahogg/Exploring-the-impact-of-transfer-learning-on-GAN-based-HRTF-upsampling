@@ -228,17 +228,17 @@ def main(config, mode):
             barycentric_data_folder = f'/barycentric_interpolated_data_{config.upscale_factor}'
             barycentric_output_path = config.barycentric_hrtf_dir + barycentric_data_folder
 
-        # cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
+        cube, sphere = run_barycentric_interpolation(config, barycentric_output_path)
 
-        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
-        with open(projection_filename, "rb") as f:
-            (cube, sphere, euclidean_sphere_triangles, euclidean_sphere_coeffs) = pickle.load(f)
-
-        if config.barycentric_postprocessing:
-            original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
-            with open(original_coordinates_filename, "rb") as f:
-                sphere_original = pickle.load(f)
-                sphere = sphere_original
+        # projection_filename = f'{config.projection_dir}/{config.dataset}_projection_{config.hrtf_size}'
+        # with open(projection_filename, "rb") as f:
+        #     (cube, sphere, euclidean_sphere_triangles, euclidean_sphere_coeffs) = pickle.load(f)
+        #
+        # if config.barycentric_postprocessing:
+        #     original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
+        #     with open(original_coordinates_filename, "rb") as f:
+        #         sphere_original = pickle.load(f)
+        #         sphere = sphere_original
 
         if config.gen_sofa_flag:
             convert_to_sofa(barycentric_output_path, config, cube, sphere, lap_factor=config.lap_factor)
@@ -289,18 +289,18 @@ def main(config, mode):
             sh_data_folder = f'/sh_interpolated_data_{config.upscale_factor}'
             sh_output_path = config.sh_hrtf_dir + sh_data_folder
 
-        # cube, sphere = run_sh_interpolation(config, sh_output_path)
+        cube, sphere = run_sh_interpolation(config, sh_output_path)
 
-        original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
-        with open(original_coordinates_filename, "rb") as f:
-            sphere_original = pickle.load(f)
-        sphere = sphere_original
-
-        edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
-        projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
-
-        with open(projection_filename, "rb") as file:
-            cube, _, _, _, _ = pickle.load(file)
+        # original_coordinates_filename = f'{config.projection_dir}/{config.dataset}_original'
+        # with open(original_coordinates_filename, "rb") as f:
+        #     sphere_original = pickle.load(f)
+        # sphere = sphere_original
+        #
+        # edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
+        # projection_filename = f'{config.projection_dir}/{config.dataset}_projection_lap_{config.lap_factor}_{edge_len}'
+        #
+        # with open(projection_filename, "rb") as file:
+        #     cube, _, _, _, _ = pickle.load(file)
 
         if config.gen_sofa_flag:
             convert_to_sofa(sh_output_path, config, cube, sphere, lap_factor=config.lap_factor)
