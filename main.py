@@ -58,7 +58,8 @@ def main(config, mode):
         elif config.lap_factor == '100' or config.lap_factor == '19' or config.lap_factor == '5' or config.lap_factor == '3':
             edge_len = int(int(config.hrtf_size) / int(config.upscale_factor))
             sofa = sf.read_sofa(f'{config.data_dirs_path}/lap_data/LAPtask2_{config.lap_factor}_1.sofa')
-            generate_euclidean_cube(config, [tuple([np.radians(x[1]), np.radians(x[0]-180)]) for x in sofa.SourcePosition], edge_len=edge_len,
+            ponits = [tuple([np.radians(x[1]), np.radians(x[0] - 360 if x[0] > 180 else x[0])]) for x in sofa.SourcePosition]
+            generate_euclidean_cube(config, ponits, edge_len=edge_len,
                                     filename=f'lap_{config.lap_factor}_{edge_len}', output_measured_coords=True)
         else:
             raise Exception('LAP factor not found')

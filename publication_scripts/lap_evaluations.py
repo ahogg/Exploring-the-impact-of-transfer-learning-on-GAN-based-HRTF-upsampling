@@ -10,6 +10,7 @@ from pathlib import Path
 from spatialaudiometrics import lap_challenge as lap
 from model.util import load_dataset
 
+from task2_create_sparse_hrtf import create_sparse_hrtf
 
 plt.rcParams['legend.fancybox'] = False
 
@@ -88,27 +89,135 @@ import numpy as np
 import sofar as sf
 import torch
 
+from preprocessing.utils import get_hrtf_from_ds
+
+from hartufo import CollectionSpec, SideSpec, SubjectSpec, HrirSpec, AnthropometrySpec, ImageSpec, Sonicom
+
 from preprocessing.barycentric_calcs import get_triangle_vertices, calc_barycentric_coordinates
 from preprocessing.convert_coordinates import convert_cube_indices_to_spherical
 
-from preprocessing.utils import interpolate_fft, convert_to_sofa,  remove_itd, calc_hrtf
+from preprocessing.utils import interpolate_fft, convert_to_sofa,  remove_itd, calc_hrtf, merge_left_right_hrtfs
 from preprocessing.cubed_sphere import CubedSphere
 
 from publication_scripts.config_forum_acusticum import Config
 
 from model.model import Generator
 
+from model.util import spectral_distortion_inner
+
+
 def run_lap(hpc):
 
-    lap_factors = ['100', '19', '5', '3']
-    sub_ids = [1, 2, 3]
-    # lap_factors = ['100']
-    # sub_ids = [1]
+    # lap_factors = ['100', '19', '5', '3']
+    # sub_ids = [1, 2, 3]
+    lap_factors = ['100']
+    sub_ids = [1]
 
     # Clear/Create directory
     settings = Config(tag=None, using_hpc=hpc)
     shutil.rmtree(Path(settings.lap_dir), ignore_errors=True)
     Path(settings.lap_dir).mkdir(parents=True, exist_ok=True)
+
+    data_dir = settings.raw_hrtf_dir / (settings.dataset + '_LAP')
+    ds = Sonicom(data_dir, features_spec=HrirSpec(domain='time', side='both', length=settings.nbins_hrtf * 2,
+                                                  samplerate=settings.hrir_samplerate, variant='minphase_compensated'))
+
+    create_preprocess_data = True
+    lap_factor = '100'
+    if create_preprocess_data:
+        settings = Config(tag=None, using_hpc=hpc, lap_factor = lap_factor)
+        cs = CubedSphere(mask=ds[0]['features'].mask, row_angles=ds.fundamental_angles, column_angles=ds.orthogonal_angles)
+
+        # need to use protected member to get this data, no getters
+        projection_filename = f'{settings.projection_dir}/{settings.dataset}_projection_{settings.hrtf_size}'
+        with open(projection_filename, "rb") as file:
+            cube, sphere, sphere_triangles, sphere_coeffs = pickle.load(file)
+
+
+        for i in range(len(ds)):
+            features = ds[i]['features'].data.reshape(*ds[i]['features'].shape[:-2], -1)
+            clean_hrtf = interpolate_fft(settings, cs, features, sphere, sphere_triangles, sphere_coeffs,
+                                         cube, edge_len=settings.hrtf_size)
+
+            subject_id = str(ds.subject_ids[i])
+            side = ds.sides[i]
+
+
+            hrir_original, _ = get_hrtf_from_ds(settings, ds, i, domain='time')
+            hrtf_original, phase_original, sphere_original = get_hrtf_from_ds(settings, ds, i, domain='mag')
+            sphere_original_full = []
+            sphere_original_full_hrtf = []
+            for index, coordinates in enumerate(sphere_original):
+                position = {'coordinates': coordinates, 'IR': hrir_original[index]}
+                sphere_original_full.append(position)
+                position_hrtf = {'coordinates': coordinates, 'TF': hrtf_original[index], 'phase': phase_original[index]}
+                sphere_original_full_hrtf.append(position_hrtf)
+
+            sphere_original_selected = []
+            sphere_original_selected_hrtf = []
+
+            edge_len = int(int(settings.hrtf_size) / int(settings.upscale_factor))
+            projection_filename_lap = f'{settings.projection_dir}/{settings.dataset}_projection_lap_{settings.lap_factor}_{edge_len}'
+
+            with open(projection_filename_lap, "rb") as file:
+                cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
+
+            for measured_coord_lap in measured_coords_lap:
+                try:
+                    index = [tuple([x['coordinates'][0], x['coordinates'][1]]) for x in sphere_original_full].index(
+                        measured_coord_lap)
+                except ValueError as e:
+                    print(e)
+                else:
+                    sphere_original_selected.append(sphere_original_full[index])
+                    sphere_original_selected_hrtf.append(sphere_original_full_hrtf[index])
+
+            cs_lap = CubedSphere(sphere_coords=[tuple(x['coordinates']) for x in sphere_original_selected],
+                                 indices=[[x] for x in np.arange(int(settings.lap_factor))])
+            hrtf_lap = interpolate_fft(settings, cs_lap, np.array([np.array(x['IR']) for x in sphere_original_selected]),
+                                       sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=edge_len)
+
+            projected_dir = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_'+ str(settings.hrtf_size)
+            with open('%s/%s_mag_%s%s.pickle' % (projected_dir, settings.dataset, subject_id, side), "wb") as file:
+                pickle.dump(clean_hrtf, file)
+
+            projected_dir_lap = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_' + str(settings.lap_factor) + '_' + str(settings.hrtf_size)
+            with open('%s/%s_mag_%s%s.pickle' % (projected_dir_lap, settings.dataset, subject_id, side), "wb") as file:
+                pickle.dump(hrtf_lap, file)
+
+            projected_dir_original = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_original_' + str(
+                settings.lap_factor)
+            with open('%s/%s_mag_%s%s.pickle' % (projected_dir_original, settings.dataset, subject_id, side), "wb") as file:
+                pickle.dump(np.array([np.array(x['IR']) for x in sphere_original_selected]), file)
+
+        projected_dir_merge = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_' + str(settings.hrtf_size) + '_merge'
+        merge_left_right_hrtfs(projected_dir, projected_dir_merge)
+
+        projected_dir_lap_merge = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_' + str(settings.lap_factor) + '_' + str(settings.hrtf_size) + '_merge'
+        merge_left_right_hrtfs(projected_dir_lap, projected_dir_lap_merge)
+
+    projected_dir_merge = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_' + str(settings.hrtf_size) + '_merge'
+    projected_dir_lap_merge = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_' + str(lap_factor) + '_' + str(settings.hrtf_size) + '_merge'
+    projected_dir_original = '/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/lap_full_pickle_original_' + str(lap_factor)
+
+    filename = projected_dir_merge + '/SONICOM_mag_213.pickle'
+    with open(filename, 'rb') as f:
+        hr_hrtf = pickle.load(f)
+
+    filename = projected_dir_lap_merge + '/SONICOM_mag_213.pickle'
+    with open(filename, 'rb') as f:
+        sr_hrtf = pickle.load(f)
+
+    filename = projected_dir_original + '/SONICOM_mag_213left.pickle'
+    with open(filename, 'rb') as f:
+        original_hrtf = pickle.load(f)
+
+    errors = []
+    for p in range(5):
+        for w in range(settings.hrtf_size):
+            for h in range(settings.hrtf_size):
+                errors.append(spectral_distortion_inner(sr_hrtf[p, w, h], hr_hrtf[p, w, h]))
+    print(f'ERROR: {np.mean(errors)}')
 
     sphere_coords_hr = []
     sphere_coords_hr_index = []
@@ -135,17 +244,31 @@ def run_lap(hpc):
         with open(projection_filename_lap, "rb") as file:
             cube_lap, sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, measured_coords_lap = pickle.load(file)
 
-
         for sub_id in sub_ids:
-            file = f'{settings.data_dirs_path}/lap_data/LAPtask2_{settings.lap_factor}_{sub_id}.sofa'
+            file = f'{settings.data_dirs_path}/lap_data/LAP_Task2_Sparse_HRTFs/LAPtask2_{settings.lap_factor}_{sub_id}.sofa'
             print(f'LAP file: {file}')
             sofa = sf.read_sofa(file)
             hrirs = sofa.Data_IR
             hrirs_left = hrirs[:, 1, :]
             hrirs_right = hrirs[:, 0, :]
 
-            cs_lap = CubedSphere(sphere_coords=measured_coords_lap,
-                                 indices=[[x] for x in np.arange(int(settings.lap_factor))])
+            for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
+                sofa_fn = f'{settings.data_dirs_path}/lap_data/LAP_Task2_Full_HRTFs/P0{id}_FreeFieldCompMinPhase_48kHz.sofa'
+                sofa_ds = create_sparse_hrtf(sofa_fn, int(settings.lap_factor))
+                if np.all(sofa.Data_IR == sofa_ds.Data_IR):
+                    print(id)
+
+            # file = f'{settings.data_dirs_path}/lap_data/LAP_Task2_Full_HRTFs/P0201_FreeFieldCompMinPhase_48kHz.sofa'
+            # print(f'LAP file: {file}')
+            # sofa = sf.read_sofa(file)
+            # hrirs_full = sofa.Data_IR
+            # hrirs_left_full = hrirs_full[:, 1, :]
+            # hrirs_right_full = hrirs_full[:, 0, :]
+
+            # source_positions = [tuple([np.radians(x[1]), np.radians(x[0]-180)]) for x in sofa.SourcePosition]
+
+            cs_lap = CubedSphere(sphere_coords=source_positions,
+                                 indices=[[x] for x in np.arange(len(source_positions))])
             hrtf_left_lap = interpolate_fft(settings, cs_lap, hrirs_left,
                                        sphere_lap, sphere_triangles_lap, sphere_coeffs_lap, cube_lap, edge_len=edge_len)
             hrtf_right_lap = interpolate_fft(settings, cs_lap, hrirs_right,
@@ -153,9 +276,62 @@ def run_lap(hpc):
 
             hrtf_lap = torch.tensor(np.concatenate((hrtf_left_lap, hrtf_right_lap), axis=3))
 
+            for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
+                # filename = projected_dir_merge + '/SONICOM_mag_'+ str(id) +'.pickle'
+                # with open(filename, 'rb') as f:
+                #     hr_hrtf = pickle.load(f)
+                #
+                # filename = projected_dir_lap_merge + '/SONICOM_mag_'+ str(id) +'.pickle'
+                # with open(filename, 'rb') as f:
+                #     sr_hrtf = pickle.load(f)
+
+                filename = projected_dir_original + '/SONICOM_mag_'+ str(id) +'left.pickle'
+                with open(filename, 'rb') as f:
+                    original_hrtf = pickle.load(f)
+
+                    errors = []
+                for p in range(len(original_hrtf)):
+                    errors.append(spectral_distortion_inner(torch.from_numpy(hrirs_left[p]), torch.from_numpy(original_hrtf[p])))
+                print(f'ERROR: {np.mean(errors)}')
+
+                # errors = []
+                # for p in range(5):
+                #     for w in range(settings.hrtf_size):
+                #         for h in range(settings.hrtf_size):
+                #             errors.append(spectral_distortion_inner(hrtf_lap[p, w, h], sr_hrtf[p, w, h]))
+                # print(f'ERROR: {np.mean(errors)}')
+
+
+            # ==================================
+            # need to use protected member to get this data, no getters
+            # projection_filename_hr = f'{settings.projection_dir}/{settings.dataset}_projection_{settings.hrtf_size}'
+            # with open(projection_filename_hr, "rb") as file:
+            #     cube_hr, sphere_hr, sphere_triangles_hr, sphere_coeffs_hr = pickle.load(file)
+            #
+            # hr_file = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/P0201_FreeFieldCompMinPhase_48kHz.sofa'
+            # print(f'HR file: {hr_file}')
+            # sofa = sf.read_sofa(hr_file)
+            # hrirs_hr = sofa.Data_IR
+            # hrirs_hr_left = hrirs_hr[:, 1, :]
+            # hrirs_hr_right = hrirs_hr[:, 0, :]
+            #
+            # coords_clean = [tuple([np.radians(x[1]), np.radians(x[0]-180)]) for x in sofa.SourcePosition]
+            #
+            # cs_hr = CubedSphere(sphere_coords=coords_clean,
+            #                     indices=[[x] for x in np.arange(int(len(coords_clean)))])
+            #
+            # clean_hrtf_left = interpolate_fft(settings, cs_hr, hrirs_hr_left, sphere_hr, sphere_triangles_hr, sphere_coeffs_hr,
+            #                              cube_hr, edge_len=edge_len)
+            #
+            # clean_hrtf_right = interpolate_fft(settings, cs_hr, hrirs_hr_right, sphere_hr, sphere_triangles_hr, sphere_coeffs_hr,
+            #                              cube_hr, edge_len=edge_len)
+            #
+            # clean_hrtf = torch.tensor(np.concatenate((clean_hrtf_left, clean_hrtf_right), axis=3))
+
+            # ==================================
+
             ngpu = settings.ngpu
-            device = torch.device(settings.device_name if (
-                    torch.cuda.is_available() and ngpu > 0) else "cpu")
+            device = torch.device(settings.device_name if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
             nbins = settings.nbins_hrtf
             if settings.merge_flag:
@@ -288,6 +464,7 @@ def run_baseline_plots(hpc):
             # Calculate LSD
             errors = []
             for file in hrtf_file_names:
+
                 # target_sofa_file = config.valid_lap_original_hrtf_merge_dir + '/sofa_min_phase/' + file
                 sub_id = int(file.split('_')[-1].replace('.sofa', ''))
                 target_sofa_file = f'{config.raw_hrtf_dir}/{config.dataset}/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
@@ -409,6 +586,7 @@ def run_evaluation(hpc, experiment_id, type, test_id=None):
                     if from_database:
                         sub_id = int(file.split('_')[-1].replace('.sofa', ''))
                         target_sofa_original_file = f'/home/ahogg/Downloads/SONICOM/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
+                        # target_sofa_original_file = f'/home/ahogg/Downloads/SONICOM/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldCompMinPhase_48kHz.sofa'
                     else:
                         target_sofa_original_file = config.valid_original_hrtf_merge_dir + '/sofa_with_phase/' + file
                         target_sofa_original_file = target_sofa_original_file.replace('single_panel', 'cube_sphere')  # For single panel use cube sphere
@@ -467,22 +645,28 @@ if __name__ == '__main__':
         raise RuntimeError("Please enter 'True' or 'False' for the hpc tag (-c/--hpc)")
 
 
-    # run_lap(hpc)
-    run_baseline_plots(hpc)
 
-    # lap_factors = ['100', '19', '5', '3']
-    # sub_ids = [1, 2, 3]
+    # run_baseline_plots(hpc)
+
+    run_lap(hpc)
     #
-    # # lap_factors = ['100']
-    # # sub_ids = [1]
+    # # lap_factors = ['100', '19', '5', '3']
+    # # sub_ids = [1, 2, 3]
+    #
+    # lap_factors = ['100']
+    # sub_ids = [1]
     #
     # for lap_factor in lap_factors:
     #     for sub_id in sub_ids:
-    #         hr_sub = 'P0003'
-    #         sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
-    #         # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-    #         hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-    #         metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
+    #         for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
+    #             hr_sub = f'P0{id}'
+    #             sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
+    #             # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #             # hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #             hr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/{hr_sub}_FreeFieldCompMinPhase_48kHz.sofa'
+    #             print(f'Gen: {sr}')
+    #             print(f'Target: {hr}')
+    #             metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
 
 
 

@@ -160,15 +160,15 @@ def replace_nodes(config, sr_dir, file_name, keep_nodes=False, calc_spectral_dis
                 if calc_spectral_distortion:
                     errors_postprocessing.append(spectral_distortion_inner(barycentric_sr_merged[i], orig_hrtf[i]))
 
-        generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
-        target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
-
     if barycentric_postprocessing:
         generated_postprocessing = barycentric_sr_merged
         target_postprocessing = orig_hrtf
 
         return target_postprocessing, generated_postprocessing, errors_postprocessing, xy_postprocessing
     else:
+        generated = torch.permute(sr_hrtf[:, None], (1, 4, 0, 2, 3))
+        target = torch.permute(hr_hrtf[:, None], (1, 4, 0, 2, 3))
+
         return target, generated, errors, xy
 
 
