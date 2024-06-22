@@ -29,7 +29,7 @@ class Config:
         self.nbins_hrtf = 128  # make this a power of 2
         self.hrtf_size = 16
         self.panel = 1  # panel used to select point when upscale_factor is 80
-        self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
+        self.upscale_factor = 1  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 0.8
         self.hrir_samplerate = 48000.0
         self.single_panel = False
