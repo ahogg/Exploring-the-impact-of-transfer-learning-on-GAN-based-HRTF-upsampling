@@ -647,27 +647,27 @@ if __name__ == '__main__':
 
 
 
-    # run_baseline_plots(hpc)
+    run_baseline_plots(hpc)
 
     # run_lap(hpc)
     #
     # # lap_factors = ['100', '19', '5', '3']
     # # sub_ids = [1, 2, 3]
     #
-    lap_factors = ['100']
-    sub_ids = [1]
-
-    for lap_factor in lap_factors:
-        for sub_id in sub_ids:
-            for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
-                hr_sub = f'P0{id}'
-                sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
-                # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-                # hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-                hr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/{hr_sub}_FreeFieldCompMinPhase_48kHz.sofa'
-                print(f'Gen: {sr}')
-                print(f'Target: {hr}')
-                metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
+    # lap_factors = ['100']
+    # sub_ids = [1]
+    #
+    # for lap_factor in lap_factors:
+    #     for sub_id in sub_ids:
+    #         for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
+    #             hr_sub = f'P0{id}'
+    #             sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
+    #             # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #             # hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #             hr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/{hr_sub}_FreeFieldCompMinPhase_48kHz.sofa'
+    #             print(f'Gen: {sr}')
+    #             print(f'Target: {hr}')
+    #             metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
 
 
 
