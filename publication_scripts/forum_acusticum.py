@@ -1022,13 +1022,13 @@ def run_baseline(hpc, test_id=None, lap_factor=False):
     if lap_factor is not None:
         datasets = ['SONICOM']
         if lap_factor == '100':
-            upscale_factor = 2
+            upscale_factor = 1
         elif lap_factor == '19':
-           upscale_factor = 2
+            upscale_factor = 1
         elif lap_factor == '5':
-           upscale_factor = 2
+            upscale_factor = 1
         elif lap_factor == '3':
-           upscale_factor = 2
+            upscale_factor = 1
         for dataset in datasets:
             if args.mode == 'barycentric_baseline' or args.mode == 'sh_baseline':
                 config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
