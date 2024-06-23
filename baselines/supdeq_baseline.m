@@ -58,9 +58,9 @@ sgD = samplingGridInterp;
 % irL = squeeze(sparseHRTFsofa.Data.IR(:,1,:)); 
 % irR = squeeze(sparseHRTFsofa.Data.IR(:,2,:));
 
-sparseHRTF.sourceDistance = 3;
-sparseHRTF.FFToversize = 4;
-sparseHRTF.Nmax = min([floor(sqrt(length(samplingGrid(:,1))))-1, 8]);
+sparseHRTF.sourceDistance = 1.5;
+sparseHRTF.FFToversize = 6;
+sparseHRTF.Nmax = min([floor(sqrt(length(samplingGrid(:,1)))), 7])
 
 samplingGrid(:,1) = samplingGrid(:,1);
 samplingGrid(:,2) = samplingGrid(:,2);

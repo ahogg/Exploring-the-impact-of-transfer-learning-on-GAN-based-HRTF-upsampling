@@ -108,10 +108,12 @@ from model.util import spectral_distortion_inner
 
 def run_lap(hpc):
 
-    # lap_factors = ['100', '19', '5', '3']
-    # sub_ids = [1, 2, 3]
-    lap_factors = ['100']
-    sub_ids = [1]
+    lap_factors = ['100', '19', '5', '3']
+    sub_ids = [1, 2, 3]
+    # lap_factors = ['100']
+    # sub_ids = [1]
+
+    targets = []
 
     # Clear/Create directory
     settings = Config(tag=None, using_hpc=hpc)
@@ -253,11 +255,15 @@ def run_lap(hpc):
             hrirs_right = hrirs[:, 1, :]
             hrirs = torch.tensor(np.concatenate((hrirs_left, hrirs_right), axis=1))
 
-            # for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
-            #     sofa_fn = f'{settings.data_dirs_path}/lap_data/LAP_Task2_Full_HRTFs/P0{id}_FreeFieldCompMinPhase_48kHz.sofa'
-            #     sofa_ds = create_sparse_hrtf(sofa_fn, int(settings.lap_factor))
-            #     if np.all(sofa.Data_IR == sofa_ds.Data_IR):
-            #         print(id)
+
+            for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
+                sofa_fn = f'{settings.data_dirs_path}/lap_data/LAP_Task2_Full_HRTFs/P0{id}_FreeFieldCompMinPhase_48kHz.sofa'
+                sofa_ds = create_sparse_hrtf(sofa_fn, int(settings.lap_factor))
+                if np.all(sofa.Data_IR == sofa_ds.Data_IR):
+                    print(f'Input: {file}')
+                    print(f'Target: {sofa_fn}')
+                    targets.append({'Input': {'id': sub_id, 'factor': settings.lap_factor}, 'Target': id})
+
 
             cs_lap = CubedSphere(sphere_coords=measured_coords_lap,
                                  indices=[[x] for x in np.arange(len(measured_coords_lap))])
@@ -268,39 +274,39 @@ def run_lap(hpc):
 
             hrtf_lap = torch.tensor(np.concatenate((hrtf_left_lap, hrtf_right_lap), axis=3))
 
-            for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
-                filename = projected_dir_merge + '/SONICOM_mag_'+ str(id) +'.pickle'
-                with open(filename, 'rb') as f:
-                    hr_hrtf = pickle.load(f)
-
-                # filename = projected_dir_lap_merge + '/SONICOM_mag_'+ str(id) +'.pickle'
-                # with open(filename, 'rb') as f:
-                #     sr_hrtf = pickle.load(f)
-
-                # filename = projected_dir_original + '/SONICOM_mag_'+ str(id) +'left.pickle'
-                # with open(filename, 'rb') as f:
-                #     original_hrtf = pickle.load(f)
-
-                file = f'{settings.data_dirs_path}/lap_data/LAP_Task2_Full_HRTFs/P0201_FreeFieldCompMinPhase_48kHz.sofa'
-                print(f'LAP file: {file}')
-                sofa = sf.read_sofa(file)
-                hrirs_full = sofa.Data_IR
-                hrirs_left_full = hrirs_full[:, 1, :]
-                hrirs_right_full = hrirs_full[:, 0, :]
-
-                hrirs_full = torch.tensor(np.concatenate((hrirs_left_full, hrirs_right_full), axis=1))
-
-                errors = []
-                for p in range(len(hrirs_full)):
-                    errors.append(spectral_distortion_inner(barycentric_sr_merged[p], hrirs_full[p]))
-                print(f'ERROR: {np.mean(errors)}')
-
-                # errors = []
-                # for p in range(5):
-                #     for w in range(settings.hrtf_size):
-                #         for h in range(settings.hrtf_size):
-                #             errors.append(spectral_distortion_inner(hrtf_lap[p, w, h], hr_hrtf[p, w, h]))
-                # print(f'ERROR: {np.mean(errors)}')
+            # for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
+            #     # filename = projected_dir_merge + '/SONICOM_mag_'+ str(id) +'.pickle'
+            #     # with open(filename, 'rb') as f:
+            #     #     hr_hrtf = pickle.load(f)
+            #
+            #     # filename = projected_dir_lap_merge + '/SONICOM_mag_'+ str(id) +'.pickle'
+            #     # with open(filename, 'rb') as f:
+            #     #     sr_hrtf = pickle.load(f)
+            #
+            #     # filename = projected_dir_original + '/SONICOM_mag_'+ str(id) +'left.pickle'
+            #     # with open(filename, 'rb') as f:
+            #     #     original_hrtf = pickle.load(f)
+            #
+            #     file = f'{settings.data_dirs_path}/lap_data/LAP_Task2_Full_HRTFs/P0201_FreeFieldCompMinPhase_48kHz.sofa'
+            #     print(f'LAP file: {file}')
+            #     sofa = sf.read_sofa(file)
+            #     hrirs_full = sofa.Data_IR
+            #     hrirs_left_full = hrirs_full[:, 1, :]
+            #     hrirs_right_full = hrirs_full[:, 0, :]
+            #
+            #     hrirs_full = torch.tensor(np.concatenate((hrirs_left_full, hrirs_right_full), axis=1))
+            #
+            #     errors = []
+            #     for p in range(len(hrirs_full)):
+            #         errors.append(spectral_distortion_inner(barycentric_sr_merged[p], hrirs_full[p]))
+            #     print(f'ERROR: {np.mean(errors)}')
+            #
+            #     # errors = []
+            #     # for p in range(5):
+            #     #     for w in range(settings.hrtf_size):
+            #     #         for h in range(settings.hrtf_size):
+            #     #             errors.append(spectral_distortion_inner(hrtf_lap[p, w, h], hr_hrtf[p, w, h]))
+            #     # print(f'ERROR: {np.mean(errors)}')
 
 
             # ==================================
@@ -428,20 +434,34 @@ def run_lap(hpc):
 
     print('SOFA Files Created')
 
+    print(targets)
+
 def run_baseline_plots(hpc):
 
     # baselines = ['gan', 'barycentric', 'sh']
     lap_factors = ['100', '19', '5', '3']
 
-    baselines = ['sh']
+    baselines = ['lap']
     # lap_factors = ['5']
 
     config = Config(None, using_hpc=hpc)
     Path(config.data_dirs_path + '/lap_plots').mkdir(parents=True, exist_ok=True)
 
+    targets = [{'Input': {'id': 1, 'factor': '100'}, 'Target': 201}, {'Input': {'id': 2, 'factor': '100'}, 'Target': 205}, {'Input': {'id': 3, 'factor': '100'}, 'Target': 210}, {'Input': {'id': 1, 'factor': '19'}, 'Target': 202}, {'Input': {'id': 2, 'factor': '19'}, 'Target': 206}, {'Input': {'id': 3, 'factor': '19'}, 'Target': 211}, {'Input': {'id': 1, 'factor': '5'}, 'Target': 203}, {'Input': {'id': 2, 'factor': '5'}, 'Target': 207}, {'Input': {'id': 3, 'factor': '5'}, 'Target': 212}, {'Input': {'id': 1, 'factor': '3'}, 'Target': 204}, {'Input': {'id': 2, 'factor': '3'}, 'Target': 208}, {'Input': {'id': 3, 'factor': '3'}, 'Target': 213}]
+
+    # for target in targets:
+    #         sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{target["Input"]["factor"]}_{target["Input"]["id"]}.sofa'
+    #         # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #         # hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #         hr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/P0{target["Target"]}_FreeFieldCompMinPhase_48kHz.sofa'
+    #         print(f'Gen: {sr}')
+    #         print(f'Target: {hr}')
+    #         metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
+
     barycentric_errors = []
     sh_errors = []
     gan_errors = []
+    lap_errors = []
     for baseline in baselines:
         for lap_factor in lap_factors:
 
@@ -455,6 +475,8 @@ def run_baseline_plots(hpc):
                 output_path = config.sh_hrtf_dir + '/sh_interpolated_data_lap_' + config.lap_factor
             elif baseline == 'gan':
                 output_path = f'{config.data_dirs_path}/runs-pub-fa/pub-prep-upscale-{config.dataset}-LAP-{config.lap_factor}-{int(config.hrtf_size/config.upscale_factor)}/valid/original_coordinates'
+            elif baseline == 'lap':
+                output_path = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results'
 
             file_path = output_path + '/sofa_min_phase'
 
@@ -467,8 +489,16 @@ def run_baseline_plots(hpc):
             for file in hrtf_file_names:
 
                 # target_sofa_file = config.valid_lap_original_hrtf_merge_dir + '/sofa_min_phase/' + file
-                sub_id = int(file.split('_')[-1].replace('.sofa', ''))
-                target_sofa_file = f'{config.raw_hrtf_dir}/{config.dataset}/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
+                if baseline == 'lap':
+                    sub_id = int(file.split('_')[-1].replace('.sofa', ''))
+                    factor = int(file.split('_')[-2].replace('.sofa', ''))
+                    if str(factor) != lap_factor:
+                        continue
+                    target = next(item for item in targets if item["Input"] == {'id': int(sub_id), 'factor': str(factor)})
+                    target_sofa_file = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/P0{target["Target"]}_FreeFieldCompMinPhase_48kHz.sofa'
+                else:
+                    sub_id = int(file.split('_')[-1].replace('.sofa', ''))
+                    target_sofa_file = f'{config.raw_hrtf_dir}/{config.dataset}/P{str(sub_id).zfill(4)}/HRTF/HRTF/48kHz/P{str(sub_id).zfill(4)}_FreeFieldComp_48kHz.sofa'
                 generated_sofa_file = file_path + '/' + file
                 metrics, threshold_bool, df = lap.calculate_task_two_metrics(target_sofa_file, generated_sofa_file)
 
@@ -490,6 +520,8 @@ def run_baseline_plots(hpc):
                 sh_errors.append({'lap_factor': lap_factor, 'errors': errors})
             elif baseline == 'gan':
                 gan_errors.append({'lap_factor': lap_factor, 'errors': errors})
+            elif baseline == 'lap':
+                lap_errors.append({'lap_factor': lap_factor, 'errors': errors})
 
     error_types = ['total_itd_error', 'total_ild_error', 'total_lsd_error']
     error_units = ['(µs)', '(dB)', '(dB)']
@@ -507,6 +539,9 @@ def run_baseline_plots(hpc):
             elif baseline == 'gan':
                 plot_errors = gan_errors
                 title = 'SRGAN'
+            elif baseline == 'lap':
+                plot_errors = lap_errors
+                title = 'SRGAN LAP'
 
             plot_errors_3 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '3']).flatten()
             plot_errors_5 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '5']).flatten()
@@ -647,29 +682,25 @@ if __name__ == '__main__':
 
 
 
+
+
+    run_lap(hpc)
     run_baseline_plots(hpc)
 
-    # run_lap(hpc)
-    #
-    # # lap_factors = ['100', '19', '5', '3']
-    # # sub_ids = [1, 2, 3]
-    #
+    # lap_factors = ['100', '19', '5', '3']
+    # sub_ids = [1, 2, 3]
+
     # lap_factors = ['100']
     # sub_ids = [1]
+    # targets = [{'Input': {'id': 1, 'factor': '100'}, 'Target': 201}, {'Input': {'id': 2, 'factor': '100'}, 'Target': 205}, {'Input': {'id': 3, 'factor': '100'}, 'Target': 210}, {'Input': {'id': 1, 'factor': '19'}, 'Target': 202}, {'Input': {'id': 2, 'factor': '19'}, 'Target': 206}, {'Input': {'id': 3, 'factor': '19'}, 'Target': 211}, {'Input': {'id': 1, 'factor': '5'}, 'Target': 203}, {'Input': {'id': 2, 'factor': '5'}, 'Target': 207}, {'Input': {'id': 3, 'factor': '5'}, 'Target': 212}, {'Input': {'id': 1, 'factor': '3'}, 'Target': 204}, {'Input': {'id': 2, 'factor': '3'}, 'Target': 208}, {'Input': {'id': 3, 'factor': '3'}, 'Target': 213}]
     #
-    # for lap_factor in lap_factors:
-    #     for sub_id in sub_ids:
-    #         for id in [201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213]:
-    #             hr_sub = f'P0{id}'
-    #             sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{lap_factor}_{sub_id}.sofa'
-    #             # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-    #             # hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
-    #             hr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/{hr_sub}_FreeFieldCompMinPhase_48kHz.sofa'
-    #             print(f'Gen: {sr}')
-    #             print(f'Target: {hr}')
-    #             metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
+    # for target in targets:
+    #         sr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_results/sofa_min_phase/LAPtask2_{target["Input"]["factor"]}_{target["Input"]["id"]}.sofa'
+    #         # hr = f'/home/ahogg/Documents/HRTF_Test/{hr_sub}/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #         # hr = f'/home/ahogg/Downloads/SONICOM/{hr_sub}/HRTF/HRTF/48kHz/{hr_sub}_FreeFieldComp_48kHz.sofa'
+    #         hr = f'/home/ahogg/PycharmProjects/HRTF-GAN/lap_data/LAP_Task2_Full_HRTFs/P0{target["Target"]}_FreeFieldCompMinPhase_48kHz.sofa'
+    #         print(f'Gen: {sr}')
+    #         print(f'Target: {hr}')
+    #         metrics, threshold_bool, df = lap.calculate_task_two_metrics(hr, sr)
 
-
-
-    # run_evaluation(hpc, int(args.exp), args.type, args.test)
 
