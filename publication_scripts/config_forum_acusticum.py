@@ -31,7 +31,7 @@ class Config:
         self.hrtf_size = 32
         self.panel = None  # panel used to select point when upscale_factor is 80
         self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
-        self.train_samples_ratio = 0.8
+        self.train_samples_ratio = 1.0
         self.hrir_samplerate = 48000.0
         self.single_panel = False
         self.barycentric_postprocessing = True
