@@ -346,10 +346,19 @@ def convert_to_sofa(hrtf_dir, config, cube, sphere, phase_ext='_phase', use_phas
                         file)
 
                 if hrtf_dir == '/home/ahogg/PycharmProjects/HRTF-GAN/lap_results':
-                    sofa = sf.read_sofa(f'{config.data_dirs_path}/lap_data/{f.replace(".pickle", ".sofa")}')
-                    hrirs = sofa.Data_IR
-                    hrirs_left = hrirs[:, 1, :]
-                    hrirs_right = hrirs[:, 0, :]
+                    if 'SONICOM' in f:
+                        sub_id = int(f.split('_')[-1].replace('.pickle', ''))
+                        filename = f'{config.data_dirs_path}/lap_data/lap_full_pickle_original_{config.lap_factor}/SONICOM_mag_{sub_id}left.pickle'
+                        with open(filename, 'rb') as f:
+                            hrirs_left = pickle.load(f)
+                        filename = f'{config.data_dirs_path}/lap_data/lap_full_pickle_original_{config.lap_factor}/SONICOM_mag_{sub_id}right.pickle'
+                        with open(filename, 'rb') as f:
+                            hrirs_right = pickle.load(f)
+                    else:
+                        sofa = sf.read_sofa(f'{config.data_dirs_path}/lap_data/{f.replace(".pickle", ".sofa")}')
+                        hrirs = sofa.Data_IR
+                        hrirs_left = hrirs[:, 1, :]
+                        hrirs_right = hrirs[:, 0, :]
 
                     orginal_hrir = torch.tensor(np.concatenate((hrirs_left, hrirs_right), axis=1))
                 else:
