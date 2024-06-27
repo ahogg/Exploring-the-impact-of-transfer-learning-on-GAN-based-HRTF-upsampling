@@ -532,7 +532,7 @@ def run_preprocess(hpc, type, dataset_id=None, lap_factor=None):
     for dataset in datasets:
         if type == 'base':
             config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data/' + dataset, lap_factor=lap_factor)
-            config.train_samples_ratio = 0.8
+            config.train_samples_ratio = 1.0
         elif type == 'tl':
             config = Config(tag=None, using_hpc=hpc, dataset=dataset, data_dir='/data-transfer-learning/' + dataset, lap_factor=lap_factor)
             config.train_samples_ratio = 1.0

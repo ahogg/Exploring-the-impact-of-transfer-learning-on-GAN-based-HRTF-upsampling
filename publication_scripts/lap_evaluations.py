@@ -111,10 +111,10 @@ def run_lap(hpc):
     lap_factors = ['100', '19', '5', '3']
     sub_ids = [1, 2, 3]
 
-    # lap_factors = ['100']
+    # lap_factors = ['3']
     # sub_ids = [1]
 
-    report_evaluation = True
+    report_evaluation = False
 
     targets = []
 
@@ -458,15 +458,16 @@ def run_lap(hpc):
 
 def run_baseline_plots(hpc):
 
-    # baselines = ['gan', 'barycentric', 'sh', 'lap']
+    # baselines = ['gan', 'barycentric', 'sh', 'lap', 'lap_reports']
     lap_factors = ['100', '19', '5', '3']
 
-    baselines = ['lap_reports']
+    baselines = ['lap']
     # lap_factors = ['5']
 
     lap_folder = '0.8_16_lap'
     print(f'LAP Version: {lap_folder}')
-    lap_reports_folder = '0.8_16_lap_reports'
+    # lap_reports_folder = '0.8_16_lap_reports'
+    lap_folder = ''
 
     config = Config(None, using_hpc=hpc)
     Path(config.data_dirs_path + '/lap_plots').mkdir(parents=True, exist_ok=True)
