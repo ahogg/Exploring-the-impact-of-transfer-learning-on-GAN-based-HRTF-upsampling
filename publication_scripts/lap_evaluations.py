@@ -114,7 +114,7 @@ def run_lap(hpc):
     # lap_factors = ['3']
     # sub_ids = [1]
 
-    report_evaluation = False
+    report_evaluation = True
 
     targets = []
 
@@ -724,8 +724,8 @@ if __name__ == '__main__':
 
 
 
-    # run_lap(hpc)
-    run_baseline_plots(hpc)
+    run_lap(hpc)
+    # run_baseline_plots(hpc)
 
     # lap_factors = ['100', '19', '5', '3']
     # sub_ids = [1, 2, 3]

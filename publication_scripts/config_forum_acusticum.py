@@ -28,7 +28,7 @@ class Config:
         self.merge_flag = True
         self.gen_sofa_flag = True
         self.nbins_hrtf = 256  # make this a power of 2
-        self.hrtf_size = 16
+        self.hrtf_size = 32
         self.panel = None  # panel used to select point when upscale_factor is 80
         self.upscale_factor = 2  # can only take values: 2, 4 ,8, 16
         self.train_samples_ratio = 1.0
