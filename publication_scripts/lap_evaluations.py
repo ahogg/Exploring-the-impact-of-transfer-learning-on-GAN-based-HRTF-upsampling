@@ -464,10 +464,13 @@ def run_baseline_plots(hpc):
     baselines = ['lap']
     # lap_factors = ['5']
 
-    lap_folder = '0.8_16_lap'
+    lap_folder = '0.8_32_lap'
+    lap_reports_folder = '0.8_16_lap_reports'
+    # lap_folder = ''
+    # lap_reports_folder = ''
+
     print(f'LAP Version: {lap_folder}')
-    # lap_reports_folder = '0.8_16_lap_reports'
-    lap_folder = ''
+    print(f'LAP Reports Version: {lap_reports_folder}')
 
     config = Config(None, using_hpc=hpc)
     Path(config.data_dirs_path + '/lap_plots').mkdir(parents=True, exist_ok=True)
@@ -570,18 +573,23 @@ def run_baseline_plots(hpc):
             if baseline == 'barycentric':
                 plot_errors = barycentric_errors
                 title = 'Barycentric Interpolation'
+                postfix = ''
             elif baseline == 'sh':
                 plot_errors = sh_errors
                 title = 'Spherical Harmonics Interpolation'
+                postfix = ''
             elif baseline == 'gan':
                 plot_errors = gan_errors
                 title = 'SRGAN'
+                postfix = ''
             elif baseline == 'lap':
                 plot_errors = lap_errors
                 title = 'SRGAN LAP'
+                postfix = '_' + lap_folder
             elif baseline == 'lap_reports':
                 plot_errors = lap_reports_errors
                 title = 'SRGAN LAP Reports'
+                postfix = '_' + lap_reports_folder
 
             plot_errors_3 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '3']).flatten()
             plot_errors_5 = np.array([[y[error_type] for y in x['errors']] for x in plot_errors if x['lap_factor'] == '5']).flatten()
@@ -598,7 +606,7 @@ def run_baseline_plots(hpc):
             ax.set_xlim(x_limits[error_index])
             ax.xaxis.grid(True)  # Show the vertical gridlines
             fig.tight_layout()
-            fig.savefig(f'lap_plots/{baseline}_{error_type}.png')
+            fig.savefig(f'lap_plots/{baseline}_{error_type}{postfix}.png')
             plt.close()
 
     return
@@ -724,8 +732,8 @@ if __name__ == '__main__':
 
 
 
-    run_lap(hpc)
-    # run_baseline_plots(hpc)
+    # run_lap(hpc)
+    run_baseline_plots(hpc)
 
     # lap_factors = ['100', '19', '5', '3']
     # sub_ids = [1, 2, 3]
