@@ -1,7 +1,10 @@
-# HRTF upsampling with a generative adversarial network using a gnomonic equiangular projection
+# Exploring the impact of transfer learning on GAN-based HRTF upsampling
 
+> :warning: **This code base is in active development**: Bugs are very likely!
 
-A. O. T. Hogg, M. Jenkins, H. Liu, I. Squires, S. J. Cooper and L. Picinali: HRTF upsampling with a generative adversarial network using a gnomonic equiangular projection. *In: Proc. IEEE/ACM Transactions on Audio Speech and Language Processing (submitted)*.
+A. O. T. Hogg, M. Jenkins, H. Liu, and L. Picinali: Exploring the impact of transfer learning on GAN-based HRTF upsampling. *In: Proc. EAAForumAcusticum, Eur. Congress on Acoust.*, 2023.
+
+A. O. T. Hogg, M. Jenkins, H. Liu, I. Squires, S. J. Cooper and L. Picinali: HRTF upsampling with a generative adversarial network using a gnomonic equiangular projection. *In: Proc. IEEE/ACM Transactions on Audio Speech and Language Processing*, 2024.
 
 First, run:
 > Note: generate_projection only needs to be run once per dataset.
