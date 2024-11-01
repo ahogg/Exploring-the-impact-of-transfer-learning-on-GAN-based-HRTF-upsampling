@@ -1,6 +1,8 @@
-# Exploring the impact of transfer learning on GAN-based HRTF upsampling
+# Exploring the impact of transfer learning on GAN-based HRTF upsampling 
 
 > :warning: **This code base is in active development**: Bugs are very likely!
+
+This code was also used for a LAP Challenge submission ([sonicom.eu/lap-challenge](https://www.sonicom.eu/lap-challenge/)).
 
 A. O. T. Hogg, M. Jenkins, H. Liu, and L. Picinali: Exploring the impact of transfer learning on GAN-based HRTF upsampling. *In: Proc. EAA Forum Acusticum, Eur. Congress on Acoust.*, 2023.
 
